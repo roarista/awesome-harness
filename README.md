@@ -74,11 +74,6 @@ Re-running is safe (idempotent). `--dry-run` shows changes without touching anyt
 | **auto-refresh** | A niced, non-blocking, self-locking `post-commit` hook keeps the graph current on every commit — no daemon, CPU-safe. |
 | **graphify-blast** | Maps a `git diff` → impacted symbols, so a coder sees the blast radius *before* editing. |
 
-### 🔎 Bonus skills
-| Piece | What it does |
-|---|---|
-| **youtube-research** | Find credible creators on any niche, pull transcripts, and mine comments for voice-of-customer. Keyless discovery needs only `yt-dlp` (no API key, no quota); optional `ytintel` CLI adds Data-API scoring + Instagram/Reels/TikTok. |
-
 ## How it works (two layers)
 
 - **Global layer** (`~/.claude/`): the hooks, skills, and tools. Most hooks are **dormant** until a repo opts in.
@@ -104,6 +99,10 @@ The harness wires these together; install the ones you want (the installer detec
 - `install.sh` **backs up** your `settings.json` before merging and only adds entries that are missing (idempotent).
 - The proxy is **opt-in** and fail-open; it never sets a third-party endpoint.
 - Machine-local memory (`tools/memgraph/out/`, `scaffolds/`) is gitignored — your notes never get committed here.
+
+## Related
+
+- **[tubeintel](https://github.com/roarista/tubeintel)** — a zero-install YouTube/social intelligence CLI (transcripts, credible-creator discovery, comment mining) that ships a Claude Code skill so your agents can pull expert, up-to-date knowledge straight from video.
 
 ## Status & contributing
 
