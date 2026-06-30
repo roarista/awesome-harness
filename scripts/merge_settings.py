@@ -1,0 +1,90 @@
+#!/usr/bin/env python3
+"""Idempotently merge claude-harness wiring into ~/.claude/settings.json.
+
+Backs up the existing file first, only ADDS our hook commands / env vars when
+absent (never clobbers the user's own config or duplicates on re-run), and
+validates the result is still valid JSON before writing. ANTHROPIC_BASE_URL is
+intentionally NOT added here — the proxy is opt-in (see install.sh --proxy).
+"""
+import json
+import shutil
+import sys
+import time
+from pathlib import Path
+
+HOOK = "$HOME/.claude/hooks"
+
+# env defaults we add only if the key is missing
+ENV_DEFAULTS = {
+    "ENABLE_TOOL_SEARCH": "true",
+    "PONYTAIL_DEFAULT_MODE": "full",
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "60",
+}
+
+# event -> list of (matcher, command). matcher "" means all.
+HOOKS = {
+    "SessionStart":     [("", f'sh "{HOOK}/caveman-discipline.sh"')],
+    "UserPromptSubmit": [("", f'python3 "{HOOK}/recall-inject.py"'),
+                         ("", f'python3 "{HOOK}/northstar-inject.py"')],
+    "PreToolUse":       [("Task", f'sh "{HOOK}/coding-routing-guard.sh"')],
+    "PreCompact":       [("", f'bash "{HOOK}/pre_compact_global.sh"')],
+}
+
+
+def _commands(entries):
+    out = []
+    for e in entries or []:
+        for h in e.get("hooks", []):
+            if h.get("command"):
+                out.append(h["command"])
+    return out
+
+
+def ensure_hook(settings, event, matcher, command):
+    arr = settings.setdefault("hooks", {}).setdefault(event, [])
+    if command in _commands(arr):
+        return False  # already present
+    # find an entry with the same matcher to append to, else create one
+    for e in arr:
+        if e.get("matcher", "") == matcher:
+            e.setdefault("hooks", []).append({"type": "command", "command": command})
+            return True
+    arr.append({"matcher": matcher, "hooks": [{"type": "command", "command": command}]})
+    return True
+
+
+def main():
+    path = Path(sys.argv[1]) if len(sys.argv) > 1 else Path.home() / ".claude" / "settings.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    settings = {}
+    if path.exists() and path.stat().st_size:
+        try:
+            settings = json.loads(path.read_text())
+        except Exception as e:
+            print(f"  refusing to merge — existing settings.json is not valid JSON: {e}")
+            sys.exit(1)
+        bak = path.with_suffix(f".json.bak.{int(time.time())}")
+        shutil.copy2(path, bak)
+        print(f"  backed up existing settings → {bak.name}")
+
+    added = 0
+    env = settings.setdefault("env", {})
+    for k, v in ENV_DEFAULTS.items():
+        if k not in env:
+            env[k] = v
+            added += 1
+    for event, items in HOOKS.items():
+        for matcher, cmd in items:
+            if ensure_hook(settings, event, matcher, cmd):
+                added += 1
+
+    # validate by round-tripping before writing
+    text = json.dumps(settings, indent=2)
+    json.loads(text)
+    path.write_text(text + "\n")
+    print(f"  merged {added} new entries (idempotent; re-running adds nothing).")
+
+
+if __name__ == "__main__":
+    main()

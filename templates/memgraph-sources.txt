@@ -1,0 +1,5 @@
+# memgraph sources — extra globs/paths to index (the default memory dir is always indexed).
+# One glob or path per line. Examples (edit for your machine):
+# ~/notes/*.md
+# ~/.claude/scaffolds/*.md
+~/.claude/scaffolds/*.md

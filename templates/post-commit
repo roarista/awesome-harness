@@ -1,0 +1,13 @@
+#!/bin/sh
+# Auto-refresh the graphify code-map after each commit.
+# Non-blocking (detached + niced), CPU-safe, self-locking. Skips if no graph yet.
+# Installed by claude-harness. AST-only update, no API cost.
+root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+[ -f "$root/graphify-out/graph.json" ] || exit 0
+GFX="$(command -v graphify)"
+[ -n "$GFX" ] || exit 0
+lock="$root/graphify-out/.update.lock"
+if [ -d "$lock" ]; then find "$lock" -maxdepth 0 -mmin +30 >/dev/null 2>&1 && rm -rf "$lock"; fi
+mkdir "$lock" 2>/dev/null || exit 0
+( nice -n 15 "$GFX" update "$root" >"$root/graphify-out/.update.log" 2>&1; rmdir "$lock" 2>/dev/null ) &
+exit 0

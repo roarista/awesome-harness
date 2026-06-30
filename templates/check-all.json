@@ -1,0 +1,5 @@
+{
+  "comment": "Drop this at a repo root to enable the check-all commit gate. Commands run in order; any non-zero in --fast mode blocks the commit.",
+  "fast": ["npm run -s typecheck", "npm run -s lint"],
+  "full": ["npm test"]
+}

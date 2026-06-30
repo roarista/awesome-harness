@@ -1,0 +1,8 @@
+# never publish machine-local memory/state
+tools/memgraph/out/
+scaffolds/*.md
+*.bak.*
+.DS_Store
+__pycache__/
+*.pyc
+.ctxproxy.log.jsonl
