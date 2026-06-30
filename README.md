@@ -102,7 +102,7 @@ The harness wires these together; install the ones you want (the installer detec
 
 ## Related
 
-- **[tubeintel](https://github.com/roarista/tubeintel)** — a zero-install YouTube/social intelligence CLI (transcripts, credible-creator discovery, comment mining) that ships a Claude Code skill so your agents can pull expert, up-to-date knowledge straight from video.
+- **[youtube-research](https://github.com/roarista/youtube-research)** — a zero-install YouTube/social intelligence CLI (transcripts, credible-creator discovery, comment mining) that ships a Claude Code skill so your agents can pull expert, up-to-date knowledge straight from video.
 
 ## Status & contributing
 
