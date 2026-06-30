@@ -74,6 +74,11 @@ Re-running is safe (idempotent). `--dry-run` shows changes without touching anyt
 | **auto-refresh** | A niced, non-blocking, self-locking `post-commit` hook keeps the graph current on every commit — no daemon, CPU-safe. |
 | **graphify-blast** | Maps a `git diff` → impacted symbols, so a coder sees the blast radius *before* editing. |
 
+### 🔎 Bonus skills
+| Piece | What it does |
+|---|---|
+| **youtube-research** | Find credible creators on any niche, pull transcripts, and mine comments for voice-of-customer. Keyless discovery needs only `yt-dlp` (no API key, no quota); optional `ytintel` CLI adds Data-API scoring + Instagram/Reels/TikTok. |
+
 ## How it works (two layers)
 
 - **Global layer** (`~/.claude/`): the hooks, skills, and tools. Most hooks are **dormant** until a repo opts in.
