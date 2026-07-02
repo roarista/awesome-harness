@@ -208,20 +208,9 @@ def stable_files(lines: list) -> str:
             + "\n".join("  - " + f for f in shown))
 
 
-def main() -> None:
-    if os.environ.get("CLAUDE_HANDOFF_CHILD"):
-        return  # never recurse into ourselves from the child claude call
-
-    raw = sys.stdin.read()
-    data = json.loads(raw) if raw.strip() else {}
-    tpath = data.get("transcript_path", "")
-    if not tpath or not Path(tpath).exists():
-        return
-
-    root = repo_root()
-    if not (root / ".northstar.md").exists():
-        return  # opt-in
-
+def _do_handoff(tpath: str, root: Path) -> None:
+    """The slow half (a ~30-60s model call). Runs in a DETACHED worker, never
+    in the hook itself — so /compact is never blocked on it."""
     lines = Path(tpath).read_text(errors="replace").splitlines()
     pos = load_pos()
     start = int(pos.get(tpath, 0))
@@ -249,8 +238,40 @@ def main() -> None:
     save_pos(pos)
 
 
+def main() -> None:
+    if os.environ.get("CLAUDE_HANDOFF_CHILD"):
+        return  # never recurse into ourselves from the child claude call
+
+    raw = sys.stdin.read()
+    data = json.loads(raw) if raw.strip() else {}
+    tpath = data.get("transcript_path", "")
+    if not tpath or not Path(tpath).exists():
+        return
+
+    root = repo_root()
+    if not (root / ".northstar.md").exists():
+        return  # opt-in
+
+    # The handoff needs a ~30-60s model call, but it only has to exist by the
+    # NEXT session start — NOT before compaction finishes. So fork a fully
+    # detached worker (its own session, no controlling terminal, std streams to
+    # /dev/null) and return instantly. This is the fix for "/compact stalls if I
+    # background the terminal": the hook no longer blocks, so nothing to stall.
+    try:
+        subprocess.Popen(
+            [sys.executable, os.path.abspath(__file__), "--worker", tpath, str(root)],
+            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL, start_new_session=True, cwd=str(root),
+        )
+    except Exception:
+        pass  # if we can't spawn, better to let compaction proceed unhanded-off
+
+
 if __name__ == "__main__":
     try:
-        main()
+        if len(sys.argv) > 3 and sys.argv[1] == "--worker":
+            _do_handoff(sys.argv[2], Path(sys.argv[3]))
+        else:
+            main()
     except Exception:
         sys.exit(0)  # never block compaction over the handoff

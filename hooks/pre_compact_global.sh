@@ -138,8 +138,8 @@ UPSTREAM=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || t
 if [ -n "$UPSTREAM" ] && [ "$BRANCH" != "main" ] && [ "$BRANCH" != "master" ]; then
   AHEAD=$(git rev-list --count "@{u}..HEAD" 2>/dev/null || echo 0)
   if [ "${AHEAD:-0}" -gt 0 ]; then
-    echo "[push] pushing $AHEAD commit(s) to $UPSTREAM"
-    git push 2>&1 | tail -3 | sed 's/^/  /'
+    echo "[push] pushing $AHEAD commit(s) to $UPSTREAM (backgrounded — won't block compaction)"
+    ( git push >/dev/null 2>&1 & )   # detached: a slow/dead network can't stall /compact
   else
     echo "[push] in sync with $UPSTREAM"
   fi
