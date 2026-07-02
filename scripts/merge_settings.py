@@ -31,7 +31,10 @@ HOOKS = {
                          ("Write|Edit|MultiEdit", f'python3 "{HOOK}/northstar-protect.py"'),
                          ("Bash", f'python3 "{HOOK}/northstar-protect.py"'),
                          # anti-drift: hard stop on irreversible ops (rm -rf / force-push / destructive SQL)
-                         ("Bash", f'python3 "{HOOK}/irreversible-pause.py"')],
+                         ("Bash", f'python3 "{HOOK}/irreversible-pause.py"'),
+                         # code-map: advise before editing a file with unread callers (no-op without graphify)
+                         ("Write|Edit|MultiEdit", f'python3 "{HOOK}/graphify-blindspot.py"')],
+    "PostToolUse":      [("Read", f'python3 "{HOOK}/graphify-blindspot.py"')],
     "PreCompact":       [("", f'bash "{HOOK}/pre_compact_global.sh"'),
                          # context-preservation: cheap model writes a 7-field handoff before compaction
                          ("", f'python3 "{HOOK}/precompact-handoff.py"')],

@@ -9,7 +9,7 @@ and concrete suggested diffs to CLAUDE.md / hooks / skills.
 
 It NEVER edits the harness. It writes one markdown report to
   ~/Downloads/harness-coach/YYYY-MM-DD.md
-and posts a macOS notification. You read it and decide what to apply.
+and posts a macOS notification. the user reads it and decides what to apply.
 
 Design: deterministic pre-filter (cheap, bounded CPU) → one model call over a
 capped digest. Same trick as precompact-handoff. Fail-safe: any stage error
@@ -166,6 +166,7 @@ SKILLS_DIR = Path.home() / ".claude" / "skills"
 TOOLS_DIR = Path.home() / ".claude" / "tools"
 CLAUDEMD = Path.home() / ".claude" / "CLAUDE.md"
 SETTINGS = Path.home() / ".claude" / "settings.json"
+WORKSTYLE = Path(__file__).with_name("harness-coach.workstyle.md")
 SNAP_CAP = 12000
 
 
@@ -221,14 +222,31 @@ spawns; one-feature loops over hundreds of micro-prompts.
 CODE QUALITY: decompose to spec'd units (CONTEXT/CHANGE/GOAL/VERIFY) for cheap
 workers + an independent auditor; leave one runnable check per non-trivial unit;
 prefer stdlib/native over new deps; shortest working diff.
+Before calling a pattern "waste", CHECK IT AGAINST THE OPERATOR WORKSTYLE block.
+Some high-volume patterns are deliberate technique: subagents that read/summarize
+to keep the orchestrator lean are NOT waste (only flag redundant fanout — same
+file re-fetched, unused outputs, a subagent for a trivial grep); session-start
+re-reads of STATE.md/.handoff/.now are intended re-grounding; judge megasessions
+by error rate + repeated identical failures, not raw call count. And never
+propose a manually-invoked skill — he works conversationally, so fixes must be
+ambient (hook / CLAUDE.md / injected context).
 Your job: from the DIGEST of real sessions below, produce a PROPOSE-ONLY report.
 Rank findings by token/quality impact. For each: the evidence in the digest, the
 concrete fix, and a suggested diff to CLAUDE.md / a hook / a skill. Be specific and
 lazy — no fluff. End with the single highest-leverage change to make this week."""
 
 
+def _workstyle() -> str:
+    try:
+        return WORKSTYLE.read_text(errors="replace").strip()
+    except Exception:
+        return ""
+
+
 def call_gpt55(digest: str, snapshot: str) -> str:
-    prompt = (f"{RUBRIC}\n\n=== {snapshot} ===\n\n=== DIGEST ===\n{digest}\n"
+    ws = _workstyle()
+    ws_block = f"\n\n=== OPERATOR WORKSTYLE (weigh before judging waste) ===\n{ws}\n" if ws else ""
+    prompt = (f"{RUBRIC}{ws_block}\n\n=== {snapshot} ===\n\n=== DIGEST ===\n{digest}\n"
               f"\n=== END DIGEST ===\nWrite the report as markdown only.")
     try:
         r = subprocess.run(

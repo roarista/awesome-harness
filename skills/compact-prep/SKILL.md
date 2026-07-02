@@ -155,14 +155,15 @@ Ponytail: do not dump the whole project. Keep only things a fresh agent would ot
 
 The global hook copies `.planning/COMPACT_CONTEXT.md` plus matching STATE.md sections into `.planning/COMPACT_HANDOFF.md` and echoes them into the post-compact context.
 
-Typical load-bearing context worth preserving across a compact:
+For the user's coding pipeline repos, the default load-bearing context includes the harness-improvement queue mined from Notion:
 
 - Graphify / CodeGraph: graph-over-vector codebase maps, queried before cold grep when `graphify-out/graph.json` exists.
 - Deterministic gates: `check-all`, CLAUDE/AGENTS drift checks, coverage/file-size/TODO/duplication checks.
 - Agent rituals: start with state + memory + graph orientation; end with verification + durable memory + graph update.
-- Open decisions, the next atomic task, and any blocker a fresh agent could not re-derive from the code.
+- Frontend verification: Chrome DevTools MCP plus Playwright for UI-heavy repos.
+- Later loop: Night Watch only after the gates and graph are trusted.
 
-Prefer a pointer to the durable source doc (a STATE file, a decisions index, a memory note) over re-summarizing it.
+Source pointers to preserve rather than re-summarize: `~/Downloads/NOTION_WORKFLOW_MINING_2026-06-16.md`, `~/Downloads/HARNESS_BUILD_PLAN_2026-06-16.md`, and `~/.claude/projects/-Users-rodrigoarista/memory/project_harness_notion_mining.md`.
 
 ### 5. Update STATE.md with the resume point (if `.planning/STATE.md` exists)
 
@@ -211,38 +212,62 @@ Skip if:
 - Branch is `main` or `master` — ask the user first
 - Uncommitted real work still in working tree (step 2 should have caught this)
 
-### 8. Final readiness check
+### 8. Final output — TWO parts
 
-Output a structured summary to the user:
+Emit both, in this order.
+
+**Part A — readiness audit** (short; so the user knows nothing is lost):
 
 ```
 ## Ready to compact
-
-**Will SURVIVE compaction (verified):**
-- Branch: <name> @ <HEAD> (pushed to origin)
-- N commits this session
-- M mulch records added (domains: ...)
-- STATE.md resume point updated
-- COMPACT_CONTEXT.md updated or confirmed unnecessary
-- CLAUDE.md unchanged
-
-**Will be SUMMARIZED (acceptable):**
-- Audit findings (recorded in commits)
-- Fix-loop intermediate steps (recorded in commits)
-- Conversational decisions (recorded in mulch + STATE.md)
-
-**At RISK if compaction summarizes aggressively:**
-- <list anything the user told you verbally that's NOT in any file>
-- <list any open question that hasn't been answered>
-
-**Recommended next action after compact:**
-- Read STATE.md `## Active Resume Point` first
-- Read COMPACT_HANDOFF.md `## Load-bearing context`
-- ml prime to load relevant mulch domains
-- Continue with: <next concrete step>
+SURVIVES (verified): branch <name> @ <HEAD> (pushed?), N commits, M mulch records, STATE.md resume point updated, CLAUDE.md unchanged
+SUMMARIZED (fine): audit findings + fix-loop steps (in commits), decisions (in mulch/STATE.md)
+AT RISK (said in chat, not yet persisted): <list, or "none">
 ```
 
-If "AT RISK" has any non-empty entries, ASK the user before they compact: "These N things were said in chat but aren't persisted anywhere. Want me to write them somewhere durable first?"
+If "AT RISK" is non-empty, ASK before compacting: "These N things were only said in chat. Persist them first?"
+
+**Part B — the CONTINUE block** (this is the point of the skill).
+
+Emit a single fenced block, self-contained, written to be **pasted as the FIRST
+message of the next session**. Not a file reference — the literal text the user
+copies. Fill every line from real session state; drop a line only if truly N/A.
+
+```
+=== CONTINUE (paste as the first message of the next session) ===
+Keep going — resume from NEXT below.
+
+NORTH STAR: <the fixed objective, one line>
+NOW: <the current step, one line>
+BRANCH: <name> @ <short-sha> — <pushed | dirty: files>
+DONE THIS SESSION: <2–4 bullets of what actually changed / was decided>
+NEXT: <the ONE concrete next action, with exact file paths or commands>
+OPEN DECISIONS (need me): <list, or "none">
+DON'T REDO: <dead ends already tried, so the next session doesn't repeat them>
+POINTERS: STATE.md ## Active Resume Point · <memory/ml domains/files to reload>
+===
+```
+
+Keep it under ~20 lines. It should let a cold agent resume with zero chat
+history. If a line would be vague ("continue the work"), it's not specific
+enough — name the file, the command, the decision.
+
+### Why this format — the paste-forward method
+
+Do NOT put the handoff in the same message as `/compact`. When you do, it gets
+folded into the summarization pass and diluted. Instead:
+
+1. Run this skill → it prints the CONTINUE block.
+2. Copy the CONTINUE block.
+3. Run `/compact` with **no message**; let it come back.
+4. Paste the CONTINUE block as the **first message** of the fresh session, then
+   "keep going."
+
+Pasted as the first user message, the block arrives as a high-salience, un-
+summarized instruction the model treats as a direct order — which is why agents
+resume far more accurately this way than when the handoff is buried in the
+`/compact` turn. The `.handoff.md` file (written automatically by the PreCompact
+hook) is the backstop; the pasted CONTINUE block is the primary channel.
 
 ## When NOT to run this skill
 
