@@ -174,6 +174,40 @@ def call_model(prompt: str) -> str:
         return ""
 
 
+def stable_files(lines: list) -> str:
+    """Files Read this session but never Edited/Written — safe to NOT re-read
+    next session (they're already-seen and unchanged by us). Cheap: scans only
+    tool_use names + file_path, not content. This is the anti-re-read-churn note."""
+    read, edited = [], set()
+    for ln in lines:
+        try:
+            obj = json.loads(ln)
+        except Exception:
+            continue
+        msg = obj.get("message", obj)
+        content = msg.get("content") if isinstance(msg, dict) else None
+        if not isinstance(content, list):
+            continue
+        for it in content:
+            if not isinstance(it, dict) or it.get("type") != "tool_use":
+                continue
+            fp = (it.get("input") or {}).get("file_path")
+            if not fp:
+                continue
+            name = it.get("name", "")
+            if name in ("Edit", "Write", "MultiEdit"):
+                edited.add(fp)
+            elif name == "Read" and fp not in read:
+                read.append(fp)
+    stable = [f for f in read if f not in edited]
+    if not stable:
+        return ""
+    shown = stable[-12:]                      # most-recent dozen
+    return ("\n\nSTABLE FILES (read this session, not changed by us — do NOT "
+            "re-read unless you're about to edit them):\n"
+            + "\n".join("  - " + f for f in shown))
+
+
 def main() -> None:
     if os.environ.get("CLAUDE_HANDOFF_CHILD"):
         return  # never recurse into ourselves from the child claude call
@@ -205,6 +239,8 @@ def main() -> None:
 
     if not out or not all(m in out for m in REQUIRED):
         return  # FAIL-SAFE: don't touch handoff, don't advance pointer → retry
+
+    out += stable_files(lines)           # append the anti-re-read-churn note
 
     tmp = prior_path.with_suffix(".md.tmp")
     tmp.write_text(out)
