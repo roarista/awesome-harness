@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- awesome-harness: weekly propose-only self-audit. Install:
+       sed "s#__HOME__#$HOME#g" templates/com.awesomeharness.harness-coach.plist \
+         > ~/Library/LaunchAgents/com.awesomeharness.harness-coach.plist
+       launchctl load ~/Library/LaunchAgents/com.awesomeharness.harness-coach.plist
+     Fires Monday 09:07 local. harness-coach.py calls a model CLI (default: `codex
+     exec`, GPT-5.5) — swap the call in tools/harness-coach.py for your own. -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.awesomeharness.harness-coach</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/python3</string>
+        <string>__HOME__/.claude/tools/harness-coach.py</string>
+        <string>--deep</string>
+        <string>30</string>
+    </array>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>__HOME__/.npm-global/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key><integer>1</integer>
+        <key>Hour</key><integer>9</integer>
+        <key>Minute</key><integer>7</integer>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>__HOME__/.claude/tools/harness-coach.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>__HOME__/.claude/tools/harness-coach.err.log</string>
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>

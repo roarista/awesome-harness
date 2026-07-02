@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# claude-harness global installer.
+# awesome-harness global installer.
 # Copies hooks/skills/tools into ~/.claude and idempotently merges the hook +
 # env wiring into ~/.claude/settings.json (with a timestamped backup first).
 # Safe to re-run. Nothing is published anywhere; everything stays on your machine.
@@ -23,7 +23,7 @@ done
 say(){ printf '  %s\n' "$*"; }
 run(){ if [ "$DRY" = 1 ]; then echo "DRY: $*"; else eval "$*"; fi; }
 
-echo "claude-harness → $DEST"
+echo "awesome-harness → $DEST"
 
 # ---- 1. dependency check (warn, don't fail) -------------------------------
 echo "[1/4] checking dependencies"

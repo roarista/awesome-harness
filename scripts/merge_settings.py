@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Idempotently merge claude-harness wiring into ~/.claude/settings.json.
+"""Idempotently merge awesome-harness wiring into ~/.claude/settings.json.
 
 Backs up the existing file first, only ADDS our hook commands / env vars when
 absent (never clobbers the user's own config or duplicates on re-run), and
@@ -26,8 +26,15 @@ HOOKS = {
     "SessionStart":     [("", f'sh "{HOOK}/caveman-discipline.sh"')],
     "UserPromptSubmit": [("", f'python3 "{HOOK}/recall-inject.py"'),
                          ("", f'python3 "{HOOK}/northstar-inject.py"')],
-    "PreToolUse":       [("Task", f'sh "{HOOK}/coding-routing-guard.sh"')],
-    "PreCompact":       [("", f'bash "{HOOK}/pre_compact_global.sh"')],
+    "PreToolUse":       [("Task", f'sh "{HOOK}/coding-routing-guard.sh"'),
+                         # anti-drift: the north star is read-only to the agent
+                         ("Write|Edit|MultiEdit", f'python3 "{HOOK}/northstar-protect.py"'),
+                         ("Bash", f'python3 "{HOOK}/northstar-protect.py"'),
+                         # anti-drift: hard stop on irreversible ops (rm -rf / force-push / destructive SQL)
+                         ("Bash", f'python3 "{HOOK}/irreversible-pause.py"')],
+    "PreCompact":       [("", f'bash "{HOOK}/pre_compact_global.sh"'),
+                         # context-preservation: cheap model writes a 7-field handoff before compaction
+                         ("", f'python3 "{HOOK}/precompact-handoff.py"')],
 }
 
 
@@ -42,11 +49,13 @@ def _commands(entries):
 
 def ensure_hook(settings, event, matcher, command):
     arr = settings.setdefault("hooks", {}).setdefault(event, [])
-    if command in _commands(arr):
-        return False  # already present
-    # find an entry with the same matcher to append to, else create one
+    # dedupe PER MATCHER — the same command may legitimately live on two
+    # different matchers (e.g. northstar-protect on Write|Edit|MultiEdit AND on
+    # Bash). Idempotent: re-running never duplicates within a matcher.
     for e in arr:
         if e.get("matcher", "") == matcher:
+            if command in _commands([e]):
+                return False  # already present under this matcher
             e.setdefault("hooks", []).append({"type": "command", "command": command})
             return True
     arr.append({"matcher": matcher, "hooks": [{"type": "command", "command": command}]})

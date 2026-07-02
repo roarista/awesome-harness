@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# claude-harness per-repo setup. Opt-in markers that activate the (otherwise
+# awesome-harness per-repo setup. Opt-in markers that activate the (otherwise
 # dormant) global hooks for one repo: a code-map graph, mulch memory, a north
 # star, and graph auto-refresh on commit. Safe to re-run; never overwrites an
 # existing .northstar.md or a tracked file.
@@ -11,7 +11,7 @@ REPO="${1:-$PWD}"
 SRC="$(cd "$(dirname "$0")" && pwd)"
 cd "$REPO"
 [ -d .git ] || { echo "not a git repo: $REPO"; exit 1; }
-echo "claude-harness → repo: $REPO"
+echo "awesome-harness → repo: $REPO"
 
 # 1. graphify code-map + wiki
 if command -v graphify >/dev/null 2>&1; then

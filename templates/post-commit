@@ -1,7 +1,7 @@
 #!/bin/sh
 # Auto-refresh the graphify code-map after each commit.
 # Non-blocking (detached + niced), CPU-safe, self-locking. Skips if no graph yet.
-# Installed by claude-harness. AST-only update, no API cost.
+# Installed by awesome-harness. AST-only update, no API cost.
 root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
 [ -f "$root/graphify-out/graph.json" ] || exit 0
 GFX="$(command -v graphify)"

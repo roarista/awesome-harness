@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/hero.svg" alt="claude-harness" width="760">
+  <img src="assets/hero.svg" alt="awesome-harness" width="760">
 </p>
 
-<h1 align="center">claude-harness</h1>
+<h1 align="center">awesome-harness</h1>
 
 <p align="center">
   <b>A drop-in harness that makes Claude Code cheaper, sharper, and forgetful-proof.</b><br>
@@ -19,14 +19,14 @@ If you run Claude Code seriously you hit the same three walls:
 2. **Amnesia.** Each session starts cold. Decisions, conventions, and hard-won failures are re-learned (and re-paid for) every time.
 3. **Drift.** Long sessions wander off the actual goal — agents quietly start doing something adjacent and forget what you were building.
 
-`claude-harness` is the set of hooks, skills, and small tools that fix all three, plus a few things that just make the agents *better* (lazy-by-default coding, a code-map to query instead of grepping, deterministic gates). It's the result of a lot of iteration on real multi-repo projects — packaged so you can install it in a minute.
+`awesome-harness` is the set of hooks, skills, and small tools that fix all three, plus a few things that just make the agents *better* (lazy-by-default coding, a code-map to query instead of grepping, deterministic gates). It's the result of a lot of iteration on real multi-repo projects — packaged so you can install it in a minute.
 
 Everything runs **locally**. The one optional network component (a compression proxy) only ever talks to `api.anthropic.com` — the same place your requests already go.
 
 ## Install
 
 ```bash
-git clone https://github.com/<you>/claude-harness && cd claude-harness
+git clone https://github.com/<you>/awesome-harness && cd awesome-harness
 ./install.sh           # copies harness into ~/.claude, safely merges settings.json (backup first)
 ./install.sh --proxy   # also enable the local token-saving proxy (macOS)
 # then, per project you want the full treatment on:
@@ -56,7 +56,9 @@ Re-running is safe (idempotent). `--dry-run` shows changes without touching anyt
 | Piece | What it does |
 |---|---|
 | **north star** | A repo-root `.northstar.md` (OBJECTIVE / DONE_WHEN / NOT_NOW) re-injected **every turn**. If a task isn't serving the objective, the agent is told to stop and flag it. This is the single biggest fix for "the agent forgot what we were doing." |
-| **compact-prep** | A skill + deterministic hook that writes a clean handoff (state, next task, blockers) before every compaction, so nothing is lost across the boundary. |
+| **north-star protection** | A `PreToolUse` gate (`northstar-protect.py`) that makes `.northstar.md` **read-only to the agent** — Write/Edit and the Bash bypasses (`>`, `sed -i`, `tee`, `chmod`…) are denied. A drifting agent can't silence its own alarm by softening the goal; only you edit it, by hand. |
+| **PreCompact handoff** | `precompact-handoff.py` — before every compaction a cheap model reads the transcript-slice-since-last-handoff and writes a fixed 7-field handoff (objective / decisions / open-questions / constraints+traps / files+commands / next-step / sources), re-injected on the next session start. Uses a **monotonic ratchet**: inherited constraints are trusted-carry, deleted only on positive contradiction — so negative decisions ("we decided NOT to X") don't silently evaporate across compactions. |
+| **irreversible-ops pause** | `irreversible-pause.py` — a denylist-only `PreToolUse` Bash gate that hard-stops `rm -rf`, `git push --force`, and destructive SQL (`DROP`/`TRUNCATE`), with an explicit `CLAUDE_ALLOW_IRREVERSIBLE=1` re-arm. Tight by design (no cry-wolf). |
 | **caveman discipline** | Terse intermediate output, one complete final message per turn — you read the summary, not the play-by-play, and pay for fewer tokens in between. |
 
 ### 🛠️ Better code from cheaper models
@@ -66,6 +68,12 @@ Re-running is safe (idempotent). `--dry-run` shows changes without touching anyt
 | **ponytail** *(dep)* | A "lazy senior dev" discipline: YAGNI, stdlib/native first, shortest working diff, leave one runnable check. Fewer lines, fewer 3am pages. |
 | **BUILDER_STANDARD.md** | A <40-line correctness/boundary ruleset to prepend to any coder prompt: validate input at trust boundaries, no swallowed errors, smallest change, leave a regression check. |
 | **check-all** | An opt-in deterministic commit gate (typecheck/lint/test/file-size/TODO/dup) so "done" is objective, not vibes. |
+
+### 🔁 A harness that improves itself
+| Piece | What it does |
+|---|---|
+| **harness-coach** | A weekly, **propose-only** self-audit. A deterministic Python miner reads the last 7 days of your session transcripts (fast — byte-stats over everything, deep-parse only the biggest sessions), computes where you waste tokens (re-read churn, oversized tool results, runaway subagent fan-out, error/rework rates), then hands a compact digest **plus a snapshot of your current harness** to a strong model. It returns a ranked report — each finding tagged `[NEW]`, `[IMPROVE <existing file>]`, or `[ALREADY-COVERED-BY <x>]` with a concrete diff — to `~/Downloads/harness-coach/DATE.md`. It **never edits your harness**; you decide what to apply. Schedule it with the launchd template (`templates/com.awesomeharness.harness-coach.plist`) or any cron. |
+| **drift-replay** | A one-shot measurement tool: replay a past transcript through a candidate LLM drift-judge and measure its false-positive rate *before* you wire it live. (In practice it showed a history-anchored judge cries wolf ~90% of the time while the deterministic north-star injection already captures the value — so we *didn't* build the expensive layer. Instrument before you build.) |
 
 ### 🗺️ A code-map RAG (query instead of grep)
 | Piece | What it does |
