@@ -34,11 +34,27 @@ GIT_FORCE_PUSH = re.compile(
     r"\bgit\b[^\n]*\bpush\b[^\n]*(?:--force-with-lease|--force|(?<![\w-])-f\b)",
 )
 
-# 3. Destructive SQL / DB reset (case-insensitive).
+# 3. Destructive SQL / DB reset (case-insensitive) — only counts when an actual
+#    DB client is being invoked, so prose or an LLM prompt containing "drop table"
+#    (e.g. `codex exec "...drop table..."`, a commit message, an echo) does NOT trip
+#    the guard. This killed a real cry-wolf that blocked commits + subagent spawns.
 SQL_DESTRUCTIVE = re.compile(
     r"\b(?:drop\s+table|drop\s+database|truncate\s+table)\b",
     re.IGNORECASE,
 )
+DB_CLIENT = re.compile(
+    r"\b(?:psql|mysql|mariadb|sqlite3?|mongosh?|clickhouse-client|cockroach|"
+    r"prisma|sequelize|alembic|dbmate|flyway|mysqldump|pg_dump)\b",
+    re.IGNORECASE,
+)
+
+
+def _dequote(cmd: str) -> str:
+    """Blank out single/double-quoted spans so a trigger word living inside a
+    quoted ARGUMENT to another program (codex/claude/glm/echo "... rm -rf ...")
+    is not mistaken for a command. A real `rm -rf "/a b"` keeps its flags OUTSIDE
+    the quotes, so it still matches."""
+    return re.sub(r'"[^"]*"|\'[^\']*\'', " ", cmd)
 
 
 def _rm_is_recursive_force(cmd: str) -> bool:
@@ -56,11 +72,15 @@ def _rm_is_recursive_force(cmd: str) -> bool:
 
 
 def matches_denylist(cmd: str) -> bool:
-    if _rm_is_recursive_force(cmd):
+    # rm + force-push are SHELL-STRUCTURE ops: match on the dequoted command so a
+    # trigger buried in a quoted argument to codex/echo/git-commit doesn't fire.
+    bare = _dequote(cmd)
+    if _rm_is_recursive_force(bare):
         return True
-    if GIT_FORCE_PUSH.search(cmd):
+    if GIT_FORCE_PUSH.search(bare):
         return True
-    if SQL_DESTRUCTIVE.search(cmd):
+    # destructive SQL only when a real DB client is invoked (scan original cmd).
+    if DB_CLIENT.search(cmd) and SQL_DESTRUCTIVE.search(cmd):
         return True
     return False
 
