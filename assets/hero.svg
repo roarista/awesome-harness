@@ -42,7 +42,7 @@
   </g>
 
   <!-- wordmark -->
-  <text x="90" y="180" font-size="76" font-weight="800" fill="#f8fafc" letter-spacing="-2">claude<tspan fill="#2dd4bf">-</tspan>harness</text>
+  <text x="90" y="180" font-size="76" font-weight="800" fill="#f8fafc" letter-spacing="-2">awesome<tspan fill="#2dd4bf">-</tspan>harness</text>
   <text x="94" y="232" font-size="27" font-weight="500" fill="#9fb3c8">Memory · token savings · anti-drift · a code-map RAG</text>
   <text x="94" y="270" font-size="27" font-weight="500" fill="#9fb3c8">for Claude Code — wired in one command.</text>
 
