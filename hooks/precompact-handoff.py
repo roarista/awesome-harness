@@ -136,6 +136,7 @@ THE RATCHET RULE (critical):
 - Claims in the PRIOR HANDOFF are trusted-carry. Copy them forward VERBATIM unless the NEW SLICE explicitly CONTRADICTS them.
 - NEVER delete a prior claim just because the new slice or git diff doesn't mention it. Settled/negative decisions ("we decided NOT to do X", "X is a trap") leave no artifact — losing them is the main failure to avoid.
 - Only claims you ADD from the new slice need support from the slice or git diff. Do not invent.
+- ANTI-RE-FETCH: if losing a fact would force the next session to re-read a large file or re-run a slow command, carry the CONCLUSION and where it lives (e.g. "runner.py entrypoint = main() at L40; verified") — never a bare pointer that forces the re-read.
 
 Emit EXACTLY these sections (keep each tight, bullet points):
 # HANDOFF (auto — overwritten each compaction; hand-edit survives only until next compaction)

@@ -9,7 +9,7 @@ and concrete suggested diffs to CLAUDE.md / hooks / skills.
 
 It NEVER edits the harness. It writes one markdown report to
   ~/Downloads/harness-coach/YYYY-MM-DD.md
-and posts a macOS notification. the user reads it and decides what to apply.
+and posts a macOS notification. Ro reads it and decides what to apply.
 
 Design: deterministic pre-filter (cheap, bounded CPU) → one model call over a
 capped digest. Same trick as precompact-handoff. Fail-safe: any stage error
@@ -230,6 +230,13 @@ re-reads of STATE.md/.handoff/.now are intended re-grounding; judge megasessions
 by error rate + repeated identical failures, not raw call count. And never
 propose a manually-invoked skill — he works conversationally, so fixes must be
 ambient (hook / CLAUDE.md / injected context).
+BIAS TO CUT, NOT ADD (empirical — arxiv 2602.11988: LLM-generated context files
+REDUCED task success ~2% at +23% cost; more static context usually hurts). So:
+prefer DELETING or SHRINKING a rule/doc/injection over adding one; every proposal
+that ADDS tokens to the standing context must justify why the win beats the
+per-turn cost it imposes; and actively hunt for stale/duplicated/never-obeyed
+context already installed that should be removed. A shorter harness that is
+actually obeyed beats a bigger one that is skimmed.
 Your job: from the DIGEST of real sessions below, produce a PROPOSE-ONLY report.
 Rank findings by token/quality impact. For each: the evidence in the digest, the
 concrete fix, and a suggested diff to CLAUDE.md / a hook / a skill. Be specific and

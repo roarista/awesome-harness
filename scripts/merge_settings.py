@@ -23,9 +23,14 @@ ENV_DEFAULTS = {
 
 # event -> list of (matcher, command). matcher "" means all.
 HOOKS = {
-    "SessionStart":     [("", f'sh "{HOOK}/caveman-discipline.sh"')],
+    "SessionStart":     [("", f'sh "{HOOK}/caveman-discipline.sh"'),
+                         # reset the re-read guard's read-set (compact-safety valve)
+                         ("", f'python3 "{HOOK}/reread-guard.py"')],
     "UserPromptSubmit": [("", f'python3 "{HOOK}/recall-inject.py"'),
-                         ("", f'python3 "{HOOK}/northstar-inject.py"')],
+                         ("", f'python3 "{HOOK}/northstar-inject.py"'),
+                         # anti-decay: rotating re-assertion of ponytail/graphify/
+                         # mulch/caveman so they don't get skimmed away by turn ~20
+                         ("", f'python3 "{HOOK}/harness-enforce.py"')],
     "PreToolUse":       [("Task", f'sh "{HOOK}/coding-routing-guard.sh"'),
                          # anti-drift: the north star is read-only to the agent
                          ("Write|Edit|MultiEdit", f'python3 "{HOOK}/northstar-protect.py"'),
@@ -33,8 +38,14 @@ HOOKS = {
                          # anti-drift: hard stop on irreversible ops (rm -rf / force-push / destructive SQL)
                          ("Bash", f'python3 "{HOOK}/irreversible-pause.py"'),
                          # code-map: advise before editing a file with unread callers (no-op without graphify)
-                         ("Write|Edit|MultiEdit", f'python3 "{HOOK}/graphify-blindspot.py"')],
+                         ("Write|Edit|MultiEdit", f'python3 "{HOOK}/graphify-blindspot.py"'),
+                         # token-save: block a full re-read of an unchanged large file already read this stretch
+                         ("Read", f'python3 "{HOOK}/reread-guard.py"'),
+                         # keep .now.md tiny (injector truncates at 800 chars) — advisory only
+                         ("Write|Edit|MultiEdit", f'python3 "{HOOK}/now-gate.py"')],
     "PostToolUse":      [("Read", f'python3 "{HOOK}/graphify-blindspot.py"'),
+                         # token-save: record full reads so the PreToolUse guard can dedup them
+                         ("Read", f'python3 "{HOOK}/reread-guard.py"'),
                          # soft re-scope nudge when a session looks abnormal (deep / errors / looping)
                          ("", f'python3 "{HOOK}/session-checkpoint.py"'),
                          # token discipline: warn on the 3rd full re-read of the same file
