@@ -39,6 +39,9 @@ HOOKS = {
                          ("Bash", f'python3 "{HOOK}/irreversible-pause.py"'),
                          # code-map: advise before editing a file with unread callers (no-op without graphify)
                          ("Write|Edit|MultiEdit", f'python3 "{HOOK}/graphify-blindspot.py"'),
+                         # code-map ENFORCED: DENY cold source Read/Grep until graphify has run once this session
+                         ("Read", f'python3 "{HOOK}/graphify-gate.py"'),
+                         ("Grep", f'python3 "{HOOK}/graphify-gate.py"'),
                          # token-save: block a full re-read of an unchanged large file already read this stretch
                          ("Read", f'python3 "{HOOK}/reread-guard.py"'),
                          # keep .now.md tiny (injector truncates at 800 chars) — advisory only
@@ -46,10 +49,14 @@ HOOKS = {
     "PostToolUse":      [("Read", f'python3 "{HOOK}/graphify-blindspot.py"'),
                          # token-save: record full reads so the PreToolUse guard can dedup them
                          ("Read", f'python3 "{HOOK}/reread-guard.py"'),
+                         # code-map ENFORCED: mark the session "graphified" once a graphify command runs
+                         ("Bash", f'python3 "{HOOK}/graphify-gate.py"'),
                          # soft re-scope nudge when a session looks abnormal (deep / errors / looping)
                          ("", f'python3 "{HOOK}/session-checkpoint.py"'),
                          # token discipline: warn on the 3rd full re-read of the same file
                          ("Read", f'python3 "{HOOK}/token-discipline.py"')],
+    "Stop":             [# compact-prep ENFORCED: block turn-end until .now.md/STATE refreshed (rate-limited)
+                         ("", f'python3 "{HOOK}/compact-prep-gate.py"')],
     "PreCompact":       [("", f'bash "{HOOK}/pre_compact_global.sh"'),
                          # context-preservation: cheap model writes a 7-field handoff before compaction
                          ("", f'python3 "{HOOK}/precompact-handoff.py"')],
