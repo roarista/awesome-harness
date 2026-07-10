@@ -63,6 +63,11 @@ MECHS = [
      "prose until the end). ONE thorough standalone FINAL summary per turn, and end "
      "every turn compaction-safe (update .now.md + STATE resume point, sync memory/"
      "mulch, state what was saved). Ro reads only the final message."),
+    ("routing", lambda r: True,
+     "ROUTING: you ORCHESTRATE, you don't build. Delegate code writes/edits to a "
+     "codex 5.5 subagent (builder = billing), have glm 5.2 audit it; LLM councils = "
+     "Opus-4.8-low + Codex-5.5 + GLM-5.2. Only edit orientation files (.now/.northstar/"
+     "STATE/memory) or tiny harness tweaks directly. Ro naming a model overrides this."),
 ]
 
 

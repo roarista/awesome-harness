@@ -5,13 +5,17 @@ The blind-spot hook only ADVISES ("maybe run graphify"), and advisories get
 skimmed away — measured: graphify was invoked in ~16% of sessions. Ro's ask:
 make it USED every time, without reminding. Advisory → DENY.
 
-Contract (two jobs, branch on event):
+Contract (three jobs, branch on event):
+  * SessionStart      → CLEAR this session's "graphified" marker, so graphify is
+    re-required at the start of every session AND after every /compact (Ro
+    compacts a lot; post-compaction the map orientation is gone from context, so
+    the agent must re-query before cold-reading source again).
   * PostToolUse Bash  → if the command ran `graphify query|explain|path|update`,
-    mark this session as "graphified" (gate lifts for the rest of the session).
+    mark this session as "graphified" (gate lifts until the next SessionStart).
   * PreToolUse Read/Grep → in a repo that HAS `graphify-out/graph.json`, if the
     session has NOT run graphify yet AND the target is source CODE, DENY (exit 2)
     with the exact command to run. First cold code-read is blocked; the moment
-    ANY graphify command runs, the gate never fires again this session.
+    ANY graphify command runs, the gate stays lifted until the next SessionStart.
 
 Deliberately narrow so it enforces without wedging:
   * no graphify-out up-tree            → instant no-op (almost every repo / home)
@@ -79,6 +83,16 @@ def main() -> None:
     tool = data.get("tool_name", "")
     session = str(data.get("session_id", "") or "")
     ti = data.get("tool_input", {}) or {}
+
+    # --- job 0: SessionStart → re-arm the gate (new session OR post-compact) ---
+    if event == "SessionStart":
+        try:
+            _marker(session).unlink()
+        except FileNotFoundError:
+            pass
+        except Exception:
+            pass
+        return
 
     # --- job 1: PostToolUse Bash → record that graphify was used ---
     if event == "PostToolUse" and tool == "Bash":

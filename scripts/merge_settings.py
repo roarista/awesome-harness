@@ -25,7 +25,11 @@ ENV_DEFAULTS = {
 HOOKS = {
     "SessionStart":     [("", f'sh "{HOOK}/caveman-discipline.sh"'),
                          # reset the re-read guard's read-set (compact-safety valve)
-                         ("", f'python3 "{HOOK}/reread-guard.py"')],
+                         ("", f'python3 "{HOOK}/reread-guard.py"'),
+                         # re-arm the graphify gate every new session AND after each
+                         # /compact (Ro compacts often; post-compact the map
+                         # orientation is gone, so re-require a graphify query)
+                         ("", f'python3 "{HOOK}/graphify-gate.py"')],
     "UserPromptSubmit": [("", f'python3 "{HOOK}/recall-inject.py"'),
                          ("", f'python3 "{HOOK}/northstar-inject.py"'),
                          # anti-decay: rotating re-assertion of ponytail/graphify/
