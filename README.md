@@ -23,6 +23,30 @@ If you run Claude Code seriously you hit the same three walls:
 
 Everything runs **locally**. The one optional network component (a compression proxy) only ever talks to `api.anthropic.com` — the same place your requests already go.
 
+## Benchmarks
+
+Measured on real Claude Code session logs (`message.usage` token fields, tiktoken `cl100k_base`) — not marketing math. Every figure is labelled by rigor; full method + honesty appendix in **[docs/BENCHMARK.md](docs/BENCHMARK.md)**.
+
+**The headline — orientation-file bloat, before vs after the `state-distiller`:**
+
+```mermaid
+xychart-beta
+    title "STATE.md token footprint — before vs after (lower is better)"
+    x-axis ["forclosurehomes", "Vividlist", "virality-pipeline"]
+    y-axis "tokens per session" 0 --> 125000
+    bar [121854, 42668, 30967]
+    bar [2294, 426, 1569]
+```
+
+| Mechanism | Impact | Rigor |
+|---|---|---|
+| **state-distiller** | **195,489 → 4,289 tokens (−97.8%)** across 3 repos' `STATE.md`, 100% history archived | measured / tiktoken |
+| **reread-guard** | up to **≈4.13 M tokens** saved in one pathological session (a 66 KB file was being read 65×); **≥2,000 tok** per blocked >8 KB re-read | measured / documented |
+| **graphify** | a scoped code-map query is **~8–15× cheaper** than cold-reading the file (~300–500 vs ~3,000–5,000 tok); 15:1 observed live | estimate + observed ratio |
+| **PreCompact handoff** | **38 compactions → 0 cold restarts** in the sampled window — each emits a 7-field handoff re-injected next session, so decisions/constraints are carried, not re-paid | observational |
+
+*Honesty notes: `STATE.md` is append-only and re-bloats, so the distiller saving is **per-application** (re-realized each run), which is why it's paired with a read-side cap. The cross-session trend is **observational, not a controlled A/B** — the CPU-capped 50-session sample all lands in one post-rollout month. Details and caveats in [docs/BENCHMARK.md](docs/BENCHMARK.md).*
+
 ## Install
 
 ```bash
