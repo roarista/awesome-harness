@@ -28,19 +28,22 @@ Everything runs **locally**. The one optional network component (a compression p
 Measured from the **full 94-session history** of one real user's Claude Code logs (`message.usage` token fields), split at the first `awesome-harness` commit into **bare Claude Code (WITHOUT)** vs **harness present (WITH)**. This is **observational**, not a controlled A/B — sessions differ in task and length across the boundary — but the sample is the *entire* history (not one cherry-picked window), and the per-session-normalized rates hold under every session-size filter. Every figure is labelled by rigor; full method + honesty appendix in **[docs/BENCHMARK.md](docs/BENCHMARK.md)**.
 
 <p align="center">
-  <img src="assets/benchmark.svg" alt="Bare Claude Code vs awesome-harness — before/after benchmark" width="760">
+  <img src="assets/benchmark-hero.jpeg" alt="95% less context — typical session on the repos that were drowning" width="900">
 </p>
 
-| Metric (per working session) | WITHOUT | WITH | Δ | Rigor |
-|---|---:|---:|---|---|
-| **Median context cost** | 1,352,122 tok | 64,372 tok | **~21× lighter** | observational |
-| **Redundant >8KB re-reads** | 0.345 /session | 0.015 /session | **23× fewer** | measured |
-| **Compactions** | 1.31 /session | 0.32 /session | **4× fewer** | measured |
-| **Structured handoffs at compaction** | 0 | ≥21 | new capability | measured |
+**Median context cost per session — on the three repos that were drowning pre-harness** (anonymized; per-project, not an aggregate):
 
-Plus the mechanism-level wins that produce the above: the **state-distiller** pulls **167,919 tokens** of history out of the every-session read path (98% / 78% / 52% across three projects; 100% preserved in an archive); the **reread-guard** eliminates redundant big-file re-reads (one documented loop re-read a 66 KB file **65×** ≈ **4.13 M tokens** — all but the first blocked); **graphify** answers an orientation lookup for **~300–500 tokens** instead of the **3,000–5,000** a cold full-read costs (**~8–15× cheaper**).
+| Project | Median tok/session WITHOUT → WITH | Δ | Redundant re-reads/session | Compactions/session |
+|---|---:|---|---:|---:|
+| **A** (orchestrator) | 3.19M → 63k | **−98%** | 1.04 → 0.15 | 1.43 → 0.37 |
+| **B** | 2.76M → 109k | **−96%** | 2.93 → 0.00 | 5.07 → 0.00 |
+| **C** | 951k → 246k | **−74%** | 2.84 → 0.33 | 2.00 → 0.39 |
 
-*Honesty notes: the median-token win is **observational** and lands on the **typical** session — rare multi-hour autonomous marathons stay token-heavy in both eras (their cost is task-bound, not context-bound); even there the re-read rate still drops ~5×. `STATE.md` is append-only and re-bloats, so the distiller figure is a **per-application** offload (re-realized each run), which is why it's paired with a read-side cap. Project names are anonymized. Full labels and caveats: [docs/BENCHMARK.md](docs/BENCHMARK.md).*
+The **redundant-re-read** win is the bulletproof one — it improves in **6 / 6** measured projects (best: **−88%**), because the guard *prevents* the churn rather than logging it. The 25–50× token collapse is scoped to the repos that were drowning; on repos that became long autonomous-build pipelines post-harness, per-session tokens rose (bigger *work* per session) even as their re-read rate fell — so this is deliberately shown per-project, not as one headline number.
+
+Plus the mechanism-level wins underneath: the **state-distiller** pulls **167,919 tokens** of history out of the every-session read path (98% / 78% / 52% across three projects; 100% preserved in an archive); the **reread-guard** eliminates redundant big-file re-reads (one documented loop re-read a 66 KB file **65×** ≈ **4.13 M tokens** — all but the first blocked); **graphify** answers an orientation lookup for **~300–500 tokens** instead of the **3,000–5,000** a cold full-read costs (**~8–15× cheaper**).
+
+*Honesty notes: token medians are **observational** (sessions differ in task/length across the rollout boundary); the per-session **rates** (re-reads, compactions) are the robust figures and hold under every session-size filter. `STATE.md` is append-only and re-bloats, so the distiller figure is a **per-application** offload (re-realized each run), which is why it's paired with a read-side cap. Project names are anonymized. Full labels and caveats: [docs/BENCHMARK.md](docs/BENCHMARK.md).*
 
 ## Install
 
