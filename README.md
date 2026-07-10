@@ -25,27 +25,22 @@ Everything runs **locally**. The one optional network component (a compression p
 
 ## Benchmarks
 
-Measured on real Claude Code session logs (`message.usage` token fields, tiktoken `cl100k_base`) — not marketing math. Every figure is labelled by rigor; full method + honesty appendix in **[docs/BENCHMARK.md](docs/BENCHMARK.md)**.
+Measured from the **full 94-session history** of one real user's Claude Code logs (`message.usage` token fields), split at the first `awesome-harness` commit into **bare Claude Code (WITHOUT)** vs **harness present (WITH)**. This is **observational**, not a controlled A/B — sessions differ in task and length across the boundary — but the sample is the *entire* history (not one cherry-picked window), and the per-session-normalized rates hold under every session-size filter. Every figure is labelled by rigor; full method + honesty appendix in **[docs/BENCHMARK.md](docs/BENCHMARK.md)**.
 
-**The headline — orientation-file bloat, before vs after the `state-distiller`:**
+<p align="center">
+  <img src="assets/benchmark.svg" alt="Bare Claude Code vs awesome-harness — before/after benchmark" width="760">
+</p>
 
-```mermaid
-xychart-beta
-    title "STATE.md token footprint — before vs after (lower is better)"
-    x-axis ["forclosurehomes", "Vividlist", "virality-pipeline"]
-    y-axis "tokens per session" 0 --> 125000
-    bar [121854, 42668, 30967]
-    bar [2294, 426, 1569]
-```
+| Metric (per working session) | WITHOUT | WITH | Δ | Rigor |
+|---|---:|---:|---|---|
+| **Median context cost** | 1,352,122 tok | 64,372 tok | **~21× lighter** | observational |
+| **Redundant >8KB re-reads** | 0.345 /session | 0.015 /session | **23× fewer** | measured |
+| **Compactions** | 1.31 /session | 0.32 /session | **4× fewer** | measured |
+| **Structured handoffs at compaction** | 0 | ≥21 | new capability | measured |
 
-| Mechanism | Impact | Rigor |
-|---|---|---|
-| **state-distiller** | **195,489 → 4,289 tokens (−97.8%)** across 3 repos' `STATE.md`, 100% history archived | measured / tiktoken |
-| **reread-guard** | up to **≈4.13 M tokens** saved in one pathological session (a 66 KB file was being read 65×); **≥2,000 tok** per blocked >8 KB re-read | measured / documented |
-| **graphify** | a scoped code-map query is **~8–15× cheaper** than cold-reading the file (~300–500 vs ~3,000–5,000 tok); 15:1 observed live | estimate + observed ratio |
-| **PreCompact handoff** | **38 compactions → 0 cold restarts** in the sampled window — each emits a 7-field handoff re-injected next session, so decisions/constraints are carried, not re-paid | observational |
+Plus the mechanism-level wins that produce the above: the **state-distiller** pulls **167,919 tokens** of history out of the every-session read path (98% / 78% / 52% across three projects; 100% preserved in an archive); the **reread-guard** eliminates redundant big-file re-reads (one documented loop re-read a 66 KB file **65×** ≈ **4.13 M tokens** — all but the first blocked); **graphify** answers an orientation lookup for **~300–500 tokens** instead of the **3,000–5,000** a cold full-read costs (**~8–15× cheaper**).
 
-*Honesty notes: `STATE.md` is append-only and re-bloats, so the distiller saving is **per-application** (re-realized each run), which is why it's paired with a read-side cap. The cross-session trend is **observational, not a controlled A/B** — the CPU-capped 50-session sample all lands in one post-rollout month. Details and caveats in [docs/BENCHMARK.md](docs/BENCHMARK.md).*
+*Honesty notes: the median-token win is **observational** and lands on the **typical** session — rare multi-hour autonomous marathons stay token-heavy in both eras (their cost is task-bound, not context-bound); even there the re-read rate still drops ~5×. `STATE.md` is append-only and re-bloats, so the distiller figure is a **per-application** offload (re-realized each run), which is why it's paired with a read-side cap. Project names are anonymized. Full labels and caveats: [docs/BENCHMARK.md](docs/BENCHMARK.md).*
 
 ## Install
 

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="382" viewBox="0 0 760 382" font-family="-apple-system,Segoe UI,Roboto,sans-serif">
+<rect width="760" height="382" rx="14" fill="#0d1117"/>
+<text x="28" y="40" fill="#e6edf3" font-size="22" font-weight="700">Bare Claude Code vs awesome-harness</text>
+<text x="28" y="64" fill="#8b949e" font-size="13">Full 94-session history (2026-06-09 - 07-09), split at the first harness commit. Observational.</text>
+<rect x="510" y="26" width="12" height="12" rx="2" fill="#f0736a"/><text x="528" y="36" fill="#8b949e" font-size="12">WITHOUT</text><rect x="610" y="26" width="12" height="12" rx="2" fill="#3fb886"/><text x="628" y="36" fill="#8b949e" font-size="12">WITH everything</text>
+<text x="28" y="90" fill="#e6edf3" font-size="15" font-weight="600">Median context cost / session</text>
+<text x="732" y="90" fill="#3fb886" font-size="14" font-weight="700" text-anchor="end">~21x lighter</text>
+<rect x="28" y="100" width="300" height="16" rx="4" fill="#f0736a"/>
+<text x="338" y="113" fill="#8b949e" font-size="12">1,352,122 tok</text>
+<rect x="28" y="126" width="14" height="16" rx="4" fill="#3fb886"/>
+<text x="52" y="139" fill="#e6edf3" font-size="12">64,372 tok</text>
+<text x="732" y="139" fill="#8b949e" font-size="10" text-anchor="end">[observational]</text>
+<text x="28" y="164" fill="#e6edf3" font-size="15" font-weight="600">Redundant &gt;8KB re-reads / session</text>
+<text x="732" y="164" fill="#3fb886" font-size="14" font-weight="700" text-anchor="end">23x fewer</text>
+<rect x="28" y="174" width="300" height="16" rx="4" fill="#f0736a"/>
+<text x="338" y="187" fill="#8b949e" font-size="12">0.345</text>
+<rect x="28" y="200" width="13" height="16" rx="4" fill="#3fb886"/>
+<text x="51" y="213" fill="#e6edf3" font-size="12">0.015</text>
+<text x="732" y="213" fill="#8b949e" font-size="10" text-anchor="end">[measured]</text>
+<text x="28" y="238" fill="#e6edf3" font-size="15" font-weight="600">Compactions / session</text>
+<text x="732" y="238" fill="#3fb886" font-size="14" font-weight="700" text-anchor="end">4x fewer</text>
+<rect x="28" y="248" width="300" height="16" rx="4" fill="#f0736a"/>
+<text x="338" y="261" fill="#8b949e" font-size="12">1.31</text>
+<rect x="28" y="274" width="73" height="16" rx="4" fill="#3fb886"/>
+<text x="111" y="287" fill="#e6edf3" font-size="12">0.32</text>
+<text x="732" y="287" fill="#8b949e" font-size="10" text-anchor="end">[measured]</text>
+<text x="28" y="352" fill="#8b949e" font-size="12">Also: 167,919 tok pulled out of the every-session read path (state-distiller) - one 4.13M-tok re-read loop eliminated - 0 to 21 structured handoffs.</text>
+<text x="28" y="368" fill="#8b949e" font-size="11">Per-session rates hold under every session-size filter. Full method: docs/BENCHMARK.md</text>
+</svg>
