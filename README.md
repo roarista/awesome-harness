@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/hero-banner.png" alt="awesome-harness" width="900">
+  <img src="assets/hero-banner-v3.png" alt="awesome-harness" width="900">
 </p>
 
 <h1 align="center">awesome-harness</h1>
