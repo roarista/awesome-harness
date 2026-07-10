@@ -16,4 +16,11 @@ BEFORE prompting the builder:
 - run `~/.claude/tools/graphify-blast.sh <files>` and pass the blast radius down.
 - PREPEND ~/.claude/BUILDER_STANDARD.md + ponytail discipline (laziest working solution,
   reuse before writing, shortest diff, leave one runnable check) to the builder's prompt.
+PROMPT SHAPE (few points — full guide: ~/awesome-harness/docs/CODING_AGENT_PROMPTING.md):
+- CONTEXT: give the map not the maze — graphify output + exact file:line anchors + how
+  this codebase already does X (so the coder matches existing patterns, not invents).
+- CHANGE / GOAL / VERIFY: state the concrete change, the done-condition, and the runnable
+  check that must pass. Forbid invented APIs — use only symbols shown in the context.
+- Then glm 5.2 audits codex's diff before you accept it.
+(Read the full doc only when scoping a non-trivial build; this checklist covers routine spawns.)
 EOF

@@ -54,7 +54,9 @@ HOOKS = {
                          # direct source edits — the orchestrator must delegate to a
                          # codex/glm coder (opt-in per repo; no-op without the marker)
                          ("Write|Edit|MultiEdit", f'python3 "{HOOK}/route-only-gate.py"')],
-    "PostToolUse":      [("Read", f'python3 "{HOOK}/graphify-blindspot.py"'),
+    "PostToolUse":      [# anti-narrate: remind at the exact moment a sub-agent returns (can't block prose, just nudge)
+                         ("Task|Agent", f'python3 "{HOOK}/post-agent-guard.py"'),
+                         ("Read", f'python3 "{HOOK}/graphify-blindspot.py"'),
                          # token-save: record full reads so the PreToolUse guard can dedup them
                          ("Read", f'python3 "{HOOK}/reread-guard.py"'),
                          # code-map ENFORCED: mark the session "graphified" once a graphify command runs
