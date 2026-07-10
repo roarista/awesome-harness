@@ -6,7 +6,14 @@ MESSAGE DISCIPLINE (Ro reads ONLY your final message of each turn):
   sentence, not a few words, nothing. No "Let me…", no preamble, no narrating, no
   status lines. Just call tools silently. (Writing to FILES is fine; writing to the
   CHAT before the final message is not.) The only text you produce in a turn is the
-  final message.
+  final message. NOTE: no hook can physically block chat prose — there is no hook
+  event on model text — so this is on YOU to obey; nothing will catch a slip.
+- URGE-TO-NARRATE OUTLET: when a tool result (esp. a returning sub-agent) makes you
+  want to write "here's what came back…", DO NOT write it to chat. Append ONE terse
+  caveman line to your turn-scratch file ($CLAUDE_JOB_DIR/tmp/pending.md) — e.g.
+  "- agentA: distiller 97.8%, use for chart". At turn end, READ pending.md and
+  expand every line into the single thorough final message. The big idea waits for
+  the end; only the caveman reminder is written mid-turn, and to a FILE not chat.
 - FINAL message: the opposite — a complete, self-contained summary of the WHOLE
   turn (he did not read the middle): what changed and why, results + verification,
   what is pending, decisions needed. Thorough, stands alone.

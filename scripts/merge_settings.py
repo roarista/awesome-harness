@@ -49,7 +49,11 @@ HOOKS = {
                          # token-save: block a full re-read of an unchanged large file already read this stretch
                          ("Read", f'python3 "{HOOK}/reread-guard.py"'),
                          # keep .now.md tiny (injector truncates at 800 chars) — advisory only
-                         ("Write|Edit|MultiEdit", f'python3 "{HOOK}/now-gate.py"')],
+                         ("Write|Edit|MultiEdit", f'python3 "{HOOK}/now-gate.py"'),
+                         # route-only ENFORCED: in a repo with a .route-only marker, DENY
+                         # direct source edits — the orchestrator must delegate to a
+                         # codex/glm coder (opt-in per repo; no-op without the marker)
+                         ("Write|Edit|MultiEdit", f'python3 "{HOOK}/route-only-gate.py"')],
     "PostToolUse":      [("Read", f'python3 "{HOOK}/graphify-blindspot.py"'),
                          # token-save: record full reads so the PreToolUse guard can dedup them
                          ("Read", f'python3 "{HOOK}/reread-guard.py"'),
