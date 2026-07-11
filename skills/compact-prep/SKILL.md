@@ -155,7 +155,7 @@ Ponytail: do not dump the whole project. Keep only things a fresh agent would ot
 
 The global hook copies `.planning/COMPACT_CONTEXT.md` plus matching STATE.md sections into `.planning/COMPACT_HANDOFF.md` and echoes them into the post-compact context.
 
-For the user's coding pipeline repos, the default load-bearing context includes the harness-improvement queue mined from Notion:
+For Ro's coding pipeline repos, the default load-bearing context includes the harness-improvement queue mined from Notion:
 
 - Graphify / CodeGraph: graph-over-vector codebase maps, queried before cold grep when `graphify-out/graph.json` exists.
 - Deterministic gates: `check-all`, CLAUDE/AGENTS drift checks, coverage/file-size/TODO/duplication checks.
@@ -167,7 +167,11 @@ Source pointers to preserve rather than re-summarize: `~/Downloads/NOTION_WORKFL
 
 ### 5. Update STATE.md with the resume point (if `.planning/STATE.md` exists)
 
-Open `.planning/STATE.md`. Find the `## Active Resume Point` section (or create it at the top). Write the resume point as if briefing a fresh agent with no chat history:
+**Delegate this write to a cheap sub-agent (haiku/glm) — don't do it in the orchestrator (Ro's rule: the main terminal shouldn't burn context on housekeeping).** Hand the sub-agent the turn's changes + decisions; it opens the file and does steps below, then returns a one-line confirm.
+
+**REPLACE the `## Active Resume Point` section in place — do NOT prepend a new block.** STATE.md bloats (140KB+) because agents stack `Resume Point #36 … #35 … #34` every turn without pruning. There is exactly ONE Active Resume Point; overwrite it. If real history must be kept, move the superseded block to `.planning/STATE-ARCHIVE.md`, not inline. Keep the live section TERSE/caveman — a fresh agent's briefing, not a log.
+
+Find the `## Active Resume Point` section (or create it at the top). Write the resume point as if briefing a fresh agent with no chat history:
 
 ```markdown
 ## Active Resume Point

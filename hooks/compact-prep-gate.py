@@ -99,13 +99,17 @@ def main() -> None:
 
     where = ".now.md is missing" if not nowmd.exists() else ".now.md is stale"
     sys.stderr.write(
-        f"COMPACT-PREP GATE — before you end this turn, run the compact-prep "
-        f"ritual so nothing lives only in chat ({where} at {root}):\n"
-        f"  1. update {root}/.now.md  (NOW / LAST_VERIFIED / NEXT, <=5 lines)\n"
-        f"  2. update the STATE / resume point for what you just did\n"
+        f"COMPACT-PREP GATE — before you end this turn, the compact-prep ritual "
+        f"must run so nothing lives only in chat ({where} at {root}). "
+        f"DELEGATE it to a cheap sub-agent (haiku/glm) — do NOT write these "
+        f"yourself, that burns the orchestrator's context (Ro's rule):\n"
+        f"  spawn one cheap agent with the turn's changes + decisions and have IT:\n"
+        f"  1. update {root}/.now.md  (NOW / LAST_VERIFIED / NEXT, <=5 lines, caveman)\n"
+        f"  2. update {root}/.planning/STATE.md resume point (keep it TERSE — trim, "
+        f"don't append; archive old detail out)\n"
         f"  3. sync durable memory / mulch if a decision or fact changed\n"
-        f"  4. then your FINAL message states what was saved + the exact resume "
-        f"point.\nDo it now, then stop. (kill-switch: COMPACT_GATE=0)"
+        f"  it returns a one-line confirm; your FINAL message states what was saved "
+        f"+ the resume point.\nDo it now, then stop. (kill-switch: COMPACT_GATE=0)"
     )
     sys.exit(2)
 

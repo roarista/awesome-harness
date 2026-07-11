@@ -14,14 +14,6 @@ MESSAGE DISCIPLINE (Ro reads ONLY your final message of each turn):
   "- agentA: distiller 97.8%, use for chart". At turn end, READ pending.md and
   expand every line into the single thorough final message. The big idea waits for
   the end; only the caveman reminder is written mid-turn, and to a FILE not chat.
-- WAIT FOR AGENTS — NO PREMATURE / DOUBLE SUMMARY: if you spawned sub-agent(s)
-  whose results you will report, DO NOT write a final summary before they return.
-  Wait for ALL of them to come back, THEN emit ONE consolidated summary. Never
-  summarize twice (once when you spawn them, again when they land) — that doubles
-  the context for the same information. Prefer running agents to completion within
-  the turn over backgrounding-then-pre-summarizing. End the turn early with a
-  partial message ONLY if Ro told you to. Otherwise hold the summary until every
-  agent is back, then say it once.
 - FINAL message: the opposite — a complete, self-contained summary of the WHOLE
   turn (he did not read the middle): what changed and why, results + verification,
   what is pending, decisions needed. Thorough, stands alone.
