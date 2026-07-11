@@ -70,6 +70,43 @@ cheap judge model that did NOT write the code. Only a passing independent verify
 Then `ml record` the lesson from this iteration (failure mode, decision, convention) so the next
 iteration is smarter — durable improvement comes from the lessons the loop accumulates, not the loop.
 
+### Phase 4b — INDEPENDENT DONE-JUDGE (opt-in: `GOAL_INDEPENDENT_JUDGE=1`)
+Default OFF → the loop behaves exactly as above (Phase 4 prose). Set the env flag (or a `.mode`
+line `GOAL_INDEPENDENT_JUDGE=1`) to harden the done-decision with three moves. All three are
+**advisory and fail-open** — they never block a legit loop, they only refuse to call red green.
+
+Helper: `python3 ~/.claude/tools/goal/goal_judge.py` (stdlib, `--selftest`). It supplies the
+mechanical scaffolding; the *judgment* stays a distinct sub-agent call.
+
+1. **Done is judged by a DIFFERENT model than the maker.** The stop decision is a SEPARATE
+   sub-agent (e.g. a cheaper judge model) — never the worker self-declaring done. Hand it the
+   goal's verifiable end-state as an explicit written checklist (`[x]` verified green / `[ ]` not
+   yet / `[!]` verified RED), one line per end-state fact. Grade it mechanically — a unit is done
+   only when every item is `[x]` and none `[!]`:
+   ```bash
+   printf '[x] parser rejects empty input\n[!] retry counter caps at 3\n' \
+     | python3 ~/.claude/tools/goal/goal_judge.py grade --checklist -
+   # -> INCOMPLETE (rc=1); PASS (rc=0) only when all [x], zero [!]
+   ```
+2. **Run detectors/tests from a CLEAN HEAD**, so a modified `conftest.py`/test file in the working
+   tree can't fake green. Use the committed state, not the dirty tree:
+   ```bash
+   python3 ~/.claude/tools/goal/goal_judge.py clean-verify --cmd '<test/detector cmd>' --repo .
+   ```
+   It spins a throwaway `git worktree` at HEAD, runs the cmd there, removes it. Fail-open: not a
+   git repo / no HEAD / worktree add fails → warns and runs in place (current behavior). It WARNs
+   when the tree is dirty (the clean run reflects the last commit, so commit first if the fix is
+   uncommitted).
+3. **No-advance-on-red + bounded retry (max 3).** Feed the independent verify result to `gate`; on
+   red re-inject a **5-Whys root-cause-fix** directive to a fresh worker with the retry counter,
+   re-verify, and NEVER mark the unit done on red:
+   ```bash
+   python3 ~/.claude/tools/goal/goal_judge.py gate --passed <true|false> --retry <n> --max 3
+   # green -> ADVANCE | red & retries left -> RETRY | red & out of retries -> STOP_MAX_RETRIES_RED
+   ```
+   `STOP_MAX_RETRIES_RED` → leave the item unchecked, record the failure, surface it at Phase 5.
+   `gate` never returns ADVANCE on a red verify — that is the invariant this whole phase buys.
+
 ## Phase 5 — STOP + CLOSE
 - **Stop** when: all items verified ✓ OR max iterations OR budget cap hit OR stall. Then kill any
   remaining worker process trees. Report what's done, what's not, and why it stopped.
