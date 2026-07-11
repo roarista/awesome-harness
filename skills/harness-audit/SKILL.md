@@ -8,7 +8,11 @@ description: Audit one repo's agent harness (CLAUDE.md, front-door docs, mulch, 
 This skill periodically does, on demand, what the Vividlist CLAUDE.md reconcile did by hand:
 a cheap read-only agent maps codebase reality, diffs it against what the harness *claims*,
 and emits an evidence-cited proposal. **It NEVER edits the live tree.** Ro reviews; a normal
-session applies later, when the file is clean. This is deliberate — CLAUDE.md is the one file
+session applies later, when the file is clean.
+
+> **Sibling skill:** this audits INWARD (does the harness do what it says?). For IMPROVEMENT
+> — stealing external ideas + turning Ro's repeated toil into skills/hooks — use `harness-scout`.
+> Same discipline (proposal-only, evidence-cited, fit-filtered), opposite direction. This is deliberate — CLAUDE.md is the one file
 every hot session reads, and self-grading auto-edits are how harnesses drift in the first place.
 
 ## Hard rules (non-negotiable)
