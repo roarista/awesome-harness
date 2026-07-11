@@ -37,10 +37,34 @@ Goal: surface external ideas that improve **coding accuracy, context engineering
 **Query set (curate per run; bound it):**
 - **GitHub, last 30 days** — `gh search repos --sort=updated 'claude code agent harness'`, `'context engineering llm agent'`, `'coding agent autonomy'`, `'agent skills hooks'`, `pushed:>=<date>`. Fetch the top few READMEs; extract the mechanism.
 - **AI-company / lab frameworks** — what Anthropic / OpenAI / Cognition / etc. published recently on agent harnesses, context engineering, tool use, sub-agent orchestration. Anything OSS we could lift.
-- **Named creators (harness watch-list) → route to `youtube-research`/`ytintel`, NOT Twitter.** These people live on YouTube + social, and **X is not reliably scrapable without auth** (Ro's call: don't try to scrape Twitter). So for each creator, run the `youtube-research` skill / `ytintel` to pull their recent videos + transcripts, and only fall back to `WebFetch` on their GitHub (sort repos by updated) / blog. If nothing attributable is found, mark **UNKNOWN** — never invent.
-  - **Boris Cherny**, **Andrej Karpathy**, **Peter Steinberger**, **Jaymin West**, **IndieDevDan (disler)** — + any new name Ro drops.
-- **News intel → Ro's newsletter emails (last 7 days).** Ro gets daily AI newsletters — **The Rundown AI**, **Morning Brew** (has AI items), + one more — that are the freshest signal (Twitter is the real hub but unscrapable, so email is the proxy). Read the last 7 days of those senders and extract anything harness/agent/coding-relevant. **Wiring (pending Ro's setup):** no iCloud-Mail MCP exists → the lazy path is Ro forwards those 3 senders (iCloud Mail rule) to a Gmail he connects, then this pass reads them via the **Gmail MCP** (`mcp__claude_ai_Gmail__search_threads` on `from:(rundown OR morningbrew OR …) newer_than:7d`). Alt: IMAP with an iCloud app-specific password (Ro creates it; the agent never types the credential).
-- **Idea inbox → Notion "New — <project>" folders.** Ro parks social-media ideas he never implements in Notion (migrating from iCloud Notes → Notion for the MCP). Per-project folders named `New — <project>`. This pass reads them, transcribes any pasted videos → markdown, brainstorms how each applies to that project, and returns a per-project "focus / prompts to paste" summary — nudging Ro to actually implement. **Reuse the existing `[[notes-inbox]]` / notes-pipeline** infra (Notion + `~/Notes` mirror + video transcription) — extend it with the per-project New-folders + a triage/suggest step; do NOT build a new pipeline. ⚠️ Notion MCP historically pointed at the WRONG workspace → verify the target, use Notion REST if the MCP is mis-scoped.
+- **Creators → sourced from Ro's own YouTube subscriptions (channel @yummapp), route to `youtube-research`/`ytintel`, NOT Twitter.** The AI-relevant subset of his subs is baked in below (refresh occasionally as his subs change — @yummapp is the source of truth). For each channel, run `youtube-research`/`ytintel` for recent videos + transcripts, and only fall back to `WebFetch` on their GitHub (sort repos by updated) / blog. If nothing attributable is found, mark **UNKNOWN** — never invent. **X/Twitter still not scraped** (not reliably scrapable without auth — Ro's call). **Jaymin West + IndyDevDan are the original SEED names** (kept flagged).
+  - **All three tiers below are IN-SCOPE every run** — route each channel to `youtube-research`/`ytintel` for recent videos + transcripts. The PRIMARY / SECONDARY / ADJACENT split is only a *signal-ordering* hint (which to read FIRST when time-bounded), NOT a "skip the lower tiers" filter. If a pass is time-bounded, read top-down; but every channel gets checked each pass.
+  - **PRIMARY — agentic coding / Claude-Code / harness mechanics (highest signal, read first):**
+    - **Jaymin West** (@jaymin-west) — agentic engineering, build-in-days *(seed)*
+    - **IndyDevDan** (@indydevdan) — agentic engineering, think/plan/build *(seed)*
+    - **Simon Scrapes** (@simonscrapes) — agentic systems for business
+    - **Nate Herk | AI Automation** (@nateherk) — AI automation (n8n-style)
+    - **Riley Brown** (@rileybrownai) — AI agents for knowledge work
+    - **bycloud** (@bycloudAI) — frontier AI research digest
+    - **ICOR with Tom** (@myicor) — Claude/Obsidian/Notion productivity SYSTEMS
+    - **BridgeMind** (@bridgemindai) — AI engineering / vibe coding
+    - **Caleb Writes Code** (@CalebWritesCode) — AI commentary + illustrations
+    - **Chase AI** (@Chase-H-AI) — no-code AI workflows
+  - **SECONDARY — AI news / interviews / landscape (in-scope every run; skim for Mode-B news, lower harness signal):**
+    - **AI Search** (@theAIsearch) — AI news/tools
+    - **There's An AI For That** (@theresanaiforit) — AI tools + newsletter
+    - **Dwarkesh Patel** (@DwarkeshPatel) — deep AI research interviews
+    - **Greg Isenberg** (@GregIsenberg) — AI startup ideas/tutorials
+    - **Marie Haynes** (@Marie_Haynes) — AI & the future of search
+    - **Some Guy Who Knows Stuff** (@SomeGuyWhoKnowsStuff) — explainers (AI-adjacent)
+  - **ADJACENT — coding/GTM, occasional relevance (in-scope every run; surface items clearly harness/agent related):**
+    - **Michael Saruggia** (@michaelsaruggia) — GTM engineering/automation
+    - **Web Dev Cody** (@WebDevCody) — general software eng
+    - **Ben Davis** (@bmdavis419) — dev topics
+    - **Henry Liu** (@henryliu2026) — AI filmmaking/tooling
+  - The rest of Ro's subscriptions were filtered out as non-AI noise (faith, finance, science-animation, gaming, personal — not harness-relevant).
+- **News intel → Ro's newsletter emails (last 7 days).** Ro gets daily AI newsletters — the senders are **Morning Brew** (incl. its AI edition **Morning Brew AI**) and **The Rundown AI** — that are the freshest signal (Twitter is the real hub but unscrapable, so email is the proxy). Read the last 7 days of those senders and extract anything harness/agent/coding-relevant. **Wiring (LIVE):** Ro has SET UP iCloud→Gmail forwarding of those senders to `rodrigoa@utexas.edu` (the connected Gmail). Once they arrive, this pass reads them via the **Gmail MCP** (`mcp__claude_ai_Gmail__search_threads` on `from:(morningbrew OR "the rundown" OR rundown) newer_than:7d`).
+- **Idea inbox → Notion per-project "🆕 New videos" sections (CATEGORIZED).** Ro parks social-media ideas he never implements in Notion (migrating from iCloud Notes → Notion for the MCP). Structure = per-project pages (**intrn, vividlist, video-pipeline, ideas, ui, open-source, claude-code-tips, bible-pipeline, other**), each with a **"🆕 New videos"** section, under which Ro ranks new items into **category sub-sections**. This pass reads those category sub-sections, transcribes any pasted videos → markdown, brainstorms how each applies to that project, and returns a per-project "focus / prompts to paste" summary — **PRESERVING the category** each item was filed under when it transcribes/brainstorms/builds the digest — nudging Ro to actually implement. **Reuse the existing `[[notes-inbox]]` / notes-pipeline** infra (Notion + `~/Notes` mirror + video transcription) + these existing per-project pages + a triage/suggest step; do NOT build a new pipeline and do NOT create `New — <project>` folders. Workspace confirmed = **"Second Brain"** (correct).
 - **Reuse `[[deep-research]]`** for any heavy web fan-out+adversarial-verify+synthesis rather than hand-rolling searches.
 
 **For each candidate, fit-filter (rule 2) → verdict:**

@@ -57,6 +57,17 @@ def cmd_query(args):
         print("no matches")
         return
 
+    # Hebbian: bounded usage tiebreak on the returned set + count these as
+    # surfaced. Fail-open — import/errors leave rows in plain relevance order.
+    try:
+        import usage as _usage
+        by_name = {r[0]: r for r in rows}
+        order = _usage.rerank([r[0] for r in rows])
+        rows = [by_name[n] for n in order]
+        _usage.bump_used([r[0] for r in rows])
+    except Exception:
+        pass
+
     for idx, row in enumerate(rows, 1):
         name, path, node_type, description, snippet = row
         print(f"{idx}. {name} ({node_type}) - {one_line(description)}")

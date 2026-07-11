@@ -158,6 +158,29 @@ def build_digest(days: int, deep: int) -> str:
     for proj, tok, calls, over, err in offender_rows[:12]:
         L.append(f"- {proj}: ~{tok:,} tok, {calls} calls, {over} bloated results, {err} errors")
 
+    # harness-usage telemetry (from harness-usage-telemetry.py PostToolUse hook):
+    # per-session evidence of whether harness features are actually USED —
+    # subagent spawns, orientation-file reads, graphify runs.
+    try:
+        usage = Path.home() / ".claude" / "hooks" / "state" / "harness-usage.jsonl"
+        if usage.exists():
+            ev = Counter()
+            sess = set()
+            for ln in usage.read_text(errors="replace").splitlines():
+                try:
+                    o = json.loads(ln)
+                except Exception:
+                    continue
+                ev[o.get("event", "?")] += 1
+                sess.add(o.get("session", "?"))
+            if ev:
+                L.append("\n## harness-usage telemetry (are harness features being used?)")
+                L.append(f"- sessions with any signal: {len(sess)}")
+                for name, n in ev.most_common():
+                    L.append(f"- {name}: {n}")
+    except Exception:
+        pass
+
     return "\n".join(L)[:DIGEST_CAP]
 
 
