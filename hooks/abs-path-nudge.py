@@ -19,10 +19,12 @@ Prints the reminder to stderr and exits 0. Any error → exit 0 silent.
 Mode: state/abs-path-nudge.mode — "off" disables; missing/anything-else = on.
 """
 import json
+import os
 import sys
 import time
 from datetime import datetime
 from pathlib import Path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import _hookout
 
 HOOK_DIR = Path.home() / ".claude" / "hooks"
 LOG = HOOK_DIR / "state" / "phantom-edit.jsonl"
@@ -79,11 +81,13 @@ def main() -> int:
         data = json.load(sys.stdin)
     except (ValueError, OSError):
         return 0
+    if data.get("stop_hook_active"):
+        return 0
     session_id = data.get("session_id", "") or ""
     tpath = data.get("transcript_path", "") or ""
     try:
         if _recent_edit(session_id, tpath):
-            print(MSG, file=sys.stderr)
+            _hookout.inject("Stop", MSG)
     except Exception:
         return 0
     return 0

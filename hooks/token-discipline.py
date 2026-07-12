@@ -8,9 +8,11 @@ that file is also large, the message says so (the narrowed oversize warning).
 Warn only, never blocks. Fail-open, state per-session self-prunes.
 """
 import json
+import os
 import sys
 import time
 from pathlib import Path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import _hookout
 
 REREAD_N = 3
 BIG = 20000       # chars; a full read this large that's being repeated = expensive
@@ -19,8 +21,7 @@ TTL = 2 * 86400
 
 
 def _emit(msg: str) -> None:
-    print(json.dumps({"hookSpecificOutput": {
-        "hookEventName": "PostToolUse", "additionalContext": msg}}))
+    _hookout.inject("PostToolUse", msg)
 
 
 def _path(session: str) -> Path:

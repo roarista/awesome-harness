@@ -26,6 +26,8 @@ HOOKS = {
     "SessionStart":     [("", f'sh "{HOOK}/caveman-discipline.sh"'),
                          # reset the re-read guard's read-set (compact-safety valve)
                          ("", f'python3 "{HOOK}/reread-guard.py"'),
+                         # hook-integrity: sha256 the hook set against a baseline and warn on drift/tamper
+                         ("", f'python3 "{HOOK}/manifest-guard.py"'),
                          # re-arm the graphify gate every new session AND after each
                          # /compact (Ro compacts often; post-compact the map
                          # orientation is gone, so re-require a graphify query)
@@ -48,6 +50,8 @@ HOOKS = {
                          ("Grep", f'python3 "{HOOK}/graphify-gate.py"'),
                          # token-save: block a full re-read of an unchanged large file already read this stretch
                          ("Read", f'python3 "{HOOK}/reread-guard.py"'),
+                         # token-save: advise against slurping a very large file whole (offset/limit or grep instead)
+                         ("Read", f'python3 "{HOOK}/filesize-cap.py"'),
                          # keep .now.md tiny (injector truncates at 800 chars) — advisory only
                          ("Write|Edit|MultiEdit", f'python3 "{HOOK}/now-gate.py"'),
                          # route-only ENFORCED: in a repo with a .route-only marker, DENY

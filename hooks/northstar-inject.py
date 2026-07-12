@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """UserPromptSubmit + SessionStart hook — anti-drift.
 
-Re-injects, every turn, two things so neither the agent nor the user loses the thread:
+Re-injects, every turn, two things so neither the agent nor Ro loses the thread:
   1. NORTH STAR (destination) from `.northstar.md`  — the fixed objective. Stable.
   2. NOW (position)        from `.now.md`           — the CURRENT step. Volatile.
 Plus live git context (branch / last commits / dirty) as zero-maintenance ground
@@ -21,6 +21,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import _hookout
 
 CAP = 800          # chars per block; a north star that needs more isn't one
 DRIFT_EVERY = 5    # escalate the banner into a forced check every N turns
@@ -125,7 +126,7 @@ def main() -> None:
         if event == "SessionStart" and _looks_like_project(root):
             print(
                 "NO NORTH STAR SET for this project. Before any deep work, "
-                "establish one WITH the user: ask him for the one-sentence destination, "
+                "establish one WITH Ro: ask him for the one-sentence destination, "
                 f"write it to {root}/.northstar.md, and the current step to "
                 f"{root}/.now.md (NOW / LAST_VERIFIED / NEXT, <=5 lines). Until "
                 "these exist, NOTHING here survives compaction and you WILL "
@@ -149,7 +150,7 @@ def main() -> None:
 
     out = [
         "NORTH STAR — the fixed objective (if your next step doesn't serve this, "
-        "STOP and tell the user):",
+        "STOP and tell Ro):",
         star,
     ]
 
@@ -165,7 +166,7 @@ def main() -> None:
         out += [
             "",
             "NOW — no .now.md yet. Create one at repo root (NOW / LAST_VERIFIED / "
-            "NEXT, <=5 lines) so the current step survives compaction and the user can "
+            "NEXT, <=5 lines) so the current step survives compaction and Ro can "
             "see it at a glance.",
         ]
 
@@ -178,10 +179,17 @@ def main() -> None:
             "",
             f"DRIFT CHECK (fires every {DRIFT_EVERY} turns): in ONE line, state "
             "how your current action serves OBJECTIVE. If it doesn't — stop and "
-            "flag it to the user before doing anything else.",
+            "flag it to Ro before doing anything else.",
         ]
 
-    print("\n".join(out))
+    text = "\n".join(out)
+    # SessionStart fires once/session and may exceed the 10k additionalContext
+    # cap → keep it plain. UserPromptSubmit is the per-turn banner → hide from
+    # the transcript, still reaches the model.
+    if event == "SessionStart":
+        print(text)
+    else:
+        _hookout.inject("UserPromptSubmit", text)
 
 
 if __name__ == "__main__":

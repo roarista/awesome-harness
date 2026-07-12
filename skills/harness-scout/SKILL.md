@@ -36,6 +36,7 @@ Goal: surface external ideas that improve **coding accuracy, context engineering
 
 **Query set (curate per run; bound it):**
 - **GitHub, last 30 days** — `gh search repos --sort=updated 'claude code agent harness'`, `'context engineering llm agent'`, `'coding agent autonomy'`, `'agent skills hooks'`, `pushed:>=<date>`. Fetch the top few READMEs; extract the mechanism.
+- **GitHub radar (trending + search sweep, README-only).** Also scan GitHub trending and search across five areas: (1) harness/agent engineering, (2) agent memory & context management, (3) token reduction / context compression, (4) prompt engineering, (5) a general "notable this week" sweep. Read ONLY each repo's README/description — **no clone, no execution, no downloads** — and extract the transferable technique. **Bound: ≤5 repos per area** (25 max), freshest first (`--sort=updated` / trending this week). Fold findings into the report's `## GitHub radar` section.
 - **AI-company / lab frameworks** — what Anthropic / OpenAI / Cognition / etc. published recently on agent harnesses, context engineering, tool use, sub-agent orchestration. Anything OSS we could lift.
 - **Creators → sourced from Ro's own YouTube subscriptions (channel @yummapp), route to `youtube-research`/`ytintel`, NOT Twitter.** The AI-relevant subset of his subs is baked in below (refresh occasionally as his subs change — @yummapp is the source of truth). For each channel, run `youtube-research`/`ytintel` for recent videos + transcripts, and only fall back to `WebFetch` on their GitHub (sort repos by updated) / blog. If nothing attributable is found, mark **UNKNOWN** — never invent. **X/Twitter still not scraped** (not reliably scrapable without auth — Ro's call). **Jaymin West + IndyDevDan are the original SEED names** (kept flagged).
   - **All three tiers below are IN-SCOPE every run** — route each channel to `youtube-research`/`ytintel` for recent videos + transcripts. The PRIMARY / SECONDARY / ADJACENT split is only a *signal-ordering* hint (which to read FIRST when time-bounded), NOT a "skip the lower tiers" filter. If a pass is time-bounded, read top-down; but every channel gets checked each pass.
@@ -80,7 +81,8 @@ Goal: surface external ideas that improve **coding accuracy, context engineering
 2. **A. Repetition → automate** — table: repeated pattern → cited turns → propose skill|hook → loop-exit value → slop risk.
 3. **B. External steal-worthy** — table: idea → source (URL+date) → verdict (STEAL/INTEGRATE/WATCH/NON-FIT) → integration sketch. Group by theme (accuracy / context-eng / autonomy / OSS).
 4. **C. Creator intel** — per creator: what's new in their harness (URL+date), and our applicability.
-5. **Ranked "build next" shortlist** — top 3–5 across both modes, each with a one-line why + rough effort. Proposal-only; Ro picks.
+5. **GitHub radar** — per area (harness/agent eng, agent memory & context mgmt, token reduction/compression, prompt eng, notable-this-week): ≤5 repos each, README-only → repo (URL+date) → the transferable technique → fit verdict (STEAL/INTEGRATE/WATCH/NON-FIT).
+6. **Ranked "build next" shortlist** — top 3–5 across both modes, each with a one-line why + rough effort. Proposal-only; Ro picks.
 
 The report lands in `~/Downloads/`, which `~/.claude/tools/memgraph/sources.txt` globs → auto-indexes into recall on the next `mem rebuild`. Prefix `HARNESS_SCOUT_` (already covered by the `HARNESS_*` glob).
 

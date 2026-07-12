@@ -10,3 +10,6 @@ __pycache__/
 # machine-local hook control state (live-flippable mode files)
 hooks/state/
 *.mode
+
+# machine-local hook-integrity baseline (per-machine file hashes — never publish)
+hooks/manifest/

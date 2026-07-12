@@ -70,6 +70,12 @@ def _last_block(p: Path) -> float:
 
 
 def main() -> None:
+    try:
+        data = json.load(sys.stdin)
+    except Exception:
+        data = {}
+    if data.get("stop_hook_active"):
+        return
     if os.environ.get("COMPACT_GATE") == "0":
         return
     now = time.time()

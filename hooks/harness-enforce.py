@@ -22,6 +22,7 @@ import json
 import os
 import sys
 from pathlib import Path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import _hookout
 
 STATE = Path.home() / ".claude" / "hooks" / "state" / "enforce_counts.json"
 
@@ -94,7 +95,7 @@ def main() -> None:
         return
     n = bump(root)
     key, _, line = applicable[n % len(applicable)]
-    print(f"HARNESS ENFORCE ({key}, active — obey it now): {line}")
+    _hookout.inject("UserPromptSubmit", f"HARNESS ENFORCE ({key}, active — obey it now): {line}")
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@
 # relevant durable memory without anyone typing /recall.
 # ponytail: FTS-only, no ranking model; good enough for "is this already decided?".
 import json, os, re, sqlite3, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import _hookout
 
 DB = os.path.expanduser("~/.claude/tools/memgraph/out/memindex.sqlite")
 # Hebbian usage side-store (fail-open): a bounded tiebreaker that nudges
@@ -51,7 +52,7 @@ def main():
         except Exception:
             top = rows[:2]
     lines = "\n".join(f"- **{n}**: {d}" for n, d in top)
-    print(f"🧠 Possibly-relevant durable memory (via recall index — verify before relying):\n{lines}")
+    _hookout.inject("UserPromptSubmit", f"🧠 Possibly-relevant durable memory (via recall index — verify before relying):\n{lines}")
 
 if __name__ == "__main__":
     main()

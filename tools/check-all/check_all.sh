@@ -263,6 +263,35 @@ PYEOF
 }
 run_tests
 
+# ─── CHECK F: CLAUDE.md drift ──────────────────────────────────────────────────
+LOG_F="$TMP_BASE/claudemd_drift.log"
+run_claudemd_drift() {
+  local script_dir drift_tool
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  drift_tool="$script_dir/claudemd_drift.py"
+  if [[ ! -f "$drift_tool" ]]; then
+    _record "claudemd-drift" "skip" 0 "claudemd_drift.py not found"
+    return
+  fi
+  local out rc
+  out=$(_timeout_cmd 60 python3 "$drift_tool" "$REPO_DIR" 2>&1)
+  rc=$?
+  echo "$out" > "$LOG_F"
+  if [[ $rc -eq 0 ]]; then
+    _record "claudemd-drift" "pass" 0 "no CLAUDE.md drift"
+  else
+    # rc=1 → drift detected. Default WARN; DRIFT_STRICT=1 → fail.
+    local result="warn"
+    if [[ "${DRIFT_STRICT:-0}" == "1" ]]; then
+      result="fail"
+      OVERALL_FAIL=1
+    fi
+    _record "claudemd-drift" "$result" $rc "CLAUDE.md drift detected (rc=$rc)"
+    printf '\n[claudemd-drift]\n%s\n' "$out"
+  fi
+}
+run_claudemd_drift
+
 # ─── Output ──────────────────────────────────────────────────────────────────
 print_table() {
   local fmt="%-15s %-8s %-5s %s\n"

@@ -17,6 +17,7 @@ import os
 import sys
 import time
 from pathlib import Path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import _hookout
 
 CALLS = 150
 ERRORS = 25
@@ -26,15 +27,12 @@ TTL = 2 * 86400
 
 
 def _emit(reason: str) -> None:
-    print(json.dumps({"hookSpecificOutput": {
-        "hookEventName": "PostToolUse",
-        "additionalContext": (
-            f"CHECKPOINT ({reason}). This session looks abnormal — stop and "
-            "re-scope before continuing: run the compact-prep skill, then "
-            "/compact with no message, then resume from the CONTINUE block. "
-            "If you're mid-loop, state in one line what you're actually trying "
-            "to achieve and whether the current approach can get there."),
-    }}))
+    _hookout.inject("PostToolUse", (
+        f"CHECKPOINT ({reason}). This session looks abnormal — stop and "
+        "re-scope before continuing: run the compact-prep skill, then "
+        "/compact with no message, then resume from the CONTINUE block. "
+        "If you're mid-loop, state in one line what you're actually trying "
+        "to achieve and whether the current approach can get there."))
 
 
 def _is_error(resp) -> bool:

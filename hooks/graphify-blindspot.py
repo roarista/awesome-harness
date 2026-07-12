@@ -27,6 +27,7 @@ import os
 import sys
 import time
 from pathlib import Path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import _hookout
 
 DEPS = {"calls", "imports", "imports_from", "references", "inherits",
         "method", "re_exports", "defines"}
@@ -39,9 +40,9 @@ SESSION_TTL = 2 * 86400   # prune read-sets older than 2 days
 
 
 def _emit(ctx: str) -> None:
-    """Non-blocking advisory injection (same contract gsd-*-guard uses)."""
-    print(json.dumps({"hookSpecificOutput": {
-        "hookEventName": "PreToolUse", "additionalContext": ctx}}))
+    """Non-blocking advisory injection, hidden from the transcript. Only ever
+    called on the PreToolUse(Edit/Write) branch → event stays PreToolUse."""
+    _hookout.inject("PreToolUse", ctx)
 
 
 def _find_graph(start: Path):
@@ -88,7 +89,7 @@ def _add_readset(session: str, rel: str) -> None:
 def _build_index(graph: Path) -> dict:
     """{source_file: [files that reference symbols defined in it]}. Cached to
     disk keyed by the graph's built_at_commit so we parse the big graph once
-    per rebuild, not per edit (the machine may be low-powered — keep per-edit cost tiny)."""
+    per rebuild, not per edit (Ro's CPU runs low — keep per-edit cost tiny)."""
     g = json.loads(graph.read_text())
     commit = g.get("built_at_commit", "")
     key = "".join(c for c in (str(graph) + commit) if c.isalnum())[-90:]
