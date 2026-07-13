@@ -61,15 +61,13 @@ def _is_code(fp: str) -> bool:
 
 def _deny(target_desc: str) -> None:
     sys.stderr.write(
-        f"GRAPHIFY-FIRST GATE — this repo has a code map, and you haven't queried "
-        f"it yet this session. Before cold-reading source ({target_desc}), orient "
-        f"from the map:\n"
-        f"  graphify query \"<what you're looking for>\"   (scoped subgraph)\n"
-        f"  graphify explain \"<file-or-concept>\"          (focused)\n"
-        f"  graphify path \"<A>\" \"<B>\"                     (how two things relate)\n"
-        f"The moment you run any graphify command this gate lifts for the whole "
-        f"session. Reading a specific file you already located via the map is fine "
-        f"— run the query first. (kill-switch: GRAPHIFY_GATE=0)"
+        f"GRAPHIFY-FIRST GATE — repo has code map, not queried this session. "
+        f"before cold-reading source ({target_desc}), orient from map:\n"
+        f"  graphify query \"<target>\"     (scoped subgraph)\n"
+        f"  graphify explain \"<file>\"      (focused)\n"
+        f"  graphify path \"<A>\" \"<B>\"      (relation)\n"
+        f"any graphify command lifts the gate for the session. run the query first. "
+        f"(kill-switch: GRAPHIFY_GATE=0)"
     )
     sys.exit(2)
 

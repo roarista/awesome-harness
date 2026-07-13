@@ -4,7 +4,7 @@
 This machine runs Claude Code in bypassPermissions mode: dangerous shell
 commands execute with no confirmation. This gate converts a tight, denylist-only
 set of irreversible operations into a forced reconsideration — the agent must
-confirm with the user, then re-arm by re-running the command prefixed with the
+confirm with Ro, then re-arm by re-running the command prefixed with the
 override token.
 
 Design principle: DENYLIST ONLY, tight, minimize false positives. A cry-wolf
@@ -89,7 +89,7 @@ def deny() -> None:
     sys.stderr.write(
         "BLOCKED: this is an IRREVERSIBLE operation (recursive force-delete, "
         "force push, or destructive SQL/DB reset) and cannot be undone. "
-        "STOP and confirm with the user before proceeding. After they approve, re-run "
+        "STOP and confirm with Ro before proceeding. After he approves, re-run "
         "the EXACT command prefixed with `" + OVERRIDE + " ` to re-arm and "
         "allow it through this guard."
     )

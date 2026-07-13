@@ -29,6 +29,7 @@ import json
 import os
 import sys
 from pathlib import Path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import _hookout
 
 CODE_EXT = {"py", "js", "ts", "tsx", "jsx", "go", "rs", "rb", "java", "swift",
             "c", "cc", "cpp", "h", "hpp", "sh", "vue", "svelte", "php", "scala",
@@ -75,18 +76,10 @@ def main() -> None:
     if not _armed(Path(abspath).parent):
         return
     sys.stderr.write(
-        "ROUTE-ONLY GATE — this repo is orchestrate-only (.route-only marker). "
-        "Don't write source directly; DELEGATE the build to a coding sub-agent.\n"
-        f"  file: {os.path.basename(abspath)}\n"
-        "  1. orient the codebase yourself with `graphify query/explain/path` + "
-        "`graphify-blast <files>` (that's free context, doesn't cost the coder).\n"
-        "  2. spawn a codex 5.5 BUILDER with a decomposed unit (CONTEXT/CHANGE/"
-        "GOAL/VERIFY), prepend BUILDER_STANDARD.md, pass the relevant files + "
-        "line anchors + patterns to match — see ~/awesome-harness/docs/"
-        "CODING_AGENT_PROMPTING.md.\n"
-        "  3. have glm 5.2 AUDIT the diff against the unit's GOAL/VERIFY.\n"
-        "You may still edit .md / .now.md / .northstar.md / STATE / docs / tests "
-        "directly. (kill-switch: ROUTING_GATE=0)"
+        "ROUTE-ONLY GATE: this repo is orchestrate-only (.route-only marker) — "
+        f"delegate the build of {os.path.basename(abspath)} to a coding sub-agent "
+        "(codex builder / glm auditor); do not write source directly. "
+        "(kill-switch: ROUTING_GATE=0)\n"
     )
     sys.exit(2)
 

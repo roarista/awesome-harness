@@ -71,10 +71,8 @@ def evaluate(ti: dict) -> str:
         return ""
     rel = os.path.relpath(ap, os.getcwd()) if ap.startswith(os.getcwd()) else ap
     return (
-        f"LARGE FILE ({lines:,} lines, {size // 1024:,} KB): {rel}. You're about "
-        f"to slurp the WHOLE file into context. Prefer a targeted read: pass "
-        f"offset/limit to read just the span you need, grep for the symbol first, "
-        f"or use graphify to map it — instead of reading all {lines:,} lines."
+        f"LARGE FILE ({lines:,} lines, {size // 1024:,} KB): {rel}. slurping whole file. "
+        f"prefer targeted: offset/limit span, grep the symbol, or graphify — not all {lines:,} lines."
     )
 
 

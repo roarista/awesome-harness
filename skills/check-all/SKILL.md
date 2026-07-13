@@ -1,7 +1,7 @@
 # check-all — Deterministic Readiness Gate
 
 ## Purpose
-Run a deterministic battery of checks against any repo before shipping, handing off to another agent, or opening a PR. Composes existing repo-level gate commands and adds universal checks that the user's repos typically lack (file-size caps, no-TODO scan, duplicate-code detection).
+Run a deterministic battery of checks against any repo before shipping, handing off to another agent, or opening a PR. Composes existing repo-level gate commands and adds universal checks that Ro's repos typically lack (file-size caps, no-TODO scan, duplicate-code detection).
 
 ## Trigger phrases
 - "check-all"
@@ -12,7 +12,7 @@ Run a deterministic battery of checks against any repo before shipping, handing 
 
 ## Invocation
 ```bash
-bash ~/.claude/tools/check-all/check_all.sh [REPO_DIR] [--fast] [--json]
+bash /Users/rodrigoarista/.claude/tools/check-all/check_all.sh [REPO_DIR] [--fast] [--json]
 ```
 
 - `REPO_DIR` — path to repo root (default: current working directory)
@@ -22,13 +22,13 @@ bash ~/.claude/tools/check-all/check_all.sh [REPO_DIR] [--fast] [--json]
 ### Examples
 ```bash
 # Full run from inside a repo
-bash ~/.claude/tools/check-all/check_all.sh . 
+bash /Users/rodrigoarista/.claude/tools/check-all/check_all.sh . 
 
 # Fast gate before handing off (no tests)
-bash ~/.claude/tools/check-all/check_all.sh /path/to/repo --fast
+bash /Users/rodrigoarista/.claude/tools/check-all/check_all.sh /path/to/repo --fast
 
 # JSON output for programmatic consumption
-bash ~/.claude/tools/check-all/check_all.sh /path/to/repo --json
+bash /Users/rodrigoarista/.claude/tools/check-all/check_all.sh /path/to/repo --json
 ```
 
 ## Checks performed

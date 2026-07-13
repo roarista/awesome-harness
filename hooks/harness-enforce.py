@@ -48,28 +48,22 @@ def _has_mulch(root: Path) -> bool:
 # reinforcement, not documentation. Order = rotation order.
 MECHS = [
     ("ponytail", lambda r: True,
-     "PONYTAIL: lazy senior dev. Stop at the first rung that works (YAGNI → "
-     "stdlib → native → 1 line). Delete > add. Shortest diff wins. No "
-     "speculative abstraction."),
+     "PONYTAIL: lazy senior dev. first rung that works (YAGNI->stdlib->native->1 line). "
+     "delete>add. shortest diff. no speculative abstraction."),
     ("graphify", _has_graphify,
-     "GRAPHIFY-FIRST: this repo has a code-map. Run `graphify query/explain/"
-     "path` BEFORE cold-reading source — orient from the map, don't browse "
-     "blind or re-read files you can query."),
+     "GRAPHIFY-FIRST: repo has code-map. `graphify query/explain/path` before cold-reading "
+     "source. orient from map, don't browse blind."),
     ("mulch", _has_mulch,
-     "MULCH: check `ml` for prior decisions/conventions/failures before "
-     "deciding, and log new decisions with `ml` — don't re-litigate or repeat "
-     "a past failure."),
+     "MULCH: check `ml` for prior decisions/failures before deciding, log new ones with `ml`. "
+     "no re-litigate, no repeat past fail."),
     ("caveman", lambda r: True,
-     "MESSAGE DISCIPLINE: ZERO intermediate chat text (call tools silently — no "
-     "prose until the end). Urge to narrate a tool/sub-agent result? Append ONE "
-     "caveman line to $CLAUDE_JOB_DIR/tmp/pending.md, NOT chat; expand all of them "
-     "into the ONE thorough FINAL summary at turn end. End every turn compaction-"
-     "safe (update .now.md + STATE, sync memory/mulch). Ro reads only the final message."),
+     "MSG DISCIPLINE: zero mid-turn chat, tools silent. narrate urge? log 1 line -> "
+     "$CLAUDE_JOB_DIR/tmp/pending.md not chat, expand into ONE final summary. end turn "
+     "compaction-safe (update .now.md+STATE, sync memory/mulch). Ro reads final only."),
     ("routing", lambda r: True,
-     "ROUTING: you ORCHESTRATE, you don't build. Delegate code writes/edits to a "
-     "codex 5.5 subagent (builder = billing), have glm 5.2 audit it; LLM councils = "
-     "Opus-4.8-low + Codex-5.5 + GLM-5.2. Only edit orientation files (.now/.northstar/"
-     "STATE/memory) or tiny harness tweaks directly. Ro naming a model overrides this."),
+     "ROUTING: orchestrate, don't build. code writes -> codex 5.5 subagent, glm 5.2 audits. "
+     "councils = Opus-4.8-low+Codex-5.5+GLM-5.2. edit only orientation files (.now/.northstar/"
+     "STATE/memory) or tiny harness tweaks. Ro naming a model overrides."),
 ]
 
 

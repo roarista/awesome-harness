@@ -124,33 +124,32 @@ def main() -> None:
         if (root / ".northstar.done").exists():
             return
         if event == "SessionStart" and _looks_like_project(root):
-            print(
-                "NO NORTH STAR SET for this project. Before any deep work, "
-                "establish one WITH Ro: ask him for the one-sentence destination, "
-                f"write it to {root}/.northstar.md, and the current step to "
-                f"{root}/.now.md (NOW / LAST_VERIFIED / NEXT, <=5 lines). Until "
-                "these exist, NOTHING here survives compaction and you WILL "
-                "drift. Retire a finished project with `mv .northstar.md "
-                ".northstar.done` so this stops firing."
+            # BEHAVIOR CHANGE 2026-07-12: hidden model-only inject, not raw stdout.
+            _hookout.inject(
+                "SessionStart",
+                "NO NORTH STAR set. before deep work, ask Ro the one-sentence destination, "
+                f"write it -> {root}/.northstar.md, current step -> {root}/.now.md "
+                "(NOW/LAST_VERIFIED/NEXT, <=5 lines). without these nothing survives compaction, "
+                "you drift. retire done project: `mv .northstar.md .northstar.done`."
             )
         return  # opt-in: no north star → nudge handled above, else silent
 
     # On SessionStart only, surface the full resume handoff (too big for every
     # turn). This is what closes the loop: the cold terminal reads it first.
+    session_prefix = ""
     if event == "SessionStart":
         handoff = (root / ".handoff.md")
         if handoff.exists():
             try:
                 h = handoff.read_text(errors="replace").strip()
                 if h:
-                    print("RESUME HANDOFF (from last compaction — read this "
-                          "first; it's the recency-corrected state):\n" + h + "\n")
+                    session_prefix = ("RESUME HANDOFF (from last compaction, read first, "
+                                      "recency-corrected state):\n" + h + "\n\n")
             except OSError:
                 pass
 
     out = [
-        "NORTH STAR — the fixed objective (if your next step doesn't serve this, "
-        "STOP and tell Ro):",
+        "NORTH STAR (fixed objective; next step doesn't serve this? STOP, tell Ro):",
         star,
     ]
 
@@ -158,16 +157,14 @@ def main() -> None:
     if now:
         out += [
             "",
-            "NOW — where we actually are (keep .now.md current; if it's stale vs "
-            "what you're doing, fix it before acting):",
+            "NOW (where we are; keep .now.md current, stale? fix before acting):",
             now,
         ]
     else:
         out += [
             "",
-            "NOW — no .now.md yet. Create one at repo root (NOW / LAST_VERIFIED / "
-            "NEXT, <=5 lines) so the current step survives compaction and Ro can "
-            "see it at a glance.",
+            "NOW: no .now.md. create at repo root (NOW/LAST_VERIFIED/NEXT, <=5 lines) "
+            "so current step survives compaction.",
         ]
 
     git = git_context(root)
@@ -177,17 +174,16 @@ def main() -> None:
     if bump(root) % DRIFT_EVERY == 0:
         out += [
             "",
-            f"DRIFT CHECK (fires every {DRIFT_EVERY} turns): in ONE line, state "
-            "how your current action serves OBJECTIVE. If it doesn't — stop and "
-            "flag it to Ro before doing anything else.",
+            f"DRIFT CHECK (every {DRIFT_EVERY} turns): 1 line, how current action serves "
+            "OBJECTIVE. doesn't? stop, flag Ro first.",
         ]
 
     text = "\n".join(out)
-    # SessionStart fires once/session and may exceed the 10k additionalContext
-    # cap → keep it plain. UserPromptSubmit is the per-turn banner → hide from
-    # the transcript, still reaches the model.
+    # BEHAVIOR CHANGE 2026-07-12: SessionStart output now goes through the hidden
+    # inject path too (model-only, off the terminal) instead of raw stdout, so
+    # nothing dumps into Ro's terminal. UserPromptSubmit was already hidden.
     if event == "SessionStart":
-        print(text)
+        _hookout.inject("SessionStart", session_prefix + text)
     else:
         _hookout.inject("UserPromptSubmit", text)
 

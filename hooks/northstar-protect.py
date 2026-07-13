@@ -4,7 +4,7 @@
 The one fixed point of the anti-drift system is `.northstar.md`. A drifting
 agent (which believes it's on-task) can silence its own alarms by softening or
 erasing the goal. This hook is the mechanical gate that forbids that — the
-agent may READ the north star but never mutate it. Only the user edits it, by hand.
+agent may READ the north star but never mutate it. Only Ro edits it, by hand.
 
 Covers BOTH attack surfaces:
   1. Write / Edit / MultiEdit whose target IS `.northstar.md`.
@@ -52,7 +52,7 @@ def main() -> None:
             deny(
                 f"BLOCKED: {TARGET} is the protected north star — the agent may "
                 "not edit it (goal-erosion guard). If the objective genuinely "
-                "changed, tell the user; only they edit it by hand."
+                "changed, tell Ro; only he edits it by hand."
             )
 
     elif tool == "Bash":
@@ -61,7 +61,7 @@ def main() -> None:
             deny(
                 f"BLOCKED: this command would mutate {TARGET} (the protected "
                 "north star). Reads are fine; writes are not. If the objective "
-                "genuinely changed, tell the user — only they edit it by hand."
+                "genuinely changed, tell Ro — only he edits it by hand."
             )
 
 

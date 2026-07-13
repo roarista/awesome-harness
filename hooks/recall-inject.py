@@ -52,7 +52,7 @@ def main():
         except Exception:
             top = rows[:2]
     lines = "\n".join(f"- **{n}**: {d}" for n, d in top)
-    _hookout.inject("UserPromptSubmit", f"🧠 Possibly-relevant durable memory (via recall index — verify before relying):\n{lines}")
+    _hookout.inject("UserPromptSubmit", f"🧠 maybe-relevant memory (recall index, verify first):\n{lines}")
 
 if __name__ == "__main__":
     main()

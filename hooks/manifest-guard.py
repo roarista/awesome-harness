@@ -132,14 +132,14 @@ def main() -> None:
     changed, added, removed = result
     if not (changed or added or removed):
         return
-    parts = ["HOOK-INTEGRITY ALERT: watched hook/settings files differ from the blessed baseline."]
+    parts = ["HOOK-INTEGRITY ALERT: watched hook/settings files differ from blessed baseline."]
     if changed:
         parts.append("CHANGED:\n  " + "\n  ".join(_short(p) for p in changed))
     if added:
         parts.append("ADDED:\n  " + "\n  ".join(_short(p) for p in added))
     if removed:
         parts.append("REMOVED:\n  " + "\n  ".join(_short(p) for p in removed))
-    parts.append("If this was you, re-bless: python3 ~/.claude/hooks/manifest-guard.py --bless")
+    parts.append("was you? re-bless: python3 ~/.claude/hooks/manifest-guard.py --bless")
     print(json.dumps({"systemMessage": "\n".join(parts)}))
 
 

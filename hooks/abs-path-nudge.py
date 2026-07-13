@@ -32,8 +32,7 @@ MODE = HOOK_DIR / "state" / "abs-path-nudge.mode"
 WINDOW_SECS = 600  # 10 min
 EDIT_TOOLS = {"Write", "Edit", "MultiEdit", "NotebookEdit"}
 
-MSG = ("Reminder: in your final message, list the FULL absolute clickable path "
-       "for every file you created or edited this turn (e.g. /Users/...).")
+MSG = ("final msg: list FULL absolute path for every file created/edited this turn (e.g. /Users/...).")
 
 
 def _enabled() -> bool:

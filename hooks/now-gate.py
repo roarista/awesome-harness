@@ -38,10 +38,8 @@ def process_event(event):
         chars = len(text)
 
         if non_empty_lines > 5 or chars > 800:
-            msg = (".now.md is oversized (keep it <=5 lines / <=800 chars: NOW / "
-                   "LAST_VERIFIED / NEXT). The turn-injector truncates it at 800 "
-                   "chars, so anything beyond is invisible — move detail into "
-                   ".planning/STATE.md.")
+            msg = (".now.md oversized keep <=5 lines/<=800 chars: NOW/LAST_VERIFIED/NEXT. "
+                   "injector truncates at 800, rest invisible. move detail -> .planning/STATE.md.")
             return json.dumps({
                 "hookSpecificOutput": {
                     "hookEventName": "PreToolUse",

@@ -120,13 +120,10 @@ def main() -> None:
         approx = st.st_size // 4
         rel = os.path.relpath(ap, os.getcwd()) if ap.startswith(os.getcwd()) else ap
         sys.stderr.write(
-            f"BLOCKED re-read: {rel} — you already read this file IN FULL this "
-            f"session and it is UNCHANGED on disk, so its whole content is already "
-            f"above in your context. Re-reading spends ~{approx:,} tokens for zero "
-            f"new information. If you need a specific part, re-issue Read with "
-            f"offset/limit for just that span. If you mean to change it, use "
-            f"Edit/Write directly. (After a /compact this resets — legit re-reads "
-            f"pass.)"
+            f"BLOCKED re-read: {rel} — already read IN FULL this session, UNCHANGED on disk, "
+            f"content already in context. re-read wastes ~{approx:,} tokens for nothing. "
+            f"need a part? Read with offset/limit. changing it? Edit/Write direct. "
+            f"(/compact resets this.)"
         )
         sys.exit(2)
     # changed on disk → allow; refresh happens on the PostToolUse pass.

@@ -23,6 +23,7 @@ repos and spam their history — CUT-not-ADD). It enforces the JUDGMENT half
 """
 import json
 import os
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -41,6 +42,24 @@ def repo_root() -> Path:
         if (d / ".northstar.md").exists() or (d / ".now.md").exists() or (d / ".git").exists():
             return d
     return start
+
+
+def _is_worktree(root: Path) -> bool:
+    """True if `root` is a linked git worktree (its `.git` is a FILE, or the
+    common git-dir differs from the local git-dir). In that case the real
+    orientation files live in the main checkout, so this gate must not fire."""
+    if (root / ".git").is_file():
+        return True
+
+    def g(*a):
+        return subprocess.run(["git", "-C", str(root), *a],
+                              capture_output=True, text=True, timeout=3).stdout.strip()
+
+    common = g("rev-parse", "--git-common-dir")
+    gitdir = g("rev-parse", "--git-dir")
+    if not common or not gitdir:
+        return False
+    return os.path.realpath(common) != os.path.realpath(gitdir)
 
 
 def _is_project(root: Path) -> bool:
@@ -80,6 +99,14 @@ def main() -> None:
         return
     now = time.time()
     root = repo_root()
+    # BEHAVIOR CHANGE 2026-07-12: worktree false-positive fix. In a git worktree
+    # the real .now.md lives in the MAIN checkout, so it never looks fresh here →
+    # infinite re-fire loop. Detect a worktree and treat the gate as satisfied.
+    try:
+        if _is_worktree(root):
+            return
+    except Exception:
+        pass  # fail-open: on error, continue as normal
     if not _is_project(root):
         return  # home / scratch → nothing to preserve
 
@@ -103,20 +130,8 @@ def main() -> None:
     except Exception:
         pass
 
-    where = ".now.md is missing" if not nowmd.exists() else ".now.md is stale"
-    sys.stderr.write(
-        f"COMPACT-PREP GATE — before you end this turn, the compact-prep ritual "
-        f"must run so nothing lives only in chat ({where} at {root}). "
-        f"DELEGATE it to a cheap sub-agent (haiku/glm) — do NOT write these "
-        f"yourself, that burns the orchestrator's context (Ro's rule):\n"
-        f"  spawn one cheap agent with the turn's changes + decisions and have IT:\n"
-        f"  1. update {root}/.now.md  (NOW / LAST_VERIFIED / NEXT, <=5 lines, caveman)\n"
-        f"  2. update {root}/.planning/STATE.md resume point (keep it TERSE — trim, "
-        f"don't append; archive old detail out)\n"
-        f"  3. sync durable memory / mulch if a decision or fact changed\n"
-        f"  it returns a one-line confirm; your FINAL message states what was saved "
-        f"+ the resume point.\nDo it now, then stop. (kill-switch: COMPACT_GATE=0)"
-    )
+    # BEHAVIOR CHANGE 2026-07-12: collapse the multi-line wall to ONE terse line.
+    sys.stderr.write("COMPACT-PREP: delegate .now.md + STATE update to a cheap sub-agent before ending (kill: COMPACT_GATE=0)\n")
     sys.exit(2)
 
 

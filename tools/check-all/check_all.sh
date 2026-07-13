@@ -63,7 +63,9 @@ IS_PYTHON=0
 
 # ─── Source exclusion args for find/grep ──────────────────────────────────────
 SRC_EXTS=( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" -o -name "*.py" -o -name "*.go" -o -name "*.rs" )
-PRUNE_DIRS='( -name "node_modules" -o -name ".git" -o -name "dist" -o -name "build" -o -name ".next" -o -name "out" -o -name "vendor" -o -name "__pycache__" ) -prune -o'
+# ponytail: array, NOT a quoted string — word-splitting a string kept the quote
+# chars literal so `-name "node_modules"` never matched and deps were scanned.
+PRUNE_DIRS=( -name node_modules -o -name .git -o -name dist -o -name build -o -name .next -o -name out -o -name vendor -o -name __pycache__ -o -name .venv -o -name venv -o -name .mypy_cache -o -name .pytest_cache -o -name site-packages )
 
 # ─── Temp dir for per-check logs ───────────────────────────────────────────────
 TMP_BASE="${TMPDIR:-/tmp}/check_all_$$"
@@ -155,7 +157,7 @@ run_base_gate
 LOG_B="$TMP_BASE/filesize.log"
 run_filesize() {
   local offenders
-  offenders=$(find "$REPO_DIR" $PRUNE_DIRS \( "${SRC_EXTS[@]}" \) -print 2>/dev/null \
+  offenders=$(find "$REPO_DIR" \( "${PRUNE_DIRS[@]}" \) -prune -o \( "${SRC_EXTS[@]}" \) -print 2>/dev/null \
     | while IFS= read -r f; do
         lc=$(wc -l < "$f" 2>/dev/null || echo 0)
         if (( lc > MAX_FILE_LINES )); then
@@ -181,7 +183,7 @@ run_filesize
 LOG_C="$TMP_BASE/todo.log"
 run_todo() {
   local hits
-  hits=$(find "$REPO_DIR" $PRUNE_DIRS \( "${SRC_EXTS[@]}" \) -print 2>/dev/null \
+  hits=$(find "$REPO_DIR" \( "${PRUNE_DIRS[@]}" \) -prune -o \( "${SRC_EXTS[@]}" \) -print 2>/dev/null \
     | xargs grep -lnE 'TODO|FIXME|XXX' 2>/dev/null || true)
 
   if [[ -z "$hits" ]]; then
@@ -190,7 +192,7 @@ run_todo() {
     local count
     count=$(echo "$hits" | wc -l | tr -d ' ')
     local sample
-    sample=$(find "$REPO_DIR" $PRUNE_DIRS \( "${SRC_EXTS[@]}" \) -print 2>/dev/null \
+    sample=$(find "$REPO_DIR" \( "${PRUNE_DIRS[@]}" \) -prune -o \( "${SRC_EXTS[@]}" \) -print 2>/dev/null \
       | xargs grep -rnE 'TODO|FIXME|XXX' 2>/dev/null | head -5 || true)
     echo "$sample" > "$LOG_C"
     local result="$TODO_SEVERITY"

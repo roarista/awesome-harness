@@ -1,6 +1,6 @@
 ---
 name: code-decompose
-description: the user's standard coding workflow — decompose a code change maximally before writing it, so cheap models can execute reliably. Use whenever you (or a subagent) are about to write or change code beyond a one-line edit: features, refactors, bug fixes, new modules, pipeline stages. The orchestrator stays context-light and delegates: a decomposer subagent reads the code and returns compact unit specs (CONTEXT/CHANGE/GOAL/VERIFY), cheap coder subagents execute one unit each, auditor subagents check each unit against its own spec. Activates on "build", "implement", "add this feature", "refactor", "write the code for", "change X to do Y". Skip only for truly trivial single-line edits.
+description: Ro's standard coding workflow — decompose a code change maximally before writing it, so cheap models can execute reliably. Use whenever you (or a subagent) are about to write or change code beyond a one-line edit: features, refactors, bug fixes, new modules, pipeline stages. The orchestrator stays context-light and delegates: a decomposer subagent reads the code and returns compact unit specs (CONTEXT/CHANGE/GOAL/VERIFY), cheap coder subagents execute one unit each, auditor subagents check each unit against its own spec. Activates on "build", "implement", "add this feature", "refactor", "write the code for", "change X to do Y". Skip only for truly trivial single-line edits.
 ---
 
 # code-decompose
@@ -38,7 +38,7 @@ A unit without a concrete VERIFY is not ready — the decomposer must define the
 
 ## Phase 2 — Receive & route (orchestrator — still light)
 
-The orchestrator gets back the compact specs (not the codebase). It sanity-checks them against the goal, surfaces the plan to the user if the change is large or has real trade-offs, then routes each unit to a coder subagent. It carries only the specs forward — never the decomposer's raw reading.
+The orchestrator gets back the compact specs (not the codebase). It sanity-checks them against the goal, surfaces the plan to Ro if the change is large or has real trade-offs, then routes each unit to a coder subagent. It carries only the specs forward — never the decomposer's raw reading.
 
 ## Phase 3 — Execute (BUILDER = Codex 5.5 — NEVER Claude)
 
@@ -79,4 +79,4 @@ Auditor returns: PASS / FAIL + specific findings tied to spec lines. On FAIL, th
 - The auditor grades against a written spec, not a guess, so it catches real inconsistencies.
 - The expensive model thinks once (decompose); cheap models do the volume (execute). That is the token-efficiency win.
 
-See `~/.claude/memory/global_orchestration_rules.md` for model routing, the loop framework, and the mechanical-gate principle.
+See `~/.claude/projects/-Users-rodrigoarista/memory/global_orchestration_rules.md` for model routing, the loop framework, and the mechanical-gate principle.

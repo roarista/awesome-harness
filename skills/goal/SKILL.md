@@ -1,6 +1,6 @@
 ---
 name: goal
-description: Turn a fuzzy objective into a running, self-verifying loop. Use when the user wants to "create a loop", run something "until it's done", or hand off a multi-step objective instead of hand-prompting each step ("/goal", "loop until", "keep going until tests pass", "build X autonomously"). The skill manufactures a strong SEED (heavy plan → maximal decomposition → verifiable checklist) and only then runs the loop with cheap workers + an independent verifier + mulch memory + hard stop conditions. Repo-agnostic — the same flow fits every pipeline. Do NOT use for one-shot edits or goals with no verifiable end-state (see "When NOT to loop").
+description: Turn a fuzzy objective into a running, self-verifying loop. Use when Ro wants to "create a loop", run something "until it's done", or hand off a multi-step objective instead of hand-prompting each step ("/goal", "loop until", "keep going until tests pass", "build X autonomously"). The skill manufactures a strong SEED (heavy plan → maximal decomposition → verifiable checklist) and only then runs the loop with cheap workers + an independent verifier + mulch memory + hard stop conditions. Repo-agnostic — the same flow fits every pipeline. Do NOT use for one-shot edits or goals with no verifiable end-state (see "When NOT to loop").
 ---
 
 # goal — design the loop, don't hand-prompt
@@ -23,7 +23,7 @@ Miss any one and you have either a hand-prompt or a runaway burn.
 - **Exploration where requirements are still forming.** Loops need the end defined up front; if you're
   still discovering what you want, stay in the conversation.
 
-## Phase 1 — SEED (premium model; the user stays in the loop)
+## Phase 1 — SEED (premium model; Ro stays in the loop)
 This is 90% of the value. Do `/plan`-grade thinking and produce a durable **seed doc** on disk
 (e.g. `.planning/goals/<slug>.md`, or repo-appropriate) so it survives compaction. The seed states:
 - **Objective + end-state** — what is true when done, in plain language.
@@ -35,7 +35,7 @@ This is 90% of the value. Do `/plan`-grade thinking and produce a durable **seed
 - **Budget cap** — a hard token/output ceiling. The romantic vision is you sleep while it works; the
   real job is making sure it stops. Set the cap here.
 
-If any of these can't be filled in, STOP — the goal isn't loop-ready yet. Surface that to the user.
+If any of these can't be filled in, STOP — the goal isn't loop-ready yet. Surface that to Ro.
 
 ## Phase 2 — DECOMPOSE (decomposer subagent; disposable context)
 Hand the seed to a **decomposer subagent** (per [[code-decompose]]) so the heavy code-reading never
@@ -61,7 +61,7 @@ fan-out cap and spawn-depth 2):
   VERIFY; report the VERIFY output verbatim; do not expand scope." Fresh context each iteration so the
   model doesn't drift.
 - Route the model: premium only on the seed/decompose; **free CLI / cheap models do the volume.**
-- On a worker stall, **kill its process tree** (the user's machine runs hot — never leave workers loaded).
+- On a worker stall, **kill its process tree** (Ro's machine runs hot — never leave workers loaded).
 
 ## Phase 4 — VERIFY (independent; never self-grade)
 A loop that grades its own work is an efficient way to produce confident mistakes. For each unit, a
@@ -79,10 +79,10 @@ Helper: `python3 ~/.claude/tools/goal/goal_judge.py` (stdlib, `--selftest`). It 
 mechanical scaffolding; the *judgment* stays a distinct sub-agent call.
 
 1. **Done is judged by a DIFFERENT model than the maker.** The stop decision is a SEPARATE
-   sub-agent (e.g. a cheaper judge model) — never the worker self-declaring done. Hand it the
-   goal's verifiable end-state as an explicit written checklist (`[x]` verified green / `[ ]` not
-   yet / `[!]` verified RED), one line per end-state fact. Grade it mechanically — a unit is done
-   only when every item is `[x]` and none `[!]`:
+   sub-agent (e.g. `glm` or opus-low) — never the worker self-declaring done. Hand it the goal's
+   verifiable end-state as an explicit written checklist (`[x]` verified green / `[ ]` not yet /
+   `[!]` verified RED), one line per end-state fact. Grade it mechanically — a unit is done only
+   when every item is `[x]` and none `[!]`:
    ```bash
    printf '[x] parser rejects empty input\n[!] retry counter caps at 3\n' \
      | python3 ~/.claude/tools/goal/goal_judge.py grade --checklist -
@@ -111,14 +111,14 @@ mechanical scaffolding; the *judgment* stays a distinct sub-agent call.
 - **Stop** when: all items verified ✓ OR max iterations OR budget cap hit OR stall. Then kill any
   remaining worker process trees. Report what's done, what's not, and why it stopped.
 - **Orchestration-tax guard:** keep the checklist and diffs reviewable. The danger isn't loud failure —
-  it's quiet success on code nobody understands anymore. Surface progress to the user; don't let the gap
+  it's quiet success on code nobody understands anymore. Surface progress to Ro; don't let the gap
   between shipped and understood grow.
 - **Compact-safe close** (from [[global_orchestration_rules]]): commit (feature branch unless the repo
   says otherwise) → `ml record` + `ml sync` → update the front-door state file → push → then it's safe
   to compact. A well-closed loop can be resumed cold by a fresh session.
 
 ## Triggers (how a loop starts)
-- **Manual** — the user runs `/goal <objective>` now.
+- **Manual** — Ro runs `/goal <objective>` now.
 - **Scheduled** — a recurring tick (use the harness's scheduler) re-enters the loop until done.
 - **Event** — PR opened, CI red, etc.
 Whichever the trigger, the loop body is identical: read state → do the next unverified unit → verify →

@@ -61,5 +61,5 @@ else
   echo "Modo info. Para matar sesiones, usa:"
   echo "  $0 --all                         # matar TODAS las sesiones"
   echo "  $0 --all --dry-run              # ver qué mataría (simulación)"
-  echo "  $0 --repo  ~/code/my-repo  # kill only sessions for one repo"
+  echo "  $0 --repo ~/Downloads/intrn     # matar solo las de un repo"
 fi

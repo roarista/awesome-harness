@@ -23,6 +23,7 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import _hookout
 
 LOG = Path.home() / ".claude" / "hooks" / "state" / "main-edit-guard.log"
 
@@ -70,14 +71,21 @@ def main() -> None:
         return  # observe only
 
     if mode == "enforce" and not sub:
-        fp = (data.get("tool_input", {}) or {}).get("file_path", "")
+        # MAIN session: allow orientation files silently, BLOCK everything else
+        # (code) so the main orchestrator can't write code directly.
+        fp = str((data.get("tool_input", {}) or {}).get("file_path", "") or "")
+        base = os.path.basename(fp)
+        low = fp.replace("\\", "/")
+        orientation = (
+            base in (".northstar.md", ".northstar.done", "MEMORY.md")
+            or "/memory/" in low
+        )
+        if orientation:
+            return  # allow silently
         sys.stderr.write(
-            "MAIN-EDIT GUARD — the main orchestrator must not edit files "
-            "directly; delegate this write to a sub-agent (see "
-            "~/.claude/CLAUDE.md delegation default). "
-            f"file: {os.path.basename(str(fp))}. (kill-switch: write `off` to "
-            "state/main-edit-guard.mode (overrides env, live, no restart), or "
-            "MAIN_EDIT_GUARD=off)\n"
+            f"MAIN-EDIT BLOCKED: {base} — main orchestrates, subagents write "
+            f"code; delegate it. (allowed: .northstar/memory; "
+            f"kill: MAIN_EDIT_GUARD=off)\n"
         )
         sys.exit(2)
     # enforce + subagent, or any other mode -> allow
