@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- awesome-harness: weekly propose-only harness-scout (steal-worthy ideas +
+     repetition-to-automate mining). Install:
+       sed "s#__HOME__#$HOME#g" templates/com.awesomeharness.harness-scout.plist \
+         > ~/Library/LaunchAgents/com.awesomeharness.harness-scout.plist
+       launchctl load ~/Library/LaunchAgents/com.awesomeharness.harness-scout.plist
+     Fires Sunday 18:00 local. Runs tools/run-harness-scout.sh, which calls
+     `claude -p` headless and delegates the report write to a sub-agent so the
+     enforce/main-edit guard doesn't block it. Report lands in ~/Downloads. -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.awesomeharness.harness-scout</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>__HOME__/.claude/tools/run-harness-scout.sh</string>
+    </array>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>__HOME__/.npm-global/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key><integer>0</integer>
+        <key>Hour</key><integer>18</integer>
+        <key>Minute</key><integer>0</integer>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>__HOME__/.claude/logs/harness-scout.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>__HOME__/.claude/logs/harness-scout.err.log</string>
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>

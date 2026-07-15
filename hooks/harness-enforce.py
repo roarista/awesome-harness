@@ -88,8 +88,18 @@ def main() -> None:
     if not applicable:
         return
     n = bump(root)
-    key, _, line = applicable[n % len(applicable)]
-    _hookout.inject("UserPromptSubmit", f"HARNESS ENFORCE ({key}, active — obey it now): {line}")
+    caveman = next((m for m in applicable if m[0] == "caveman"), None)
+    others = [m for m in applicable if m[0] != "caveman"]
+    parts = []
+    if caveman is not None:
+        parts.append(f"[caveman] {caveman[2]}")
+    if others:
+        okey, _, oline = others[n % len(others)]
+        parts.append(f"[{okey}] {oline}")
+    if not parts:  # caveman not applicable and no others (shouldn't happen)
+        okey, _, oline = applicable[n % len(applicable)]
+        parts.append(f"[{okey}] {oline}")
+    _hookout.inject("UserPromptSubmit", "HARNESS ENFORCE (obey now): " + "  ||  ".join(parts))
 
 
 if __name__ == "__main__":
