@@ -103,6 +103,26 @@ def bump(root: Path) -> int:
     return n
 
 
+def state_trim_nudge(root: Path) -> str:
+    """SessionStart only: if STATE.md bloated past ~40 non-empty lines, nudge the
+    incoming agent to trim it to current scope before deep work (archive rest to
+    STATE-ARCHIVE.md — never delete). Judgment trim = the `state-trim` skill; the
+    deterministic split is tools/state-distiller.py. Fail-open, advisory."""
+    for rel in ("STATE.md", ".planning/STATE.md"):
+        f = root / rel
+        try:
+            if not f.exists():
+                continue
+            n = sum(1 for ln in f.read_text(errors="replace").splitlines() if ln.strip())
+        except OSError:
+            continue
+        if n > 40:
+            return (f"STATE ({rel}) is {n} lines — trim to CURRENT scope before deep work: "
+                    "keep canonical model + resume point, move the rest to STATE-ARCHIVE.md "
+                    "(never delete). run the `state-trim` skill.\n\n")
+    return ""
+
+
 def main() -> None:
     event = ""
     try:
@@ -147,6 +167,7 @@ def main() -> None:
                                       "recency-corrected state):\n" + h + "\n\n")
             except OSError:
                 pass
+        session_prefix += state_trim_nudge(root)
 
     out = [
         "NORTH STAR (fixed objective; next step doesn't serve this? STOP, tell Ro):",

@@ -65,6 +65,8 @@ Re-running is safe (idempotent). `--dry-run` shows changes without touching anyt
 | **memgraph** | An FTS index + link graph over your markdown memory. A `recall` hook injects the 1–3 most relevant records into every substantive turn — so the agent starts *warm*, not cold. |
 | **mulch** *(dep)* | Per-repo decision/convention/failure memory. `ml prime` at session start, `ml sync` at compact. Wired automatically per repo. |
 | **scaffold-ledger** | Captures the *approach* that worked for a task-category on a verified pass, and **promotes-on-beat** (keeps the version that passed in fewer iterations). Next time, recall feeds it back. verify → capture → recall → beat → replace. |
+| **MEMORY_STANDARD** | The memory conventions every repo follows: mulch records are ≤2 sentences with overflow → `.mulch/details/<slug>.md` and a **read-the-detail-before-you-diagnose** rule; STATE.md is trimmed to current scope with history moved (never deleted) to `STATE-ARCHIVE.md`; shared/cross-lane memory is pruned proposal-only. See `MEMORY_STANDARD.md`. |
+| **state-trim + front-door** *(skill + template)* | `state-trim` trims a bloated `STATE.md` to the current workstream at session start (a SessionStart nudge in `northstar-inject.py` flags it past ~40 lines), archiving the rest. `templates/FRONT_DOOR.md` is the single read-first doc a cold agent opens — pipelines, invariants, `file:line` citations, one line per file, plus a workstream disambiguation banner. |
 
 ### 💸 Token savings
 | Piece | What it does |

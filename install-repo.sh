@@ -43,6 +43,14 @@ else
   echo "[northstar] created .northstar.md — EDIT IT: set OBJECTIVE / DONE_WHEN / NOT_NOW"
 fi
 
+# 3b. front-door doc (read-first orientation) — never clobber an existing one
+if [ -f FRONT_DOOR.md ] || [ -f .planning/FRONT_DOOR.md ]; then
+  echo "[front-door] FRONT_DOOR.md exists — leaving it"
+else
+  cp "$SRC/templates/FRONT_DOOR.md" FRONT_DOOR.md
+  echo "[front-door] created FRONT_DOOR.md stub — FILL IT: the one doc a fresh agent reads first (see MEMORY_STANDARD.md)"
+fi
+
 # 4. mulch per-repo memory
 if command -v ml >/dev/null 2>&1; then
   echo "[mulch] wiring ml prime/sync into this repo's Claude hooks"

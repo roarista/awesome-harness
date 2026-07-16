@@ -86,6 +86,8 @@ Look at the "Suggested domains" and "Changed files" output. For each genuinely d
 ml record <domain> --type <pattern|convention|failure|decision|reference> [type-specific required fields] --description "..."
 ```
 
+> **Record format:** keep each record ≤2 sentences; overflow (dates, exact flags, event trace, counts, evidence) → `.mulch/details/<slug>.md`, and **read that detail file before acting on the record**. Full rules: `MEMORY_STANDARD.md`.
+
 Type-specific required fields (gotchas the CLI will reject without):
 - `pattern` requires `--name`
 - `failure` requires `--resolution`

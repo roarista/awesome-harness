@@ -42,6 +42,7 @@ run "cp -R '$SRC/skills/.' '$DEST/skills/'"
 run "cp -R '$SRC/tools/.' '$DEST/tools/'"
 run "cp '$SRC/ctxproxy.py' '$DEST/tools/ctxproxy.py'"
 run "cp '$SRC/BUILDER_STANDARD.md' '$DEST/BUILDER_STANDARD.md'"
+run "cp '$SRC/MEMORY_STANDARD.md' '$DEST/MEMORY_STANDARD.md'"
 run "chmod +x '$DEST'/hooks/*.sh '$DEST'/hooks/*.py '$DEST'/tools/*.sh '$DEST'/tools/*.py '$DEST'/tools/check-all/*.sh 2>/dev/null || true"
 [ -f "$DEST/tools/memgraph/sources.txt" ] || run "cp '$SRC/templates/memgraph-sources.txt' '$DEST/tools/memgraph/sources.txt'"
 
