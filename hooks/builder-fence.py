@@ -8,7 +8,8 @@ import subprocess
 import sys
 
 BUILDER = re.compile(r"^\s*(?:\S*/)?(codex|glm)\b")
-BUILD_EDIT = re.compile(r"\bexec\b|--edit\b|\bgit apply\b|<<")
+COMPANION = re.compile(r"\bnode\b[^\n;|&]*\bcodex-companion(?:\.mjs)?\b[^\n;|&]*\btask\b")
+BUILD_EDIT = re.compile(r"\bexec\b|--edit\b|--write\b|\bgit apply\b|<<")
 BRIEF = re.compile(r"\b(?:CONTEXT|CHANGE|GOAL|VERIFY)\b", re.IGNORECASE)
 
 
@@ -16,7 +17,7 @@ def _is_builder(command):
     # Identity check: a builder CALL is codex/glm invoked command-initial (optionally
     # via an absolute path). Edit-intent (BUILD_EDIT) is tested separately so a bare
     # `codex apply` still counts as a builder call, while `grep -w codex` does not.
-    return bool(BUILDER.search(command))
+    return bool(BUILDER.search(command)) or bool(COMPANION.search(command))
 
 
 def _context(event_name, message):
@@ -109,6 +110,21 @@ def _selftest():
     assert _is_builder("/usr/local/bin/codex apply")
     assert not _is_builder("grep -w codex file")
     assert not _is_builder('echo "use codex"')
+    event["tool_input"] = {"command": 'node "/x/scripts/codex-companion.mjs" task "CHANGE: add y" --write'}
+    assert preflight(event) == ("", False)
+    event["tool_input"] = {"command": 'node "/x/scripts/codex-companion.mjs" task "just do it" --write'}
+    assert "decompose" in preflight(event)[0]
+    event["tool_input"] = {"command": 'node "/x/scripts/codex-companion.mjs" task "rewrite the .northstar.md file" --write'}
+    assert preflight(event)[1]
+    assert _is_builder('node "/x/scripts/codex-companion.mjs" task "x" --write')
+    # merely PRINTING the phrase (no real node invocation) must NOT be a builder call
+    assert not _is_builder("printf 'codex-companion.mjs task' >> f")
+    assert not _is_builder('echo "run codex-companion task later"')
+    event["tool_input"] = {"command": "printf 'codex-companion.mjs task' >> f"}
+    assert preflight(event) == ("", False)
+    event["tool_input"] = {"command": 'echo "run codex-companion task later"'}
+    assert preflight(event) == ("", False)
+    assert not _is_builder('node foo.js')
     print("selftest passed")
 
 

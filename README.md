@@ -112,6 +112,7 @@ Re-running is safe (idempotent). `--dry-run` shows changes without touching anyt
 | **graphify** *(dep)* | Builds a queryable graph of your code **and** docs (`graphify-out/graph.json`) plus a human-readable wiki (`GRAPH_REPORT.md`). Agents run `graphify query/explain/path` to get a scoped subgraph with `file:line` anchors instead of reading whole files. |
 | **auto-refresh** | A niced, non-blocking, self-locking `post-commit` hook keeps the graph current on every commit — no daemon, CPU-safe. |
 | **graphify-blast** | Maps a `git diff` → impacted symbols, so a coder sees the blast radius *before* editing. |
+| **repowise** *(dep, complements graphify)* | Adds the signals graphify doesn't: **git-hotspots / defect-risk**, **code-health scoring** (CCN + churn), dead-code detection, and a **task-shaped MCP** (`get_context` / `get_risk`) an agent queries instead of grepping. `repowise init --index-only` = **no API key, no LLM cost** (AST + git history + graph + dead code into a local `.repowise/`). Per-repo MCP: add to `.mcp.json` or `claude mcp add repowise -- repowise mcp`. |
 
 ## How it works (two layers)
 
@@ -128,6 +129,7 @@ The harness wires these together; install the ones you want (the installer detec
 |---|---|---|
 | `python3`, `git` | core | preinstalled on most systems |
 | **graphify** | code-map RAG | `uv tool install graphifyy` |
+| **repowise** | code-intelligence (git-hotspots/health + MCP), complements graphify | `pip install repowise` (needs Python ≥3.11) |
 | **mulch** (`ml`) | per-repo memory | `npm i -g @mulch/cli` (needs `~/.bun/bin` on PATH) |
 | **ponytail** | lazy-coding discipline | Claude Code plugin: `DietrichGebert/ponytail` |
 | codex / glm / kimi / gemini | non-Claude builder/auditor subagents (optional) | each vendor's CLI |

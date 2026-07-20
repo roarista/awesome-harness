@@ -26,6 +26,16 @@ else
   echo "[graphify] not installed — skipping (install: uv tool install graphifyy)"
 fi
 
+# 1b. repowise code-intelligence (COMPLEMENTS graphify: git-hotspots/risk, code-health, MCP)
+# Index-only = no API key, no LLM cost. Niced + non-fatal.
+if command -v repowise >/dev/null 2>&1; then
+  echo "[repowise] indexing (AST + git history + graph + dead code; --index-only = no API cost)…"
+  nice -n 15 repowise init --index-only -y . || true
+  grep -qxF ".repowise/" .gitignore 2>/dev/null || echo ".repowise/" >> .gitignore
+else
+  echo "[repowise] not installed — skipping (install: pip install repowise  — needs Python ≥3.11)"
+fi
+
 # 2. graph auto-refresh on commit (non-blocking, niced, locked)
 HOOKDIR="$(git rev-parse --git-common-dir)/hooks"; mkdir -p "$HOOKDIR"
 if [ -f "$HOOKDIR/post-commit" ]; then

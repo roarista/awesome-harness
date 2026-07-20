@@ -13,3 +13,11 @@ hooks/state/
 
 # machine-local hook-integrity baseline (per-machine file hashes — never publish)
 hooks/manifest/
+
+# repowise per-repo code-intelligence index (caches + wiki.db — never publish)
+.repowise/
+
+# repowise per-repo scaffolding (absolute local paths — machine-local, never publish)
+.mcp.json
+.vscode/
+.claude/

@@ -31,6 +31,7 @@ need(){ command -v "$1" >/dev/null 2>&1 && say "found $1" || say "MISSING $1 —
 need python3 "required for memgraph + several hooks"
 need git     "required for graphify auto-refresh"
 need graphify "code-map RAG — install: uv tool install graphifyy   (https://github.com/…/graphify)"
+need repowise "code-intelligence (git-hotspots/health + MCP); install: pip install repowise"
 need ml      "mulch per-repo memory — install: npm i -g @mulch/cli (needs ~/.bun/bin on PATH)"
 need node    "needed by the ponytail plugin + some hooks"
 
