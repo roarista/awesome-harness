@@ -31,7 +31,7 @@ OVERRIDE = "CLAUDE_ALLOW_IRREVERSIBLE=1"
 
 # 2. git push carrying a force flag.
 GIT_FORCE_PUSH = re.compile(
-    r"\bgit\b[^\n]*\bpush\b[^\n]*(?:--force-with-lease|--force|(?<![\w-])-f\b)",
+    r"\bgit\b[^\n;|&]*\bpush\b[^\n;|&]*(?:--force-with-lease|--force|(?<![\w-])-f\b)",
 )
 
 # 3. Destructive SQL / DB reset (case-insensitive) — only counts when an actual
@@ -47,6 +47,16 @@ DB_CLIENT = re.compile(
     r"prisma|sequelize|alembic|dbmate|flyway|mysqldump|pg_dump)\b",
     re.IGNORECASE,
 )
+
+# 4. Other destructive filesystem, repository, disk, and cloud operations.
+GIT_RESET_HARD = re.compile(r"\bgit\b[^\n;|&]*\breset\s+--hard\b")
+FIND_DELETE = re.compile(r"\bfind\b[^\n;|&]*\s-delete\b|\bfind\b[^\n;|&]*\s-exec\s+rm\b")
+TRUNCATE_ZERO = re.compile(r"\btruncate\s+-s\s+0\b")
+DD_OF = re.compile(r"\bdd\b[^\n;|&]*\bof=")
+MKFS = re.compile(r"(?:^|[\s;|&])mkfs(?:\.[\w-]+)?\s")
+AWS_S3_RM_RECURSIVE = re.compile(r"\baws\s+s3\s+rm\b[^\n;|&]*--recursive\b")
+GCLOUD_DELETE = re.compile(r"\bgcloud\b[^\n;|&]*\bdelete\b")
+RCLONE_DELETE = re.compile(r"\brclone\s+(?:delete|purge)\b")
 
 
 def _dequote(cmd: str) -> str:
@@ -71,6 +81,15 @@ def _rm_is_recursive_force(cmd: str) -> bool:
     return False
 
 
+def _git_clean_is_destructive(cmd: str) -> bool:
+    """True iff one git-clean invocation has force plus d or x flags."""
+    for m in re.finditer(r"\bgit\b[^\n;|&]*\bclean\b([^\n;|&]*)", cmd):
+        short = "".join(re.findall(r"(?<!-)-([a-zA-Z]+)\b", m.group(1)))
+        if "f" in short and ("d" in short or "x" in short):
+            return True
+    return False
+
+
 def matches_denylist(cmd: str) -> bool:
     # rm + force-push are SHELL-STRUCTURE ops: match on the dequoted command so a
     # trigger buried in a quoted argument to codex/echo/git-commit doesn't fire.
@@ -79,8 +98,17 @@ def matches_denylist(cmd: str) -> bool:
         return True
     if GIT_FORCE_PUSH.search(bare):
         return True
-    # destructive SQL only when a real DB client is invoked (scan original cmd).
-    if DB_CLIENT.search(cmd) and SQL_DESTRUCTIVE.search(cmd):
+    if _git_clean_is_destructive(bare):
+        return True
+    if any(pattern.search(bare) for pattern in (
+        GIT_RESET_HARD, FIND_DELETE, TRUNCATE_ZERO,
+        DD_OF, MKFS, AWS_S3_RM_RECURSIVE, GCLOUD_DELETE, RCLONE_DELETE,
+    )):
+        return True
+    # destructive SQL only when a real DB client is invoked OUTSIDE quotes
+    # (dequoted cmd), while the SQL keyword may live anywhere (original cmd) - so a
+    # commit message / prose mentioning a client + the SQL keyword does NOT trip it.
+    if DB_CLIENT.search(_dequote(cmd)) and SQL_DESTRUCTIVE.search(cmd):
         return True
     return False
 
@@ -97,6 +125,9 @@ def deny() -> None:
 
 
 def main() -> None:
+    if "--selftest" in sys.argv:
+        _selftest()
+        return
     raw = sys.stdin.read()
     data = json.loads(raw) if raw.strip() else {}
     if data.get("tool_name", "") != "Bash":
@@ -106,6 +137,28 @@ def main() -> None:
         return  # override / re-arm — always allow
     if matches_denylist(cmd):
         deny()
+
+
+def _selftest() -> None:
+    destructive = (
+        "rm -rf scratch", "git push --force", "psql -c 'drop table users'",
+        "git reset --hard", "git clean -fd", "git clean -fx", "find . -delete",
+        "find . -exec rm {} \\;", "truncate -s 0 file", "dd of=/dev/disk9",
+        "mkfs.ext4 /dev/disk9", "aws s3 rm s3://bucket --recursive",
+        "gcloud projects delete test", "rclone delete remote:path", "rclone purge remote:path",
+        "git push origin --force", 'psql -c "drop table x"',
+    )
+    for command in destructive:
+        assert matches_denylist(command), command
+    allowed = (
+        "git status", "git commit -m x", "git push",
+        "git push origin main && tar -f b.tar data/",
+        'git commit -m "drop table x via psql"',
+        "vim mkfs.sh",
+    )
+    for command in allowed:
+        assert not matches_denylist(command), command
+    print("selftest passed")
 
 
 if __name__ == "__main__":
