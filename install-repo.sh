@@ -5,10 +5,50 @@
 # existing .northstar.md or a tracked file.
 #
 #   ./install-repo.sh /path/to/repo
+#   ./install-repo.sh --codex [--dry-run] /absolute/path/to/repo
 set -euo pipefail
 
-REPO="${1:-$PWD}"
 SRC="$(cd "$(dirname "$0")" && pwd)"
+CODEX=0; DRY=0
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --codex) CODEX=1; shift ;;
+    --dry-run) DRY=1; shift ;;
+    *) break ;;
+  esac
+done
+
+if [ "$CODEX" = 1 ]; then
+  [ "$#" = 1 ] || { echo "usage: $0 --codex [--dry-run] /absolute/path/to/repo"; exit 1; }
+  case "$1" in /*) REPO="$1" ;; *) echo "Codex install requires an absolute repo path"; exit 1 ;; esac
+  REPO="$(git -C "$REPO" rev-parse --show-toplevel 2>/dev/null)" || { echo "not a git repo: $1"; exit 1; }
+  CODEX_DEST="${CODEX_HOME:-$HOME/.codex}/awesome-harness"
+  ADAPTER="$CODEX_DEST/hooks/pre_tool_use.py"
+  [ -f "$ADAPTER" ] || { echo "Codex adapter is not installed: run ./install.sh --codex first"; exit 1; }
+  echo "awesome-harness Codex adapter → repo: $REPO"
+  if [ "$DRY" = 1 ]; then
+    python3 "$SRC/scripts/merge_codex_hooks.py" --dry-run "$REPO/.codex/hooks.json" "$ADAPTER"
+    if [ -e "$REPO/.codex/awesome-harness.json" ]; then
+      echo "DRY: workflow marker unchanged: $REPO/.codex/awesome-harness.json"
+    else
+      echo "DRY: would create workflow-only marker: $REPO/.codex/awesome-harness.json"
+    fi
+  else
+    python3 "$SRC/scripts/merge_codex_hooks.py" "$REPO/.codex/hooks.json" "$ADAPTER"
+    if [ ! -e "$REPO/.codex/awesome-harness.json" ]; then
+      mkdir -p "$REPO/.codex"
+      printf '%s\n' '{' '  "version": 1,' '  "route_only_policy": "workflow-only"' '}' > "$REPO/.codex/awesome-harness.json"
+      echo "created workflow-only marker: $REPO/.codex/awesome-harness.json"
+    else
+      echo "workflow-only marker unchanged: $REPO/.codex/awesome-harness.json"
+    fi
+  fi
+  echo "done. Review the merged hooks in Codex (/hooks), trust this repository, and restart Codex before expecting hooks to run."
+  echo "The marker is policy only: it does not role-gate or block native direct patches."
+  exit 0
+fi
+
+REPO="${1:-$PWD}"
 cd "$REPO"
 [ -d .git ] || { echo "not a git repo: $REPO"; exit 1; }
 echo "awesome-harness → repo: $REPO"

@@ -7,21 +7,42 @@
 #   ./install.sh            # install + wire settings.json
 #   ./install.sh --proxy    # also install + load the local token-saving proxy (macOS launchd)
 #   ./install.sh --dry-run  # show what would change, touch nothing
+#   ./install.sh --codex [--dry-run]  # install only the Codex adapter
 set -euo pipefail
 
 SRC="$(cd "$(dirname "$0")" && pwd)"
 DEST="$HOME/.claude"
-DRY=0; PROXY=0
+DRY=0; PROXY=0; CODEX=0
 for a in "$@"; do
   case "$a" in
     --dry-run) DRY=1 ;;
     --proxy)   PROXY=1 ;;
+    --codex)   CODEX=1 ;;
     *) echo "unknown flag: $a"; exit 1 ;;
   esac
 done
 
 say(){ printf '  %s\n' "$*"; }
 run(){ if [ "$DRY" = 1 ]; then echo "DRY: $*"; else eval "$*"; fi; }
+
+if [ "$CODEX" = 1 ]; then
+  [ "$PROXY" = 0 ] || { echo "--proxy is Claude-only and cannot be combined with --codex"; exit 1; }
+  CODEX_ROOT="${CODEX_HOME:-$HOME/.codex}"
+  CODEX_DEST="$CODEX_ROOT/awesome-harness"
+  CODEX_SKILL_DEST="$CODEX_ROOT/skills/caveman"
+  echo "awesome-harness Codex adapter → $CODEX_DEST"
+  echo "[1/2] copying Codex adapter and caveman skill"
+  run "mkdir -p '$CODEX_DEST/hooks' '$CODEX_SKILL_DEST'"
+  run "cp -R '$SRC/codex/hooks/.' '$CODEX_DEST/hooks/'"
+  run "cp '$SRC/codex/hooks.json.template' '$CODEX_DEST/hooks.json.template'"
+  run "cp '$SRC/codex/skills/caveman/SKILL.md' '$CODEX_SKILL_DEST/SKILL.md'"
+  run "chmod +x '$CODEX_DEST'/hooks/*.py"
+  echo "[2/2] complete"
+  say "Claude settings were not read or changed."
+  say "For one trusted repository: ./install-repo.sh --codex /absolute/path/to/repo"
+  say "Review and trust its hooks in Codex (/hooks), then restart Codex so hook configuration reloads."
+  exit 0
+fi
 
 echo "awesome-harness → $DEST"
 

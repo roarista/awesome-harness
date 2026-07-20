@@ -57,6 +57,74 @@ git clone https://github.com/<you>/awesome-harness && cd awesome-harness
 
 Re-running is safe (idempotent). `--dry-run` shows changes without touching anything. **Restart Claude Code afterward** — env vars and tool-search load at process start.
 
+### Codex adapter (opt-in)
+
+The Codex adapter installs separately and only enables a repository after an explicit per-repo command:
+
+```bash
+./install.sh --codex --dry-run
+./install.sh --codex
+./install-repo.sh --codex --dry-run /absolute/path/to/repo
+./install-repo.sh --codex /absolute/path/to/repo
+```
+
+Review and trust the merged hooks in Codex (`/hooks`), then restart Codex. The repository marker carries a workflow policy; it does not mechanically role-gate direct patches.
+
+| Capability | Boundary |
+|---|---|
+| `^Bash$` builder guard | Narrow shell guard only; gated by enablement, trust, and a runtime smoke test. |
+| `^apply_patch$` | Configured as advisory only, never a block; verify its runtime behavior with a smoke test. |
+| Hosted-tool coverage and roles | No total tool coverage and no reliable main-versus-builder identity. This adapter does not mechanically enforce chat prose or delegation. |
+| Commit backstop | Git hooks can check commits, not every prior action. |
+| Caveman | Behavioral policy: contract, builder, distinct audit, and R2 evidence. |
+
+### Runtime pilot and rollback
+
+Run the disposable runtime proof from this checkout before enabling a real
+repository. It creates a temporary Git repo and a fake CODEX_HOME, installs
+the global and per-repo adapter there, and proves that a real Codex session
+dispatches both Bash and apply_patch. It copies local Codex credentials
+only into that temporary directory so the session can authenticate; it never
+prints them and removes the directory on exit.
+
+~~~bash
+tests/test_codex_runtime_smoke.sh
+~~~
+
+To disable a repository without disturbing unrelated hooks, remove only this
+adapter command and its policy marker. Run this after replacing
+/absolute/path/to/repo; it preserves every other hook entry, including other
+commands under the same matcher.
+
+~~~bash
+python3 - /absolute/path/to/repo/.codex/hooks.json "$HOME/.codex/awesome-harness/hooks/pre_tool_use.py" <<'PY'
+import json, sys
+from pathlib import Path
+
+path, adapter = map(Path, sys.argv[1:])
+data = json.loads(path.read_text())
+command = f'python3 "{adapter.resolve()}"'
+pre = data.get("hooks", {}).get("PreToolUse", [])
+kept = []
+for entry in pre:
+    if entry.get("matcher") not in {"^Bash$", "^apply_patch$"}:
+        kept.append(entry)
+        continue
+    entry = dict(entry)
+    entry["hooks"] = [hook for hook in entry.get("hooks", []) if hook.get("command") != command]
+    if entry["hooks"]:
+        kept.append(entry)
+data["hooks"]["PreToolUse"] = kept
+path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
+PY
+rm -f /absolute/path/to/repo/.codex/awesome-harness.json
+~~~
+
+The installer also creates a timestamped hooks.json.bak.* before its first
+write. Treat that as recovery evidence, not a general rollback command:
+restoring it replaces the entire hook file and can discard unrelated changes
+made after installation. The targeted command above is the normal rollback.
+
 ## What you get
 
 ### 🧠 Memory that persists across sessions
