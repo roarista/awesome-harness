@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "^Bash$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/awesome-harness/pre_tool_use.py\"",
+            "timeout": 10,
+            "statusMessage": "Checking builder contract"
+          }
+        ]
+      },
+      {
+        "matcher": "^apply_patch$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/awesome-harness/pre_tool_use.py\"",
+            "timeout": 10,
+            "statusMessage": "Recording direct-edit advisory"
+          }
+        ]
+      }
+    ]
+  }
+}
