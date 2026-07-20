@@ -5,7 +5,7 @@ The blind-spot hook only ADVISES ("maybe run graphify"), and advisories get
 skimmed away — measured: graphify was invoked in ~16% of sessions. Ro's ask:
 make it USED every time, without reminding. Advisory → DENY.
 
-Contract (three jobs, branch on event):
+Contract (four jobs, branch on event):
   * SessionStart      → CLEAR this session's "graphified" marker, so graphify is
     re-required at the start of every session AND after every /compact (Ro
     compacts a lot; post-compaction the map orientation is gone from context, so
@@ -14,19 +14,24 @@ Contract (three jobs, branch on event):
     mark this session as "graphified" (gate lifts until the next SessionStart).
   * PreToolUse Read/Grep → in a repo that HAS `graphify-out/graph.json`, if the
     session has NOT run graphify yet AND the target is source CODE, DENY (exit 2)
-    with the exact command to run. First cold code-read is blocked; the moment
-    ANY graphify command runs, the gate stays lifted until the next SessionStart.
+    with the exact command to run.
+  * PreToolUse Bash   → same gate for the shell-read ESCAPE: reading a code file
+    via cat/less/more/head/tail/bat/sed/awk/rg/grep bypassed the Read/Grep gate.
+    If the shell command unambiguously reads a source-code file, DENY too.
 
 Deliberately narrow so it enforces without wedging:
   * no graphify-out up-tree            → instant no-op (almost every repo / home)
   * already ran graphify this session  → no-op
   * target is .md/.json/.txt/config/a test/graphify-out itself → allowed (you
     must be able to read docs + the map + run the tool)
+  * shell read we can't confidently resolve to a code FILE → allowed (fail-open)
   * kill-switch env GRAPHIFY_GATE=0    → no-op
   * any internal error                 → fail-open (exit 0), never wedge
 """
 import json
 import os
+import re
+import shlex
 import sys
 from pathlib import Path
 
@@ -34,6 +39,8 @@ STATE_DIR = Path.home() / ".claude" / "hooks" / "state" / "graphify_ran"
 CODE_EXT = {"py", "js", "ts", "tsx", "jsx", "go", "rs", "rb", "java", "swift",
             "c", "cc", "cpp", "h", "hpp", "sh", "vue", "svelte", "php", "scala",
             "kt", "m", "mm"}
+# shell tools that read a file's contents (the Read/Grep-gate escape hatch)
+READERS = {"cat", "less", "more", "head", "tail", "bat", "sed", "awk", "rg", "grep"}
 
 
 def _marker(session: str) -> Path:
@@ -57,6 +64,35 @@ def _is_code(fp: str) -> bool:
     if "graphify-out/" in low or "/test" in low or low.endswith((".test.ts", ".test.js", ".spec.ts", ".spec.js")):
         return False
     return True
+
+
+def _bash_code_target(cmd: str):
+    """Return the abspath of a code FILE that `cmd` unambiguously reads via a
+    known reader tool, else None. Conservative: only trips on an existing code
+    file passed to a reader in its own pipeline segment; anything ambiguous
+    (globs, patterns with spaces, non-existent paths) → None (allow)."""
+    try:
+        segments = re.split(r"&&|\|\||;|\||\n", cmd)
+    except Exception:
+        return None
+    for seg in segments:
+        try:
+            toks = shlex.split(seg)
+        except Exception:
+            continue
+        if not toks or os.path.basename(toks[0]) not in READERS:
+            continue
+        for tok in toks[1:]:
+            if tok.startswith("-"):
+                continue
+            if any(ch in tok for ch in " \t*?"):
+                continue  # a pattern / glob, not a single filename → ambiguous
+            if not _is_code(tok):
+                continue
+            ap = tok if os.path.isabs(tok) else os.path.join(os.getcwd(), tok)
+            if os.path.isfile(ap):
+                return ap
+    return None
 
 
 def _deny(target_desc: str) -> None:
@@ -104,7 +140,16 @@ def main() -> None:
                 pass
         return
 
-    # --- job 2: PreToolUse Read/Grep → gate cold source browsing ---
+    # --- job 2: PreToolUse Bash → close the shell-read escape hatch ---
+    if event == "PreToolUse" and tool == "Bash":
+        if _marker(session).exists():
+            return  # graphify already used this session → free
+        target = _bash_code_target(str(ti.get("command", "")))
+        if target and _has_graph(Path(target).parent):
+            _deny(f"shell read {os.path.basename(target)}")
+        return
+
+    # --- job 3: PreToolUse Read/Grep → gate cold source browsing ---
     if event != "PreToolUse" or tool not in ("Read", "Grep"):
         return
     if _marker(session).exists():
@@ -130,8 +175,59 @@ def main() -> None:
         _deny(f"grep {ti.get('pattern', '')!r}")
 
 
-if __name__ == "__main__":
+def _selftest() -> None:
+    import tempfile
+    d = tempfile.mkdtemp()
+    os.makedirs(os.path.join(d, "graphify-out"))
+    with open(os.path.join(d, "graphify-out", "graph.json"), "w") as f:
+        f.write("{}")
+    with open(os.path.join(d, "foo.py"), "w") as f:
+        f.write("x = 1\n")
+    with open(os.path.join(d, "README.md"), "w") as f:
+        f.write("# hi\n")
+    script = os.path.abspath(__file__)
+
+    def run(cmd, session):
+        ev = {"hook_event_name": "PreToolUse", "tool_name": "Bash",
+              "session_id": session, "tool_input": {"command": cmd}}
+        return subprocess.run([sys.executable, script], input=json.dumps(ev),
+                              text=True, capture_output=True, cwd=d)
+
+    import subprocess
+    # (a) cat foo.py in graphify repo w/o marker → block (exit 2)
+    r = run("cat foo.py", "selftest-nomark-a")
+    assert r.returncode == 2, f"a: cat foo.py should block, got {r.returncode}"
+    # (b) cat README.md (non-code) → allow (exit 0)
+    r = run("cat README.md", "selftest-nomark-b")
+    assert r.returncode == 0, f"b: cat README.md should allow, got {r.returncode}"
+    # (c) marker present → allow even for foo.py
+    sess = "selftest-marked-c"
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    _marker(sess).write_text("1")
     try:
-        main()
-    except Exception:
-        sys.exit(0)  # fail-open: never wedge a tool call over the gate
+        r = run("cat foo.py", sess)
+        assert r.returncode == 0, f"c: marked session should allow, got {r.returncode}"
+    finally:
+        try:
+            _marker(sess).unlink()
+        except FileNotFoundError:
+            pass
+    # (d) pattern-only grep (no code file) → allow
+    r = run("grep -n 'import os' foo_notafile", "selftest-nomark-d")
+    assert r.returncode == 0, f"d: no resolvable code file should allow, got {r.returncode}"
+    print("PASS")
+
+
+if __name__ == "__main__":
+    if "--selftest" in sys.argv:
+        import subprocess
+        try:
+            _selftest()
+        except AssertionError as e:
+            print(f"FAIL: {e}")
+            sys.exit(1)
+    else:
+        try:
+            main()
+        except Exception:
+            sys.exit(0)  # fail-open: never wedge a tool call over the gate

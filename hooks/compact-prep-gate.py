@@ -11,8 +11,10 @@ Wedge-proofing (this fires in EVERY session, including the 4 autonomous repos):
   * rate-limited to one block per RATE_SECS per repo — so a tight autonomous
     loop gets nudged at most once a minute, never spun. In an interactive
     session (turns minutes apart) that's effectively every turn = what Ro wants.
-  * if `.now.md` was modified within RATE_SECS, the ritual clearly just ran →
-    pass. So the agent clears the gate simply BY doing the update — no loop.
+  * CONTENT-HASH aware: the gate passes only when `.now.md`'s current sha256
+    DIFFERS from the hash recorded at the last block — i.e. real content changed
+    since we last demanded an update. A bare `touch .now.md` (fresh mtime, same
+    bytes) no longer satisfies the gate; only an actual edit does.
   * home dir / scratch dir with no project + no .now.md → silent (nothing to
     preserve there).
   * kill-switch env COMPACT_GATE=0 → no-op.  Fail-open on any error.
@@ -21,6 +23,7 @@ It intentionally does NOT commit/push (that would race the live autonomous
 repos and spam their history — CUT-not-ADD). It enforces the JUDGMENT half
 (orientation files current); the mechanical git half stays at real compaction.
 """
+import hashlib
 import json
 import os
 import subprocess
@@ -81,11 +84,44 @@ def _state(root: Path) -> Path:
     return STATE_DIR / f"{safe or 'root'}.json"
 
 
-def _last_block(p: Path) -> float:
+def _last_state(p: Path):
+    """Return (last_block_ts, last_block_hash). hash is None when unrecorded."""
     try:
-        return float(json.loads(p.read_text()).get("ts", 0))
+        d = json.loads(p.read_text())
+        return float(d.get("ts", 0)), d.get("hash")
     except Exception:
-        return 0.0
+        return 0.0, None
+
+
+def _now_hash(nowmd: Path) -> str:
+    """sha256 of .now.md's bytes; empty-string hash when it doesn't exist."""
+    try:
+        return hashlib.sha256(nowmd.read_bytes()).hexdigest()
+    except Exception:
+        return hashlib.sha256(b"").hexdigest()
+
+
+def _gate_should_block(root: Path, now: float) -> bool:
+    """Core decision. True = deny the stop (records block ts+hash first).
+    False = pass (rate-window re-stop, or .now.md content genuinely changed
+    since the last block)."""
+    st = _state(root)
+    last_ts, last_hash = _last_state(st)
+    # already nudged this repo within the rate window → don't spin
+    if now - last_ts < RATE_SECS:
+        return False
+    cur_hash = _now_hash(root / ".now.md")
+    # content really changed since we last demanded an update → satisfied
+    if last_hash is not None and cur_hash != last_hash:
+        return False
+    # record the block time + current hash BEFORE denying, so a re-stop within
+    # the window still passes and a touch-only (same hash) keeps blocking.
+    try:
+        STATE_DIR.mkdir(parents=True, exist_ok=True)
+        st.write_text(json.dumps({"ts": now, "hash": cur_hash}))
+    except Exception:
+        pass
+    return True
 
 
 def main() -> None:
@@ -110,33 +146,41 @@ def main() -> None:
     if not _is_project(root):
         return  # home / scratch → nothing to preserve
 
-    st = _state(root)
-    # already nudged this repo within the rate window → don't spin
-    if now - _last_block(st) < RATE_SECS:
+    if not _gate_should_block(root, now):
         return
-
-    nowmd = root / ".now.md"
-    # ritual clearly just ran (or is being run) → pass
-    try:
-        if nowmd.exists() and now - nowmd.stat().st_mtime < RATE_SECS:
-            return
-    except OSError:
-        pass
-
-    # record the block time BEFORE denying so a re-stop within the window passes
-    try:
-        STATE_DIR.mkdir(parents=True, exist_ok=True)
-        st.write_text(json.dumps({"ts": now}))
-    except Exception:
-        pass
 
     # BEHAVIOR CHANGE 2026-07-12: collapse the multi-line wall to ONE terse line.
     sys.stderr.write("COMPACT-PREP: delegate .now.md + STATE update to a cheap sub-agent before ending (kill: COMPACT_GATE=0)\n")
     sys.exit(2)
 
 
+def _selftest() -> None:
+    import tempfile
+    d = Path(tempfile.mkdtemp())
+    nowmd = d / ".now.md"
+    nowmd.write_text("A")
+    t = time.time()
+    # first stop demands an update (no prior hash) → block
+    assert _gate_should_block(d, t) is True, "first stop should block"
+    # re-stop within the rate window → pass (loop guard preserved)
+    assert _gate_should_block(d, t) is False, "re-stop within window should pass"
+    # touch-only after the window (same bytes, fresh mtime) → still blocks
+    assert _gate_should_block(d, t + 2 * RATE_SECS) is True, "touch-only should still block"
+    # genuine content change after the window → passes
+    nowmd.write_text("B — genuinely different content")
+    assert _gate_should_block(d, t + 4 * RATE_SECS) is False, "content change should pass"
+    print("PASS")
+
+
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception:
-        sys.exit(0)  # fail-open: never wedge a session close over this gate
+    if "--selftest" in sys.argv:
+        try:
+            _selftest()
+        except AssertionError as e:
+            print(f"FAIL: {e}")
+            sys.exit(1)
+    else:
+        try:
+            main()
+        except Exception:
+            sys.exit(0)  # fail-open: never wedge a session close over this gate

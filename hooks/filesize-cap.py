@@ -1,20 +1,19 @@
 #!/usr/bin/env python3
-"""Filesize-cap PreToolUse Read guard — proactive nudge before a full slurp.
+"""Filesize-cap PreToolUse Read guard — BLOCK a full slurp of a large file.
 
 Reading a huge file WHOLE dumps the entire thing into context and burns
 headroom for zero targeting. The reread-guard catches the *second* full read of
 a file you already have; this one fires on the *first* — before you slurp a big
-file at all — nudging you to read a range, grep, or use graphify instead.
+file at all — and now DENIES (exit 2) so the slurp never happens, telling the
+caller to read a range, grep, or use graphify instead.
 
-Fires only when ALL hold:
+Blocks only when ALL hold:
   * tool is Read, tool_input.file_path resolves to an existing, TEXT file
   * the file is LARGE: >= 2000 lines OR >= 200 KB
   * the Read is a FULL slurp: no `offset` and no `limit` in tool_input
 
-Advisory only: emits additionalContext via the standard hook JSON shape and
-exits 0. NEVER blocks, NEVER denies. Partial read (offset OR limit) → silent.
-Non-text / binary / missing / small → silent. Kill-switch FILESIZE_CAP=0 →
-no-op. Fail-open on any error.
+Partial read (offset OR limit) -> silent. Non-text / binary / missing / small
+-> silent. Kill-switch FILESIZE_CAP=0 -> no-op. Fail-open on any error.
 """
 import json
 import os
@@ -25,7 +24,7 @@ MIN_BYTES = 200 * 1024   # 200 KB
 
 
 def _is_text(path: str) -> bool:
-    """Cheap binary sniff: NUL byte in the first 8 KB → treat as binary."""
+    """Cheap binary sniff: NUL byte in the first 8 KB -> treat as binary."""
     try:
         with open(path, "rb") as f:
             chunk = f.read(8192)
@@ -50,7 +49,7 @@ def _full_read(ti: dict) -> bool:
 
 
 def evaluate(ti: dict) -> str:
-    """Return the nudge string, or '' when the hook should stay silent."""
+    """Return the block-reason string, or '' when the hook should stay silent."""
     fp = str(ti.get("file_path", "") or "")
     if not fp:
         return ""
@@ -71,8 +70,8 @@ def evaluate(ti: dict) -> str:
         return ""
     rel = os.path.relpath(ap, os.getcwd()) if ap.startswith(os.getcwd()) else ap
     return (
-        f"LARGE FILE ({lines:,} lines, {size // 1024:,} KB): {rel}. slurping whole file. "
-        f"prefer targeted: offset/limit span, grep the symbol, or graphify — not all {lines:,} lines."
+        f"LARGE FILE ({lines:,} lines, {size // 1024:,} KB): {rel}. full slurp blocked. "
+        f"use targeted: offset/limit span, grep the symbol, or graphify — not all {lines:,} lines."
     )
 
 
@@ -87,13 +86,8 @@ def main() -> None:
     msg = evaluate(ti)
     if not msg:
         return
-    print(json.dumps({
-        "suppressOutput": True,
-        "hookSpecificOutput": {
-            "hookEventName": "PreToolUse",
-            "additionalContext": msg,
-        },
-    }))
+    sys.stderr.write(msg + "\n")
+    sys.exit(2)
 
 
 def _selftest() -> None:
@@ -107,14 +101,14 @@ def _selftest() -> None:
         f.write("\n".join(f"line {i}" for i in range(50)))
     missing = os.path.join(d, "nope.txt")
 
-    # (a) big file, no offset → nudge
-    assert evaluate({"file_path": big}), "a: big full read should nudge"
-    # (b) same big file WITH offset → silent
+    # (a) big file, no offset -> block signal (non-empty reason)
+    assert evaluate({"file_path": big}), "a: big full read should block"
+    # (b) same big file WITH offset/limit -> silent
     assert not evaluate({"file_path": big, "offset": 1}), "b: offset should silence"
     assert not evaluate({"file_path": big, "limit": 100}), "b2: limit should silence"
-    # (c) small file → silent
+    # (c) small file -> silent
     assert not evaluate({"file_path": small}), "c: small file should be silent"
-    # (d) missing file → silent
+    # (d) missing file -> silent
     assert not evaluate({"file_path": missing}), "d: missing file should be silent"
     print("PASS")
 

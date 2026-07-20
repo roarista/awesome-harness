@@ -26,12 +26,36 @@ else
   echo "[graphify] not installed — skipping (install: uv tool install graphifyy)"
 fi
 
-# 1b. repowise code-intelligence (COMPLEMENTS graphify: git-hotspots/risk, code-health, MCP)
+# 1b. repowise code-intelligence (COMPLEMENTS graphify: git-hotspots/risk, code-health).
 # Index-only = no API key, no LLM cost. Niced + non-fatal.
+# IMPORTANT: `repowise init` — even with --index-only — auto-wires the repowise MCP
+# server + `repowise-augment` agent hooks into GLOBAL Claude config
+# (~/.claude/settings.json) and the Claude Desktop config. There is NO documented
+# flag to suppress that global wiring (checked `repowise init --help`; --no-claude-md
+# / --no-codex / --no-distill-hook do not cover the MCP/augment autowiring). We keep
+# repowise STRICTLY opt-in per repo, so we snapshot those two global files before init
+# and restore them after — guaranteeing the installer leaves global config untouched.
 if command -v repowise >/dev/null 2>&1; then
   echo "[repowise] indexing (AST + git history + graph + dead code; --index-only = no API cost)…"
-  nice -n 15 repowise init --index-only -y . || true
+  _cc_settings="$HOME/.claude/settings.json"
+  _cc_desktop="$HOME/Library/Application Support/Claude/claude_desktop_config.json"
+  _snap="$(mktemp -d 2>/dev/null || echo "/tmp/repowise-snap.$$")"; mkdir -p "$_snap"
+  _had_desktop=0
+  [ -f "$_cc_settings" ] && cp "$_cc_settings" "$_snap/settings.json" 2>/dev/null || true
+  if [ -f "$_cc_desktop" ]; then _had_desktop=1; cp "$_cc_desktop" "$_snap/desktop.json" 2>/dev/null || true; fi
+  # --no-claude-md also protects this repo's existing CLAUDE.md from being clobbered.
+  nice -n 15 repowise init --index-only -y --no-claude-md --no-codex --no-distill-hook . || true
+  # Revert ANY repowise autowiring init added to global config.
+  [ -f "$_snap/settings.json" ] && cp "$_snap/settings.json" "$_cc_settings" 2>/dev/null || true
+  if [ "$_had_desktop" = "1" ]; then
+    cp "$_snap/desktop.json" "$_cc_desktop" 2>/dev/null || true
+  else
+    # Desktop config did not exist before; if init created one (repowise-only), drop it.
+    [ -f "$_cc_desktop" ] && rm -f "$_cc_desktop" 2>/dev/null || true
+  fi
+  rm -rf "$_snap" 2>/dev/null || true
   grep -qxF ".repowise/" .gitignore 2>/dev/null || echo ".repowise/" >> .gitignore
+  echo "[repowise] index built; global Claude config restored (repowise stays opt-in per repo)"
 else
   echo "[repowise] not installed — skipping (install: pip install repowise  — needs Python ≥3.11)"
 fi
@@ -69,9 +93,24 @@ else
   echo "[mulch] 'ml' not installed — skipping"
 fi
 
-# 5. optional deterministic commit gate
-if [ ! -f .check-all.json ]; then
-  echo "[check-all] no .check-all.json (gate is opt-in). To enable: cp $SRC/templates/check-all.json $REPO/.check-all.json and edit the commands."
+# 5. arming markers (route-only + check-all) — ARMED BY DEFAULT, opt-OUT with HARNESS_NO_ARM=1.
+# Never clobber an existing marker. route-only makes the repo orchestrate-only
+# (blocks direct Write/Edit of source); check-all gates commits on a fast readiness pass.
+if [ "${HARNESS_NO_ARM:-}" = "1" ]; then
+  echo "[arm] HARNESS_NO_ARM=1 — skipping route-only + check-all arming"
+else
+  if [ -f .route-only ]; then
+    echo "[route-only] .route-only exists — leaving it"
+  else
+    touch .route-only
+    echo "[route-only] armed (orchestrate-only). Disarm: rm $REPO/.route-only"
+  fi
+  if [ -f .check-all.json ]; then
+    echo "[check-all] .check-all.json exists — leaving it"
+  else
+    printf '%s\n' '{"fast": [], "full": []}' > .check-all.json
+    echo "[check-all] armed with a minimal (no-op) gate — edit $REPO/.check-all.json to add fast/full commands"
+  fi
 fi
 
 echo "done. Add a 'query graphify-out/graph.json first' line to this repo's CLAUDE.md/AGENTS.md so agents use the map."
