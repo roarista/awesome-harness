@@ -11,6 +11,7 @@ BUILDER = re.compile(r"^\s*(?:\S*/)?(codex|glm)\b")
 COMPANION = re.compile(r"\bnode\b[^\n;|&]*\bcodex-companion(?:\.mjs)?\b[^\n;|&]*\btask\b")
 BUILD_EDIT = re.compile(r"\bexec\b|--edit\b|--write\b|\bgit apply\b|<<")
 BRIEF = re.compile(r"\b(?:CONTEXT|CHANGE|GOAL|VERIFY)\b", re.IGNORECASE)
+REUSE = re.compile(r"\bREUSE\b", re.IGNORECASE)
 
 
 def _is_builder(command):
@@ -37,8 +38,11 @@ def preflight(event):
     # Block the north star only on an actual EDIT - a builder READ of it is fine.
     if ".northstar.md" in command and edit_intent:
         return "builder must never edit the north star.", True
-    if edit_intent and not BRIEF.search(command):
-        msg = "builder call missing CONTEXT/CHANGE/GOAL/VERIFY — decompose first (code-decompose)."
+    # Required decompose headings AND a codebase-first REUSE pointer (discovery
+    # artifact / explicit REUSE-ADAPT-REJECT verdict) — either missing → nudge.
+    if edit_intent and (not BRIEF.search(command) or not REUSE.search(command)):
+        msg = ("builder call missing CONTEXT/CHANGE/GOAL/VERIFY/REUSE — decompose + "
+               "codebase-first reuse decision first (code-decompose).")
         return _context("PreToolUse", msg), os.environ.get("BUILDER_FENCE") == "enforce"
     return "", False
 
@@ -93,10 +97,20 @@ def postflight(event):
 
 def _selftest():
     event = {"hook_event_name": "PreToolUse", "tool_name": "Bash"}
-    event["tool_input"] = {"command": 'codex exec "CHANGE: x"'}
+    event["tool_input"] = {"command": 'codex exec "CONTEXT: a CHANGE: x GOAL: g VERIFY: v REUSE: .scratch/discovery/foo.md"'}
     assert preflight(event) == ("", False)
     event["tool_input"] = {"command": 'codex exec "just do it"'}
     assert "decompose" in preflight(event)[0]
+    # read-only builder call (no exec/--edit/--write/git apply/heredoc) is exempt:
+    # the REUSE/decompose requirement pins ONLY mutating calls -> clean, no nudge
+    event["tool_input"] = {"command": 'codex "explain foo"'}
+    assert preflight(event) == ("", False)
+    # decompose headings present but no REUSE pointer -> same nudge
+    event["tool_input"] = {"command": 'codex exec "CONTEXT: a CHANGE: b GOAL: c VERIFY: d"'}
+    assert "REUSE" in preflight(event)[0]
+    # all five headings incl. REUSE -> clean
+    event["tool_input"] = {"command": 'codex exec "CONTEXT: a CHANGE: b GOAL: c VERIFY: d REUSE: .scratch/discovery/x.md"'}
+    assert preflight(event) == ("", False)
     event["tool_input"] = {"command": 'codex exec --edit .northstar.md'}
     assert preflight(event)[1]
     event["tool_input"] = {"command": "ls -la"}
@@ -110,7 +124,7 @@ def _selftest():
     assert _is_builder("/usr/local/bin/codex apply")
     assert not _is_builder("grep -w codex file")
     assert not _is_builder('echo "use codex"')
-    event["tool_input"] = {"command": 'node "/x/scripts/codex-companion.mjs" task "CHANGE: add y" --write'}
+    event["tool_input"] = {"command": 'node "/x/scripts/codex-companion.mjs" task "CONTEXT: a CHANGE: add y GOAL: g VERIFY: v REUSE: .scratch/discovery/y.md" --write'}
     assert preflight(event) == ("", False)
     event["tool_input"] = {"command": 'node "/x/scripts/codex-companion.mjs" task "just do it" --write'}
     assert "decompose" in preflight(event)[0]

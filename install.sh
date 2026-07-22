@@ -67,6 +67,12 @@ run "cp '$SRC/BUILDER_STANDARD.md' '$DEST/BUILDER_STANDARD.md'"
 run "cp '$SRC/MEMORY_STANDARD.md' '$DEST/MEMORY_STANDARD.md'"
 run "chmod +x '$DEST'/hooks/*.sh '$DEST'/hooks/*.py '$DEST'/tools/*.sh '$DEST'/tools/*.py '$DEST'/tools/check-all/*.sh 2>/dev/null || true"
 [ -f "$DEST/tools/memgraph/sources.txt" ] || run "cp '$SRC/templates/memgraph-sources.txt' '$DEST/tools/memgraph/sources.txt'"
+# also expose codebase-first to Codex (its builder fence lives in the plugin cache, not here)
+if [ -f "$SRC/skills/codebase-first/SKILL.md" ]; then
+  say "installing codebase-first into ~/.codex/skills"
+  run "mkdir -p '$HOME/.codex/skills/codebase-first' || true"
+  run "cp '$SRC/skills/codebase-first/SKILL.md' '$HOME/.codex/skills/codebase-first/SKILL.md' || true"
+fi
 
 # ---- 3. merge settings.json (backup + idempotent + validate) --------------
 echo "[3/4] wiring ~/.claude/settings.json"

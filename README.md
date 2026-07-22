@@ -162,6 +162,7 @@ made after installation. The targeted command above is the normal rollback.
 | Piece | What it does |
 |---|---|
 | **code-decompose** | The orchestration pattern: a decomposer turns a change into tiny verifiable specs (CONTEXT/CHANGE/GOAL/VERIFY) → cheap coder subagents execute one each → a rotating non-builder auditor checks each against its spec. The expensive model thinks once; cheap models do the volume. |
+| **codebase-first** *(skill)* | A **mandatory behavioral workflow** run *before* decomposition — the companion to `ponytail`: reach an evidence-backed **REUSE / ADAPT / REJECT** decision on what already exists, then pass a **STOP / PLAN / BUILD** gate before any new code. The hook side is a **narrow** recognized-builder **REUSE-pointer** contract (it points builders at existing code, nothing more). Comprehension/reuse *quality* is **independent-audit-backed, not mechanically proven**. Also installed into `~/.codex/skills` so Codex builders inherit it. |
 | **ponytail** *(dep)* | A "lazy senior dev" discipline: YAGNI, stdlib/native first, shortest working diff, leave one runnable check. Fewer lines, fewer 3am pages. |
 | **BUILDER_STANDARD.md** | A <40-line correctness/boundary ruleset to prepend to any coder prompt: validate input at trust boundaries, no swallowed errors, smallest change, leave a regression check. |
 | **check-all** | An opt-in deterministic commit gate (typecheck/lint/test/file-size/TODO/dup) so "done" is objective, not vibes. |

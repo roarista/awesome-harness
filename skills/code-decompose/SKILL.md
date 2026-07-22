@@ -20,13 +20,15 @@ The orchestrator does NOT read the implementation. It writes a short brief and n
 
 This runs as a **subagent**, not in the main loop, so all the code-reading context stays here and never touches the orchestrator. Its prompt is the Phase-0 brief. It returns ONLY the distilled output below — not the raw code it read.
 
-The decomposer produces:
-1. **Understanding** (3-6 lines max): what exists now (with `file:line` anchors), what we want, and the gap. Compact — this is a summary, not a transcript of everything it read.
+The decomposer FIRST runs the [[codebase-first]] ladder (front door → map/Graphify → native → installed dep → nearby workflow → downstream contract → empirical probe → gap). Only then does it produce:
+1. **Understanding** (3-6 lines max): what exists now (with `file:line` anchors), what we want, and the gap. It MUST include the codebase-first **REUSE/ADAPT/REJECT** capability decisions and the **STOP/PLAN/BUILD gate** — *before* any Units. **If the gate is STOP or PLAN, the decomposer returns that (with its reasoning) instead of Units.** Compact — this is a summary, not a transcript of everything it read.
 2. **Units** — the gap split into the **smallest independently-verifiable pieces**. Keep splitting until each is mechanical to execute. Each unit is a self-contained spec, because the coder will have NO prior context:
 
 ```
 UNIT <n>: <one-line title>
   CONTEXT  — what exists, with file:line. Exactly the code/state the coder will touch.
+  REUSE    — discovery artifact path + the exact REUSE/ADAPT decisions and source anchors;
+             no invented APIs; CHANGE covers only the residual gap.
   CHANGE   — exactly what to write/modify. Precise enough that there is one correct interpretation.
   GOAL     — the outcome this unit produces and why (so the coder resolves ambiguity correctly).
   VERIFY   — the concrete check that proves this unit is done: the command to run, the test,

@@ -89,6 +89,16 @@ CONTEXT, spell out:
 If there is a `scaffold-<category>.md` from a prior successful build (surfaces via `recall`),
 pass its verified approach as the starting point — don't let the coder re-invent it.
 
+### The `REUSE` heading — codebase-first before you build
+
+Every **mutating** builder unit carries a **`REUSE`** heading alongside `CONTEXT/CHANGE/GOAL/VERIFY`.
+It points at the codebase-first decision: either a discovery-artifact path
+(`.scratch/discovery/<slug>.md`) **or** a short inline **REUSE / ADAPT / REJECT** verdict per
+candidate, each with a source anchor (`file:line`) as evidence. The coder reuses or adapts what
+already exists and **invents no APIs**; `CHANGE` then covers only the *residual gap* left after
+reuse — not a from-scratch build. A mutating builder call with no REUSE pointer trips the
+builder-fence nudge (a hard block under `BUILDER_FENCE=enforce`).
+
 ---
 
 ## 4. Constraints & standard (prepend, don't paraphrase)

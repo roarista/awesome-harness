@@ -11,6 +11,9 @@ ROUTING POLICY (Ro's standing default — main session ORCHESTRATES, it does not
 - LLM COUNCIL / second opinion = 3 models: Opus 4.8 (low effort) + Codex 5.5 + GLM 5.2.
 - Override: if Ro named a model for this task, use THAT instead (Claude or any other).
 BEFORE prompting the builder:
+- CODEBASE-FIRST FIRST: run the reuse ladder (evidence-backed REUSE/ADAPT/REJECT per
+  candidate + STOP/PLAN/BUILD gate, verdict captured in a discovery artifact) before you
+  decompose or route the build — not just `graphify query`.
 - run `graphify query/explain/path` to check whether the thing already exists / where
   it lives, and pass that context down (orchestrator knows the codebase; coder does not).
 - run `~/.claude/tools/graphify-blast.sh <files>` and pass the blast radius down.

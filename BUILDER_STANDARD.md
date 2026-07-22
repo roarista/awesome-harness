@@ -16,6 +16,8 @@ You are executing one unit spec. Obey it exactly. Before "done", self-check agai
   test before writing a new one. Match local naming, structure, and error style.
 - Reach for stdlib / platform / existing deps before a new dependency or a new abstraction.
   Add an abstraction only to kill real, present duplication — never speculatively.
+- Carry a `REUSE` heading: a discovery pointer (`.scratch/discovery/<slug>.md`) or inline
+  REUSE/ADAPT/REJECT verdicts with source anchors — reuse/adapt what exists, invent no APIs.
 
 ## Correctness & boundaries (the bug layer)
 - Identify trust boundaries up front: user input, network, files, auth, money, deletes, persistence.
