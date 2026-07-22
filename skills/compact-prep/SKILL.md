@@ -169,7 +169,7 @@ Source pointers to preserve rather than re-summarize: `~/Downloads/NOTION_WORKFL
 
 ### 5. Update STATE.md with the resume point (if `.planning/STATE.md` exists)
 
-**Delegate this write to a cheap sub-agent (haiku/glm) — don't do it in the orchestrator (Ro's rule: the main terminal shouldn't burn context on housekeeping).** Hand the sub-agent the turn's changes + decisions; it opens the file and does steps below, then returns a one-line confirm.
+**Delegate this write to a cheap sub-agent (haiku) — don't do it in the orchestrator (Ro's rule: the main terminal shouldn't burn context on housekeeping).** Hand the sub-agent the turn's changes + decisions; it opens the file and does steps below, then returns a one-line confirm.
 
 **REPLACE the `## Active Resume Point` section in place — do NOT prepend a new block.** STATE.md bloats (140KB+) because agents stack `Resume Point #36 … #35 … #34` every turn without pruning. There is exactly ONE Active Resume Point; overwrite it. If real history must be kept, move the superseded block to `.planning/STATE-ARCHIVE.md`, not inline. Keep the live section TERSE/caveman — a fresh agent's briefing, not a log.
 

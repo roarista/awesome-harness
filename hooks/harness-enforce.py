@@ -61,8 +61,8 @@ MECHS = [
      "$CLAUDE_JOB_DIR/tmp/pending.md not chat, expand into ONE final summary. end turn "
      "compaction-safe (update .now.md+STATE, sync memory/mulch). Ro reads final only."),
     ("routing", lambda r: True,
-     "ROUTING: orchestrate, don't build. code writes -> codex 5.5 subagent, glm 5.2 audits. "
-     "councils = Opus-4.8-low+Codex-5.5+GLM-5.2. edit only orientation files (.now/.northstar/"
+     "ROUTING: orchestrate, don't build. code writes -> codex 5.5 subagent, Opus-4.8-low audits. "
+     "councils = Opus-4.8-low+Codex-5.5. edit only orientation files (.now/.northstar/"
      "STATE/memory) or tiny harness tweaks. Ro naming a model overrides."),
 ]
 

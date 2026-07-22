@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """HARD routing gate — in a "route-only" repo, the orchestrator may NOT write
 code directly; it must delegate the build to a coding sub-agent (codex 5.5
-builder / glm 5.2 auditor).
+builder / Opus 4.8 (low effort) auditor).
 
 Ro's intent (2026-07-09): the main session should ORCHESTRATE, not code. It's
 fine (good, even) for it to READ/understand the codebase — graphify gives that
@@ -78,7 +78,7 @@ def main() -> None:
     sys.stderr.write(
         "ROUTE-ONLY GATE: this repo is orchestrate-only (.route-only marker) — "
         f"delegate the build of {os.path.basename(abspath)} to a coding sub-agent "
-        "(codex builder / glm auditor); do not write source directly. "
+        "(codex builder / Opus-4.8-low auditor); do not write source directly. "
         "(kill-switch: ROUTING_GATE=0)\n"
     )
     sys.exit(2)

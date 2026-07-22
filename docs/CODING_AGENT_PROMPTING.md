@@ -1,4 +1,4 @@
-# Prompting Coding Sub-Agents (Codex 5.5 / GLM 5.2)
+# Prompting Coding Sub-Agents (Codex 5.5 builder · Opus 4.8 low-effort auditor)
 
 How the orchestrator (Claude Code main session) should **prompt a coding sub-agent so it
 produces correct, in-scope, convention-matching code** — without the coder having to explore
@@ -8,7 +8,7 @@ This is the *how-to-prompt* companion to the pieces that already exist. It does 
 
 - **`~/.claude/BUILDER_STANDARD.md`** — the correctness/boundary ruleset you *prepend* to every coder prompt (smallest diff, validate at trust boundaries, no swallowed errors, leave one runnable check). Don't restate it; paste it.
 - **`skills/code-decompose/SKILL.md`** — the decompose → cheap-coder → auditor pattern and the `CONTEXT/CHANGE/GOAL/VERIFY` unit spec. This doc is how to *word* each unit's prompt.
-- **`~/.claude/hooks/coding-routing-guard.sh`** — the routing policy already emitted on every `Task` spawn (builder = Codex 5.5, auditor = GLM 5.2 or any non-builder; run `graphify` + `graphify-blast` first). Don't re-derive routing here.
+- **`~/.claude/hooks/coding-routing-guard.sh`** — the routing policy already emitted on every `Task` spawn (builder = Codex 5.5, auditor = Opus 4.8 (low effort) or any non-builder; run `graphify` + `graphify-blast` first). Don't re-derive routing here.
 - **`README.md` → "Better code from cheaper models"** and **graphify** — why a scoped code-map query is ~8–15× cheaper than cold-reading the file.
 
 **One-line thesis:** *the more of the map you hand down, the cheaper the model you can trust.*
@@ -133,7 +133,7 @@ the spec. Two non-negotiables in the coder prompt:
 2. **Solve the general case, not the test.** "Implement for all valid inputs; do not hard-code to
    pass the specific test cases." Tests verify correctness; they don't define the solution.
 
-**Audit loop:** a **non-builder model (GLM 5.2)** audits Codex 5.5's diff against *that unit's own*
+**Audit loop:** a **non-builder model (Opus 4.8, low effort)** audits Codex 5.5's diff against *that unit's own*
 `CONTEXT/CHANGE/GOAL/VERIFY` — not against vibes ([code-decompose](../skills/code-decompose/SKILL.md) Phase 4).
 The auditor gets the **same spec** + the diff and answers: does it match CHANGE exactly (nothing
 extra, nothing missing)? does it achieve GOAL incl. edge cases? did VERIFY *genuinely* pass (show
@@ -183,7 +183,7 @@ REPORT: files changed · VERIFY output (verbatim) · assumptions made · remaini
 ```
 
 **Auditor prompt** = the *same* UNIT block above + the coder's diff + code-decompose Phase-4
-checklist. Auditor is a non-builder (GLM 5.2); it grades the diff against the spec lines and
+checklist. Auditor is a non-builder (Opus 4.8, low effort); it grades the diff against the spec lines and
 returns PASS/FAIL + findings.
 
 ---

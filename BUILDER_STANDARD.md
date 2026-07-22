@@ -1,5 +1,5 @@
 # BUILDER CODING STANDARD
-Paste this into every coder subagent's prompt (codex/glm/kimi). Complementary to
+Paste this into every coder subagent's prompt (codex/kimi). Complementary to
 ponytail (do less), code-decompose (follow the spec), check-all (gates pass).
 This is the *write-it-correctly* layer — bugs and boundaries.
 

@@ -12,7 +12,7 @@ Ro's north star for this skill: **get him out of the loop while keeping quality*
 ## Hard rules (non-negotiable)
 
 1. **Proposal-only. Never edit any repo.** Output → `~/Downloads/HARNESS_SCOUT_<YYYY-MM-DD>.md`. Ro reviews; a normal session builds later. No hooks/skills written by this pass — it *proposes* them.
-2. **Fit-filter every idea against OUR constraints — no hype.** We run **API models** (Claude / Codex 5.5 / GLM 5.2) with no weights/residual stream; Ro's machine is **low-CPU, no-VM, no-GPU** (`[[feedback_low_cpu_no_vm]]`); the harness is **ambient hooks + skills**, not a framework Ro invokes (`[[feedback_conversational_prompting]]`); ponytail governs (steal a PATTERN into a few lines, don't add a heavy dep/framework). An idea that needs GPU / open weights / a server / a big runtime is **NON-FIT — say so plainly** and move on. (Canonical NON-FIT: jacobian-lens — white-box, needs CUDA.)
+2. **Fit-filter every idea against OUR constraints — no hype.** We run **API models** (Claude / Codex 5.5) with no weights/residual stream; Ro's machine is **low-CPU, no-VM, no-GPU** (`[[feedback_low_cpu_no_vm]]`); the harness is **ambient hooks + skills**, not a framework Ro invokes (`[[feedback_conversational_prompting]]`); ponytail governs (steal a PATTERN into a few lines, don't add a heavy dep/framework). An idea that needs GPU / open weights / a server / a big runtime is **NON-FIT — say so plainly** and move on. (Canonical NON-FIT: jacobian-lens — white-box, needs CUDA.)
 3. **Evidence or it didn't happen (R1).** External claim = **URL + date**, read this run. Repetition finding = **cited transcript turns** (`file:line` of the `.jsonl`). No idea from memory or vibes. Unverifiable → mark UNKNOWN, don't ship it.
 4. **Freshness: last ~30 days.** Prefer sources/repos updated in the last 30 days (`gh search repos --sort=updated pushed:>=<date>`; web results dated within a month). Older only if it's canonical/foundational. Note the date on every item so stale intel is obvious.
 5. **Bounded fan-out (low-CPU).** At most a **handful** of research sub-agents, not a fleet. Prefer *reusing* existing machinery over standing up new infra: `[[deep-research]]` for the web fan-out+verify+synthesis, `youtube-research`/`ytintel` for creators who post video, `gh` CLI for GitHub. Kill any worker process trees on finish.
@@ -91,5 +91,5 @@ On demand. Do **not** stand up new standing infra speculatively (ponytail) — `
 
 ## When NOT to use
 - Mid-implementation of an unrelated task (this is a periodic sweep, not a blocker).
-- As an auto-applier — it is structurally proposal-only. Building anything it proposes is a separate, explicit step (and, per Ro's routing default, goes to a codex/glm sub-agent).
+- As an auto-applier — it is structurally proposal-only. Building anything it proposes is a separate, explicit step (and, per Ro's routing default, goes to a codex sub-agent).
 - To chase a single named tool Ro already decided on — just research that directly.

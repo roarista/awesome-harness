@@ -79,7 +79,7 @@ Helper: `python3 ~/.claude/tools/goal/goal_judge.py` (stdlib, `--selftest`). It 
 mechanical scaffolding; the *judgment* stays a distinct sub-agent call.
 
 1. **Done is judged by a DIFFERENT model than the maker.** The stop decision is a SEPARATE
-   sub-agent (e.g. `glm` or opus-low) — never the worker self-declaring done. Hand it the goal's
+   sub-agent (e.g. opus-low) — never the worker self-declaring done. Hand it the goal's
    verifiable end-state as an explicit written checklist (`[x]` verified green / `[ ]` not yet /
    `[!]` verified RED), one line per end-state fact. Grade it mechanically — a unit is done only
    when every item is `[x]` and none `[!]`:

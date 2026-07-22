@@ -44,7 +44,7 @@ The orchestrator gets back the compact specs (not the codebase). It sanity-check
 
 ## Phase 3 — Execute (BUILDER = Codex 5.5 — NEVER Claude)
 
-The builder is always the `codex` CLI (gpt-5.5); Claude only orchestrates and never writes the code itself. glm 5.2 / kimi 2.7 are acceptable alternate builders if Codex is unavailable — but never a Claude subagent. Before spawning, the orchestrator runs `graphify query/explain/path` to confirm whether the unit already exists / where it lives, and passes that down (ponytail: reuse before writing).
+The builder is always the `codex` CLI (gpt-5.5); Claude only orchestrates and never writes the code itself. kimi 2.7 is an acceptable alternate builder if Codex is unavailable — but never a Claude subagent. Before spawning, the orchestrator runs `graphify query/explain/path` to confirm whether the unit already exists / where it lives, and passes that down (ponytail: reuse before writing).
 
 Spawn one worker per independent unit (parallel where DEPENDS allows; sequential where it doesn't). Each worker prompt = the **BUILDER CODING STANDARD** (`~/.claude/BUILDER_STANDARD.md`) + that unit's full spec + "implement exactly this; run VERIFY; report the VERIFY output verbatim; do not expand scope." Because the spec is complete, a cheaper model is sufficient — the more decomposed the spec, the cheaper the model you can trust. Respect the global spawn depth limit (2). On a worker stall, kill its process tree.
 
@@ -54,7 +54,7 @@ If a `scaffold-<category>.md` exists for this task-category (it surfaces via rec
 
 ## Phase 4 — Audit (auditor = a NON-builder model, rotate) — gets the SAME spec
 
-Auditor rotates across sonnet 4.6 / codex 5.4 / glm 5.2 / kimi 2.7 — anything except the model that built the unit (independent eyes). Claude IS allowed as auditor (just never as builder).
+Auditor rotates across Opus 4.8 (low effort) / sonnet 4.6 / codex 5.4 / kimi 2.7 — anything except the model that built the unit (independent eyes). Claude IS allowed as auditor (just never as builder).
 
 For each unit (or each batch), spawn an auditor with the **same CONTEXT/CHANGE/GOAL/VERIFY spec** plus the worker's diff. The auditor checks the implementation *against its spec*, not against vibes:
 - Does the change match CHANGE exactly? Anything extra (scope creep) or missing?
