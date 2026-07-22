@@ -55,6 +55,7 @@ need graphify "code-map RAG — install: uv tool install graphifyy   (https://gi
 need repowise "code-intelligence (git-hotspots/health + MCP); install: pip install repowise"
 need ml      "mulch per-repo memory — install: npm i -g @mulch/cli (needs ~/.bun/bin on PATH)"
 need node    "needed by the ponytail plugin + some hooks"
+need semgrep "optional deterministic SAST for check-all — install: pipx install semgrep"
 
 # ---- 2. copy harness files ------------------------------------------------
 echo "[2/4] copying hooks, skills, tools"

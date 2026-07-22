@@ -224,6 +224,33 @@ run_dupes() {
 }
 run_dupes
 
+# ─── CHECK G: Semgrep (deterministic SAST) ─────────────────────────────────────
+# Zero-token OSS static scan for bugs / injections / secrets. GUARDED: silent
+# no-op when semgrep isn't on PATH, so a repo that hasn't installed it is never
+# wedged. Soft/warn by default (complements the LLM review council, doesn't gate).
+LOG_G="$TMP_BASE/semgrep.log"
+run_semgrep() {
+  if ! command -v semgrep &>/dev/null; then
+    _record "semgrep" "skip" 0 "semgrep not on PATH — skipped (optional SAST)"
+    return
+  fi
+  (cd "$REPO_DIR" && _timeout_cmd 300 semgrep --config auto --error --quiet) >"$LOG_G" 2>&1
+  local rc=$?
+  if [[ $rc -eq 0 ]]; then
+    _record "semgrep" "pass" 0 "semgrep --config auto clean"
+  else
+    # rc!=0 → findings. Default WARN; SEMGREP_STRICT=1 → fail (blocks).
+    local result="warn"
+    if [[ "${SEMGREP_STRICT:-0}" == "1" ]]; then
+      result="fail"
+      OVERALL_FAIL=1
+    fi
+    _record "semgrep" "$result" $rc "semgrep found issues (rc=$rc)"
+    printf '\n[semgrep findings]\n%s\n' "$(cat "$LOG_G")"
+  fi
+}
+run_semgrep
+
 # ─── CHECK E: Tests ───────────────────────────────────────────────────────────
 LOG_E="$TMP_BASE/tests.log"
 run_tests() {

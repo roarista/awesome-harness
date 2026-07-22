@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Any
 
 
-CONTRACT_HEADINGS = ("CONTEXT", "CHANGE", "GOAL", "VERIFY")
+CONTRACT_HEADINGS = ("CONTEXT", "CHANGE", "GOAL", "VERIFY", "REUSE")
 SHELL_CONTROL = {";", "&&", "||", "|", "(", ")"}
 WRITE_INTENT = re.compile(
     r"\b(?:edit|write|modify|implement|fix|patch|create|delete|add|remove|rename|"
@@ -143,7 +143,7 @@ def decision(payload: Any) -> dict[str, Any] | None:
     return deny(
         "External builder task is missing unit-contract headings: "
         + ", ".join(missing)
-        + ". Include CONTEXT, CHANGE, GOAL, and VERIFY."
+        + ". Include CONTEXT, CHANGE, GOAL, VERIFY, and a REUSE codebase-first pointer."
     )
 
 
@@ -212,7 +212,8 @@ def selftest() -> int:
                 "tool_name": "Bash",
                 "tool_input": {
                     "command": (
-                        "codex exec 'CONTEXT: x CHANGE: update parser GOAL: z VERIFY: q'"
+                        "codex exec 'CONTEXT: x CHANGE: update parser GOAL: z "
+                        "VERIFY: q REUSE: .scratch/discovery/parser.md'"
                     )
                 },
             },
@@ -256,7 +257,8 @@ def selftest() -> int:
                 "tool_input": {
                     "command": (
                         "codex exec 'CONTEXT: x CHANGE: update parser; mention "
-                        ".northstar.md only in the report GOAL: z VERIFY: q'"
+                        ".northstar.md only in the report GOAL: z VERIFY: q "
+                        "REUSE: .scratch/discovery/parser.md'"
                     )
                 },
             },
@@ -281,6 +283,32 @@ def selftest() -> int:
         (
             "apply_patch payload is advisory",
             {"tool_name": "apply_patch", "tool_input": {"patch": "*** Begin Patch"}},
+            None,
+        ),
+        (
+            "builder with contract but no REUSE is denied",
+            {
+                "tool_name": "Bash",
+                "tool_input": {
+                    "command": (
+                        "codex exec 'CONTEXT: x CHANGE: update parser "
+                        "GOAL: z VERIFY: q'"
+                    )
+                },
+            },
+            "deny",
+        ),
+        (
+            "builder with contract and REUSE passes",
+            {
+                "tool_name": "Bash",
+                "tool_input": {
+                    "command": (
+                        "codex exec 'CONTEXT: x CHANGE: update parser GOAL: z "
+                        "VERIFY: q REUSE: .scratch/discovery/parser.md'"
+                    )
+                },
+            },
             None,
         ),
         ("malformed payload passes", {"tool_name": "Bash", "tool_input": []}, None),

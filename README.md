@@ -201,6 +201,7 @@ The harness wires these together; install the ones you want (the installer detec
 | **repowise** | code-intelligence (git-hotspots/health + MCP), complements graphify | `pip install repowise` (needs Python ≥3.11) |
 | **mulch** (`ml`) | per-repo memory | `npm i -g @mulch/cli` (needs `~/.bun/bin` on PATH) |
 | **ponytail** | lazy-coding discipline | Claude Code plugin: `DietrichGebert/ponytail` |
+| **semgrep** | optional deterministic SAST step in check-all (bugs/injection/secrets) | `pipx install semgrep` (needs Python ≥3.9) |
 | codex / glm / kimi / gemini | non-Claude builder/auditor subagents (optional) | each vendor's CLI |
 
 ## Safety & privacy

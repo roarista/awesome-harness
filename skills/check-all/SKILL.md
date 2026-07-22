@@ -39,6 +39,7 @@ bash /Users/rodrigoarista/.claude/tools/check-all/check_all.sh /path/to/repo --j
 | **file-size** | soft | warn | Flags source files > 800 lines |
 | **no-TODO** | soft | warn | Grep for TODO/FIXME/XXX in source files |
 | **dup-code** | soft | warn | jscpd if available; skip-with-note if not |
+| **semgrep** | soft | warn | Deterministic OSS SAST (bugs/injections/secrets). GUARDED: silent skip if `semgrep` not on PATH; `SEMGREP_STRICT=1` → fail |
 | **tests** | HARD | fail | Skipped under `--fast`; runs npm test / pytest -q |
 
 **Hard checks:** rc != 0 → OVERALL FAIL → exit 1  
@@ -65,6 +66,20 @@ OVERALL: READY (all hard checks passed; warns are non-blocking)
 - `skip` — check was not applicable or was bypassed
 
 File-size and TODO offenders are printed above the table so they're actionable.
+
+## Optional deterministic SAST: semgrep
+
+An optional **semgrep** step complements the LLM review council with a zero-token,
+deterministic static scan (bugs / injection / secrets). It runs:
+
+```bash
+semgrep --config auto --error --quiet
+```
+
+**Guarded** — it runs only if `semgrep` is on `PATH`; when absent it is a silent
+no-op (`skip`), so a repo that hasn't installed semgrep is never wedged. Findings
+are **warn** (non-blocking) by default; set `SEMGREP_STRICT=1` to make findings a
+hard fail. Install (optional): `pipx install semgrep` (or `brew install semgrep`).
 
 ## Optional config: `.check-all.json`
 
