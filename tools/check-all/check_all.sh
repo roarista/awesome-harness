@@ -227,7 +227,8 @@ run_dupes
 # ─── CHECK G: Semgrep (deterministic SAST) ─────────────────────────────────────
 # Zero-token OSS static scan for bugs / injections / secrets. GUARDED: silent
 # no-op when semgrep isn't on PATH, so a repo that hasn't installed it is never
-# wedged. Soft/warn by default (complements the LLM review council, doesn't gate).
+# wedged. ENFORCED by default (findings FAIL the gate); set SEMGREP_STRICT=0 to
+# soften to warn-only for a repo with noisy pre-existing findings.
 LOG_G="$TMP_BASE/semgrep.log"
 run_semgrep() {
   if ! command -v semgrep &>/dev/null; then
@@ -239,9 +240,9 @@ run_semgrep() {
   if [[ $rc -eq 0 ]]; then
     _record "semgrep" "pass" 0 "semgrep --config auto clean"
   else
-    # rc!=0 → findings. Default WARN; SEMGREP_STRICT=1 → fail (blocks).
+    # rc!=0 → findings. Default FAIL (enforced); SEMGREP_STRICT=0 → warn-only.
     local result="warn"
-    if [[ "${SEMGREP_STRICT:-0}" == "1" ]]; then
+    if [[ "${SEMGREP_STRICT:-1}" != "0" ]]; then
       result="fail"
       OVERALL_FAIL=1
     fi
