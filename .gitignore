@@ -5,7 +5,6 @@ scaffolds/*.md
 .DS_Store
 __pycache__/
 *.pyc
-.ctxproxy.log.jsonl
 
 # machine-local hook control state (live-flippable mode files)
 hooks/state/

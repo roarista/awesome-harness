@@ -64,7 +64,7 @@ Six systems. Within each row, the pieces are already wired to each other; **use 
 ### 3. UNDERSTAND-BEFORE-YOU-CODE *(the pre-code map)*
 **`codebase-first`** owns this entire layer — front door, both code maps, the ponytail reuse ladder, downstream contract, blast radius, the empirical probe, and the STOP/PLAN/BUILD gate.
 Inside it: **graphify** (deterministic structural graph — `update` then `query`/`explain`/`path`, + `graphify-blast.sh` for blast radius) **AND repowise** (semantic/risk/history MCP — `get_answer`/`get_context`/`search_codebase`/`get_symbol`/`get_why`/`get_risk`). **Use both together: repowise to locate + understand + gauge risk, graphify to confirm exact structure + blast.** Refresh first; neither is authority — verify load-bearing claims against real source ranges.
-**Enforced by:** graphify-gate (BLOCK in graphify repos), graphify-blindspot (advisory: editing a hub whose callers you never opened), reread-guard (BLOCK), token-discipline.
+**Enforced by:** understand-gate (code-writing subagent spawns must carry codebase-first reuse evidence), graphify-gate (BLOCK in graphify repos), graphify-blindspot (advisory: editing a hub whose callers you never opened), reread-guard (BLOCK), token-discipline.
 **Procedure steps 2-3.** Do not chain graphify/repowise/blast by hand — `codebase-first` sequences them.
 
 ### 4. BUILD *(better code from cheaper models)*
@@ -85,13 +85,12 @@ caveman/message discipline · **tool-search** (MCP schema deferral, `ENABLE_TOOL
 ## The floor that's already armed (announce, don't re-implement)
 
 - **BLOCKING (exit 2):** reread-guard · filesize-cap · now-gate · main-edit-guard (`MAIN_EDIT_GUARD=enforce`) · builder-fence (`BUILDER_FENCE=enforce`) · northstar-protect · irreversible-pause · compact-prep-gate · check-all-commit-gate (per-repo opt-in). graphify-gate + route-only-gate are armed but fire only in a graphify repo / a `.route-only` repo.
-- **ADVISORY:** caveman-discipline · northstar-inject · harness-enforce · recall-inject · coding-routing-guard · post-agent-guard · token-discipline · graphify-blindspot · manifest-guard · session-checkpoint · harness-usage-telemetry · precompact-handoff · pre_compact_global · abs-path-nudge · senduserfile-path-echo · phantom-edit-guard (`log`).
+- **ADVISORY:** caveman-discipline · northstar-inject · harness-enforce · recall-inject · coding-routing-guard · understand-gate (default `warn`; `UNDERSTAND_GATE=enforce` promotes it to BLOCK) · post-agent-guard · token-discipline · graphify-blindspot · manifest-guard · session-checkpoint · harness-usage-telemetry · precompact-handoff · pre_compact_global · abs-path-nudge · senduserfile-path-echo · phantom-edit-guard (`log`).
 
 ## Do NOT route to these (retired / dead — excluded on purpose)
 - **GLM / `glm` subagent + CLI** — retired (out of credits). Never an auditor/council option; use Opus-4.8-low.
 - **`cc-gemini-plugin` (`gemini-agent`)** — dead (missing binary). The real non-Claude voice is the **`gemini` subagent** / `tools/gemini-opencode.sh`.
 - **zai / z.ai coding plugin** — dead provider.
-- **ctxproxy** — removed entirely (it broke Remote Control). Do not reintroduce.
 
 ## What to do when invoked
 
