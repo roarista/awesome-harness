@@ -238,7 +238,9 @@ run_semgrep() {
   # p/default (not --config auto): auto ERRORS under --metrics=off and requires telemetry;
   # p/default works WITH --metrics=off, so this is genuinely telemetry-free. --severity ERROR =
   # only real bugs/security fail the gate (WARNING/INFO would wedge big repos, e.g. intrn ~2937).
-  (cd "$REPO_DIR" && _timeout_cmd 300 semgrep --config p/default --severity ERROR --metrics=off --error --quiet) >"$LOG_G" 2>&1
+  (cd "$REPO_DIR" && _timeout_cmd 300 semgrep --config p/default --severity ERROR --metrics=off --error --quiet \
+    --exclude node_modules --exclude .repowise --exclude venv --exclude .venv --exclude dist --exclude build --exclude .next \
+    --exclude .scratch --exclude .mulch --exclude data --exclude "raw-*" --exclude jina-raw --exclude fetchtmp) >"$LOG_G" 2>&1
   local rc=$?
   if [[ $rc -eq 0 ]]; then
     _record "semgrep" "pass" 0 "semgrep p/default (severity ERROR) clean"

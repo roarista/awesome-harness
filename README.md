@@ -6,7 +6,7 @@
 
 <p align="center">
   <b>A drop-in harness that makes Claude Code cheaper, sharper, and forgetful-proof.</b><br>
-  Persistent memory · token savings · anti-drift · a code-map RAG · disciplined cheap-model coding — wired in one command.
+  Persistent memory · token savings · anti-drift · a code-map RAG · disciplined cheap-model coding — all booted with one command: <code>/awesomeharness</code>.
 </p>
 
 ---
@@ -126,6 +126,10 @@ restoring it replaces the entire hook file and can discard unrelated changes
 made after installation. The targeted command above is the normal rollback.
 
 ## What you get
+
+### 🚀 `/awesomeharness` — boot the whole harness in one command
+
+Type **`/awesomeharness`** at the start of a session (it also works mid-session, and even in an already-running one — skills load from disk on invoke). In one shot the agent: reads your North Star + current state, **re-asserts the operating rules** (message discipline, lazy-by-default coding, orchestrate-don't-build, compaction-safe turns), runs the **codebase-orientation reflexes before writing code** (codebase-first → graphify / repowise code-map → code-decompose → blast-radius), routes multi-step work through **`/goal`**, and **announces which guardrail hooks are armed**. It's the on-demand activation layer; the hooks are the always-on floor. Definition: `skills/awesomeharness/SKILL.md`.
 
 ### 🧠 Memory that persists across sessions
 | Piece | What it does |
