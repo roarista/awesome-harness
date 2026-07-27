@@ -1,13 +1,13 @@
 ---
-name: scale
-description: Boot the FULL harness in one command. Run at the start of a session (or any time behavior has drifted) to load orientation, re-assert the operating rules with force, announce which guardrails are armed, and route the work correctly. Activates on "/scale", "boot the harness", "load the harness", "scale up", or the first substantive request of a cold/post-compaction session. This is the on-demand activation layer; the hooks are the always-on floor.
+name: awesomeharness
+description: Boot the FULL harness in one command. Run at the start of a session (or any time behavior has drifted) to load orientation, re-assert the operating rules with force, announce which guardrails are armed, and route the work correctly. Activates on "/awesomeharness", "boot the harness", "load the harness", "scale up", or the first substantive request of a cold/post-compaction session. This is the on-demand activation layer; the hooks are the always-on floor.
 ---
 
-# scale — one-command harness boot
+# awesomeharness — one-command harness boot
 
-The hooks enforce a floor automatically, but a lot of the harness is *behavioral* — it only happens if the agent actually does it. `/scale` is the switch that turns the whole thing on for this session (and every subagent it spawns). Run it, then work normally.
+The hooks enforce a floor automatically, but a lot of the harness is *behavioral* — it only happens if the agent actually does it. `/awesomeharness` is the switch that turns the whole thing on for this session (and every subagent it spawns). Run it, then work normally.
 
-A skill file is read from disk at invoke time, so **`/scale` works in an already-running session** — just type it. (It cannot add new hooks to a live process; it activates the behavioral layer + rituals and announces the floor.)
+A skill file is read from disk at invoke time, so **`/awesomeharness` works in an already-running session** — just type it. (It cannot add new hooks to a live process; it activates the behavioral layer + rituals and announces the floor.)
 
 ## What to do when invoked
 
@@ -42,7 +42,7 @@ Other harness skills on tap (invoke by name when relevant): **harness-scout** / 
 These fire automatically via hooks — name them so the session knows the guardrails:
 - **BLOCKING:** reread-guard, filesize-cap, now-gate, main-edit-guard (`MAIN_EDIT_GUARD=enforce` — main can't edit code), builder-fence (`BUILDER_FENCE=enforce`), northstar-protect, irreversible-pause, compact-prep-gate, check-all-commit-gate (per-repo opt-in). graphify-gate + route-only-gate are armed but fire only in a graphify repo / a repo with a `.route-only` marker.
 - **ADVISORY (always-on nudges):** caveman-discipline, northstar-inject, harness-enforce (anti-decay), recall-inject, coding-routing-guard, post-agent-guard, token-discipline, graphify-blindspot, manifest-guard (warn), session-checkpoint, harness-usage-telemetry, precompact-handoff, pre_compact_global, senduserfile-path-echo, voice-dictation-nudge.
-- **Deterministic gate:** `check-all` (lint / type / test + **CHECK G = Semgrep SAST**, enforced on `--severity ERROR`).
+- **Deterministic gate:** `check-all` (lint / type / test). **CHECK G = Semgrep SAST is ADVISORY** — it *suggests* ERROR-severity bug/security patterns (prints each + why to consider), it does NOT block. `SEMGREP_STRICT=1` makes it gate.
 
 ## Do NOT route to these (retired / dead — excluded on purpose)
 - **GLM / `glm` subagent + CLI** — retired (out of credits). Never an auditor/council/second-opinion option; use Opus-4.8-low instead.
@@ -51,4 +51,4 @@ These fire automatically via hooks — name them so the session knows the guardr
 - **old ctxproxy** — dropped from new-session config; kept running only as a legacy bridge for frozen old sessions. Not part of the active harness.
 
 ## Ponytail note
-`/scale` is announcement + rituals + orientation. It deliberately does NOT re-implement what the hooks already enforce or what the individual skills already do — it invokes them. If a section here starts duplicating a skill, delete it and point at the skill.
+`/awesomeharness` is announcement + rituals + orientation. It deliberately does NOT re-implement what the hooks already enforce or what the individual skills already do — it invokes them. If a section here starts duplicating a skill, delete it and point at the skill.

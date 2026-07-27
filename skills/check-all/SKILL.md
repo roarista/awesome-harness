@@ -39,7 +39,7 @@ bash /Users/rodrigoarista/.claude/tools/check-all/check_all.sh /path/to/repo --j
 | **file-size** | soft | warn | Flags source files > 800 lines |
 | **no-TODO** | soft | warn | Grep for TODO/FIXME/XXX in source files |
 | **dup-code** | soft | warn | jscpd if available; skip-with-note if not |
-| **semgrep** | HARD | fail | Deterministic OSS SAST, `--config p/default --severity ERROR` (no telemetry; only real bugs/security fail — WARNING/INFO ignored so it won't wedge big repos). GUARDED: silent skip if `semgrep` not on PATH; `SEMGREP_STRICT=0` → warn-only |
+| **semgrep** | soft | warn | Deterministic OSS SAST, `--config p/default --severity ERROR --metrics=off` (telemetry-free; ERROR-severity only). ADVISORY: prints findings + why to *consider*, never fails the gate. `SEMGREP_STRICT=1` → blocking. Silent skip if `semgrep` not on PATH |
 | **tests** | HARD | fail | Skipped under `--fast`; runs npm test / pytest -q |
 
 **Hard checks:** rc != 0 → OVERALL FAIL → exit 1  

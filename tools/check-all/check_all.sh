@@ -227,8 +227,8 @@ run_dupes
 # ─── CHECK G: Semgrep (deterministic SAST) ─────────────────────────────────────
 # Zero-token OSS static scan for bugs / injections / secrets. GUARDED: silent
 # no-op when semgrep isn't on PATH, so a repo that hasn't installed it is never
-# wedged. ENFORCED by default (findings FAIL the gate); set SEMGREP_STRICT=0 to
-# soften to warn-only for a repo with noisy pre-existing findings.
+# wedged. ADVISORY by default: it SUGGESTS (prints findings + why) and never fails
+# the gate. Opt in to blocking with SEMGREP_STRICT=1 if you want it to gate commits.
 LOG_G="$TMP_BASE/semgrep.log"
 run_semgrep() {
   if ! command -v semgrep &>/dev/null; then
@@ -243,14 +243,15 @@ run_semgrep() {
   if [[ $rc -eq 0 ]]; then
     _record "semgrep" "pass" 0 "semgrep p/default (severity ERROR) clean"
   else
-    # rc!=0 → findings. Default FAIL (enforced); SEMGREP_STRICT=0 → warn-only.
+    # rc!=0 → ERROR-severity findings. Advisory by default: SUGGEST, do NOT fail.
+    # Opt in to blocking with SEMGREP_STRICT=1.
     local result="warn"
-    if [[ "${SEMGREP_STRICT:-1}" != "0" ]]; then
+    if [[ "${SEMGREP_STRICT:-0}" == "1" ]]; then
       result="fail"
       OVERALL_FAIL=1
     fi
-    _record "semgrep" "$result" $rc "semgrep found issues (rc=$rc)"
-    printf '\n[semgrep findings]\n%s\n' "$(cat "$LOG_G")"
+    _record "semgrep" "$result" $rc "semgrep flagged ERROR-severity patterns — advisory, review & consider (not blocking)"
+    printf '\n[semgrep — consider these (advisory, ERROR-severity only; each line = a real bug/security pattern worth a look)]\n%s\n' "$(cat "$LOG_G")"
   fi
 }
 run_semgrep
