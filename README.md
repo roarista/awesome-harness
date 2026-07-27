@@ -129,7 +129,21 @@ made after installation. The targeted command above is the normal rollback.
 
 ### 🚀 `/awesomeharness` — boot the whole harness in one command
 
-Type **`/awesomeharness`** at the start of a session (it also works mid-session, and even in an already-running one — skills load from disk on invoke). In one shot the agent: reads your North Star + current state, **re-asserts the operating rules** (message discipline, lazy-by-default coding, orchestrate-don't-build, compaction-safe turns), runs the **codebase-orientation reflexes before writing code** (codebase-first → graphify / repowise code-map → code-decompose → blast-radius), routes multi-step work through **`/goal`**, and **announces which guardrail hooks are armed**. It's the on-demand activation layer; the hooks are the always-on floor. Definition: `skills/awesomeharness/SKILL.md`.
+Type **`/awesomeharness`** at the start of a session (it also works mid-session, and even in an already-running one — skills load from disk on invoke). It reads your North Star + current state, re-asserts the operating rules, announces which guardrail hooks are armed, and — the main thing — installs **THE PROCEDURE**: the standing pipeline every non-trivial task follows for the rest of the session.
+
+```
+0. ORIENT      .northstar.md + .now.md + STATE resume point
+1. RECALL      memory (memgraph / mulch / MEMORY.md) before deciding
+2. UNDERSTAND  codebase-first — front door → BOTH code maps (graphify
+               structure/blast + repowise semantics/risk) → reuse ladder
+3. GATE        STOP | PLAN | BUILD      ← STOP is a real outcome
+4. DECOMPOSE   code-decompose — unit specs CONTEXT/CHANGE/GOAL/VERIFY/REUSE
+5. BUILD       one cheap coder subagent per unit (+ BUILDER_STANDARD.md)
+6. VERIFY      non-builder auditor per unit → check-all
+7. PERSIST     compact-prep — commit, memory record, .now.md, STATE, push
+```
+
+Steps 2–3 are one skill, 4–6 are another — so the procedure is two skills plus rituals, not eight things to remember. Multi-step objectives wrap the whole thing in **`/goal`**. The skill file also carries the **canonical map of every harness component**, grouped into the six systems below, so nothing sits unused because you forgot it existed. Definition: `skills/awesomeharness/SKILL.md`.
 
 ### 🧠 Memory that persists across sessions
 | Piece | What it does |
@@ -143,7 +157,7 @@ Type **`/awesomeharness`** at the start of a session (it also works mid-session,
 ### 💸 Token savings
 | Piece | What it does |
 |---|---|
-| **ctxproxy** *(opt-in)* | A local, **lossless** proxy that strips terminal ANSI/escape noise from tool results before they're billed. Never touches `Read` output (so edits still match), forwards unchanged bytes verbatim (cache-safe), fail-open. |
+| **reread-guard + token-discipline** | A blocking guard on redundant full re-reads plus a warning on the 3rd full re-read of the same file (offset/limit reads are exempt — that's navigation, not churn). Directly targets the biggest measured waste: re-slurping unchanged files. |
 | **tool-search** | Turns on MCP tool-schema deferral so dozens of MCP tools aren't loaded into every prefix. |
 | **router slimming + cache discipline** | Conventions + a length cap that keep `CLAUDE.md`/`AGENTS.md` as routers, not encyclopedias, and keep the prompt-cache prefix stable (where ~90% of the savings live). |
 | **autocompact @ 60%** | Compacts earlier so you spend fewer tokens carrying a bloated window. |

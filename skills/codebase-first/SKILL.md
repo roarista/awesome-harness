@@ -5,6 +5,8 @@ description: Companion to Ponytail — run BEFORE writing code whenever a reques
 
 # codebase-first — prove reuse before you build
 
+> **Steps 2-3 of THE PROCEDURE** (`/awesomeharness`): ORIENT -> RECALL -> **UNDERSTAND -> GATE** -> DECOMPOSE -> BUILD -> VERIFY -> PERSIST. On BUILD, hand off to `code-decompose`; on STOP, hand back to Ro.
+
 Ponytail governs *how little code* to write. This skill governs the step **just before**: prove what the repository already has, what can be reused, and what gap actually remains — so decomposition and building start from evidence, not assumption. The deliverable is not "ran a code map." It is a tiny proof: these are the relevant existing systems, what each can/can't do, who consumes the result, one real check that confirmed or disproved the key assumption, and the smallest missing piece. If the proof shows the capability already exists, the correct result is **no new code**.
 
 This owns only the missing middle:

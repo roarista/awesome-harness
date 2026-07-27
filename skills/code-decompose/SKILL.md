@@ -5,6 +5,8 @@ description: Ro's standard coding workflow — decompose a code change maximally
 
 # code-decompose
 
+> **Steps 4-6 of THE PROCEDURE** (`/awesomeharness`). Entry condition: `codebase-first` already returned a **BUILD** gate + the residual gap. If it hasn't run, run it first — do not re-discover here.
+
 The whole point: **the change must be fully understood before any code is written — both the code that exists and the code we intend to write — and that understanding must be written down precisely enough that a cheap model can execute it without judgment.** Decomposition is the expensive thinking step; execution is the cheap step done at volume. If the spec is complete, a cheaper coder can be trusted — that trust is the entire reason this skill exists.
 
 **Context hygiene is the core design constraint.** The main orchestrator must NOT read the whole codebase to do this — that floods its context with implementation detail it doesn't need and can't afford to carry across a long session. Instead, the heavy code-reading happens inside a **decomposer subagent** whose context is disposable. The orchestrator holds only the general goal and the compact specs that come back. Never skip to coding; a vague instruction makes the same wrong assumption repeatedly and confidently.
