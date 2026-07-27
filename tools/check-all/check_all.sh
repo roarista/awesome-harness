@@ -235,10 +235,13 @@ run_semgrep() {
     _record "semgrep" "skip" 0 "semgrep not on PATH — skipped (optional SAST)"
     return
   fi
-  (cd "$REPO_DIR" && _timeout_cmd 300 semgrep --config auto --error --quiet) >"$LOG_G" 2>&1
+  # p/default (not --config auto): auto ERRORS under --metrics=off and requires telemetry;
+  # p/default works WITH --metrics=off, so this is genuinely telemetry-free. --severity ERROR =
+  # only real bugs/security fail the gate (WARNING/INFO would wedge big repos, e.g. intrn ~2937).
+  (cd "$REPO_DIR" && _timeout_cmd 300 semgrep --config p/default --severity ERROR --metrics=off --error --quiet) >"$LOG_G" 2>&1
   local rc=$?
   if [[ $rc -eq 0 ]]; then
-    _record "semgrep" "pass" 0 "semgrep --config auto clean"
+    _record "semgrep" "pass" 0 "semgrep p/default (severity ERROR) clean"
   else
     # rc!=0 → findings. Default FAIL (enforced); SEMGREP_STRICT=0 → warn-only.
     local result="warn"
