@@ -27,6 +27,14 @@ echo $$ >"$LOCK"
 cleanup() { rm -f "$LOCK"; }
 trap cleanup EXIT
 
+# --- once-per-DAY guard: first wake of the day runs it, rest skip ---
+DAY_STAMP="$LOGDIR/harness-scout.day"
+TODAY="$(date +%F)"
+if [ "$(cat "$DAY_STAMP" 2>/dev/null)" = "$TODAY" ]; then
+  echo "[$(date)] already ran today ($TODAY) -- skipping." >>"$LOG"; exit 0
+fi
+echo "$TODAY" >"$DAY_STAMP"
+
 echo "[$(date)] harness-scout run start" >>"$LOG"
 
 PROMPT='Run a BOUNDED harness-scout pass (proposal-only, do NOT edit any live tree). Use the harness-scout skill contract. Cover: (A) repetition-mine my recent transcripts for things I keep hand-prompting; (B) research-scout GitHub for the last 30 days of steal-worthy Claude Code harness ideas; (C) primary-tier creator YouTube intel via the ytintel CLI; plus email newsletters IF any have arrived, and any note-inbox rows with Status=New IF any exist (skip cleanly and note SKIPPED if empty). Keep it bounded and low-CPU: cap fan-out, no VMs, no heavy local compute. IMPORTANT: DELEGATE the final report write to a sub-agent (Agent tool) so the main-edit-guard (enforce) does not block the write. The sub-agent must write the report to '"$HOME"'/Downloads/HARNESS_SCOUT_'"$DATE"'.md using the harness-scout output format (Summary, A. repetition, B. external steal-worthy, C. creator intel, Ranked build-next shortlist). Then return a one-line confirmation of the path written.'

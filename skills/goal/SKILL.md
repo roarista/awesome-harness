@@ -45,6 +45,7 @@ SMALLEST independently-verifiable units, each a self-contained spec:
 ```
 UNIT <n>: <one-line title>
   CONTEXT — what exists, file:line.
+  REUSE   — discovery artifact path + the exact REUSE/ADAPT decisions and source anchors.
   CHANGE  — exactly what to write/modify (one correct interpretation).
   GOAL    — the outcome + why.
   VERIFY  — the concrete check that proves this unit done, defined before execution.
@@ -67,7 +68,7 @@ fan-out cap and spawn-depth 2):
 A loop that grades its own work is an efficient way to produce confident mistakes. For each unit, a
 **separate** verifier confirms it: mechanical first (the unit's VERIFY command / test / hook), else a
 cheap judge model that did NOT write the code. Only a passing independent verify checks the item off.
-Then `ml record` the lesson from this iteration (failure mode, decision, convention) so the next
+Then `ml record` — exact syntax and the <=2-sentence rule: see `compact-prep` — the lesson from this iteration (failure mode, decision, convention) so the next
 iteration is smarter — durable improvement comes from the lessons the loop accumulates, not the loop.
 
 ### Phase 4b — INDEPENDENT DONE-JUDGE (opt-in: `GOAL_INDEPENDENT_JUDGE=1`)
@@ -113,8 +114,8 @@ mechanical scaffolding; the *judgment* stays a distinct sub-agent call.
 - **Orchestration-tax guard:** keep the checklist and diffs reviewable. The danger isn't loud failure —
   it's quiet success on code nobody understands anymore. Surface progress to Ro; don't let the gap
   between shipped and understood grow.
-- **Compact-safe close** (from [[global_orchestration_rules]]): commit (feature branch unless the repo
-  says otherwise) → `ml record` + `ml sync` → update the front-door state file → push → then it's safe
+- **Compact-safe close** (close per the `compact-prep` skill — THE PROCEDURE step 7): commit (feature
+  branch unless the repo says otherwise) → `ml record` + `ml sync` → update the front-door state file → push → then it's safe
   to compact. A well-closed loop can be resumed cold by a fresh session.
 
 ## Triggers (how a loop starts)
@@ -128,7 +129,7 @@ record → check stop condition.
 - Heavy planning → `/plan`-grade thinking in Phase 1.
 - Decomposition → the decomposer-subagent pattern from [[code-decompose]].
 - Memory → mulch (`ml prime` at start, `ml record` per iteration).
-- Model routing, the mechanical-gate principle, and the compact-safe close → [[global_orchestration_rules]].
+- Model routing and the mechanical-gate principle → `/awesomeharness`; the compact-safe close → the `compact-prep` skill (THE PROCEDURE step 7).
 
 The compounding advantage is NOT the loop — it's the reusable seed, skills, and recorded lessons the
 loop invokes every iteration. Invest in those and a cheap model loops reliably; skip them and you just

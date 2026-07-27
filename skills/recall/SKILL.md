@@ -21,6 +21,7 @@ Ro's durable memory is many markdown records. The harness injects the `MEMORY.md
 1. Run `python3 /Users/rodrigoarista/.claude/tools/memgraph/mem.py query "<topic from the task>"`.
 2. Read the top hit(s) — the CLI prints name, type, description, path. If a record looks load-bearing, Read its file for the full body.
 3. Optionally `mem.py graph <name>` to pull in linked records (a decision often links to the feedback that shaped it).
+4. **Mulch (per-repo decisions/conventions/failures)** — memgraph indexes Ro's global memory, mulch holds the repo's own. In a repo with `.mulch/`, also run `ml search "<topic>"` (verified: `~/.npm-global/bin/ml`, mulch v0.7.0), or `ml prime` at the start of substantive work to load the repo's records.
 
 **Heavy recall (many hits, need several full bodies):** spawn ONE `Explore` subagent to run the queries, Read the matched records, and return just the synthesized answer — keeps the orchestrator context light (the same explorer-subagent gate we use for code search). Don't dump 10 record bodies into the main context.
 

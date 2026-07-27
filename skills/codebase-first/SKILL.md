@@ -116,6 +116,9 @@ For non-trivial changes, write this (or use the repo's existing scratch/research
 - VERIFY is defined before any code;
 - any required design audit has **zero blockers**.
 
+- **On STOP:** end the turn. Final summary = the artifact path, the existing capability that already covers the goal, and the one decision Ro must make. Write no code.
+- **On PLAN:** surface the residual design question to Ro in the final summary, then re-run this gate once he answers — do not proceed to `code-decompose`.
+
 ## Anti-theater checks (a discovery is INVALID if any are true)
 
 - The only evidence is "Graphify was run" (or the query was unrelated/empty/only `graphify update`).

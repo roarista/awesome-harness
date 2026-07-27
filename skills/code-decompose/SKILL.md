@@ -22,7 +22,7 @@ The orchestrator does NOT read the implementation. It writes a short brief and n
 
 This runs as a **subagent**, not in the main loop, so all the code-reading context stays here and never touches the orchestrator. Its prompt is the Phase-0 brief. It returns ONLY the distilled output below — not the raw code it read.
 
-The decomposer FIRST runs the [[codebase-first]] ladder (front door → map/Graphify → native → installed dep → nearby workflow → downstream contract → empirical probe → gap). Only then does it produce:
+The decomposer's first action is to READ the discovery artifact (`.scratch/discovery/<slug>.md`) passed in the Phase-0 brief, and carry its REUSE/ADAPT/REJECT verdicts and gate forward verbatim. Re-run a [[codebase-first]] ladder rung only if the artifact leaves the residual gap ambiguous. Only then does it produce:
 1. **Understanding** (3-6 lines max): what exists now (with `file:line` anchors), what we want, and the gap. It MUST include the codebase-first **REUSE/ADAPT/REJECT** capability decisions and the **STOP/PLAN/BUILD gate** — *before* any Units. **If the gate is STOP or PLAN, the decomposer returns that (with its reasoning) instead of Units.** Compact — this is a summary, not a transcript of everything it read.
 2. **Units** — the gap split into the **smallest independently-verifiable pieces**. Keep splitting until each is mechanical to execute. Each unit is a self-contained spec, because the coder will have NO prior context:
 
@@ -48,7 +48,7 @@ The orchestrator gets back the compact specs (not the codebase). It sanity-check
 
 The builder is always the `codex` CLI (gpt-5.5); Claude only orchestrates and never writes the code itself. kimi 2.7 is an acceptable alternate builder if Codex is unavailable — but never a Claude subagent. The map + reuse decision were already established by codebase-first in Phase 1 (graphify + repowise together); pass those anchors down to the coder — do not re-run discovery here.
 
-Spawn one worker per independent unit (parallel where DEPENDS allows; sequential where it doesn't). Each worker prompt = the **BUILDER CODING STANDARD** (`~/.claude/BUILDER_STANDARD.md`) + that unit's full spec + "implement exactly this; run VERIFY; report the VERIFY output verbatim; do not expand scope." Because the spec is complete, a cheaper model is sufficient — the more decomposed the spec, the cheaper the model you can trust. Respect the global spawn depth limit (2). On a worker stall, kill its process tree.
+Spawn one worker per independent unit (parallel where DEPENDS allows; sequential where it doesn't). Each worker prompt = the **BUILDER CODING STANDARD** (`~/.claude/BUILDER_STANDARD.md`) + that unit's full spec + "implement exactly this; run VERIFY; report the VERIFY output verbatim; do not expand scope." Paste-ready wording for that prompt: `docs/CODING_AGENT_PROMPTING.md`. Because the spec is complete, a cheaper model is sufficient — the more decomposed the spec, the cheaper the model you can trust. Respect the global spawn depth limit (2). On a worker stall, kill its process tree.
 
 Blast radius was already computed during codebase-first (Phase 1, pulled early) and rides in each unit's **REUSE** field as the impacted symbols/neighbors — pass it to the coder so it doesn't grep blind. Re-run `~/.claude/tools/graphify-blast.sh <files>` (bare = use `git diff`) only if the touch-set changed since decomposition.
 
@@ -69,11 +69,11 @@ Auditor returns: PASS / FAIL + specific findings tied to spec lines. On FAIL, th
 ## Phase 5 — Integrate & close (orchestrator)
 
 1. Run the **real, deterministic verifier** for the whole change (full test suite / real-DB suite / run the app / screenshot — whatever proves the feature works in practice, not just that it compiles).
-2. `ml record` the durable lessons: any failure mode hit, any decision + rationale, any new convention. This is what makes the next change smarter.
+2. `ml record` — exact syntax and the <=2-sentence rule: see `compact-prep` — the durable lessons: any failure mode hit, any decision + rationale, any new convention. This is what makes the next change smarter.
    - **Scaffold capture (Ornith ledger).** If the change passed the real verifier, capture the winning APPROACH (not the code) for reuse next time the same category recurs:
      `echo "<the decomposition/routing that worked>" | ~/.claude/tools/scaffold-record.py <task-category> <iterations_it_took_to_pass> --auditor <the auditor model>`
      It only keeps the scaffold if it beat the prior one (fewer iterations) — promote-on-beat. Recall re-injects it next time. Run this from the orchestrator after a real PASS only — never let a builder write its own scaffold.
-3. Follow the **compact-safe close** from `global_orchestration_rules.md` (commit → record → update state → push).
+3. Close per the `compact-prep` skill (THE PROCEDURE step 7) — commit → record → update state → push.
 
 ## Why this beats one big prompt
 

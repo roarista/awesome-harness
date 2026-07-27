@@ -33,6 +33,7 @@ if [ "$CODEX" = 1 ]; then
   run "cp -R '$SRC/codex/hooks/.' '$CODEX_DEST/hooks/'"
   run "cp '$SRC/codex/hooks.json.template' '$CODEX_DEST/hooks.json.template'"
   run "cp '$SRC/codex/skills/caveman/SKILL.md' '$CODEX_SKILL_DEST/SKILL.md'"
+  run "cp '$SRC/codex/AGENTS.md' '$CODEX_ROOT/AGENTS.md'"
   run "chmod +x '$CODEX_DEST'/hooks/*.py"
   echo "[2/2] complete"
   say "Claude settings were not read or changed."

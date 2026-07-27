@@ -5,6 +5,19 @@ description: Run before /compact to preserve session memory. Commits uncommitted
 
 # Compact-Prep Protocol
 
+## MINIMUM PATH (every turn)
+
+```
+1. commit the work
+2. `ml record` the durable lesson  (exact syntax + the <=2-sentence rule: below)
+3. REPLACE `## Active Resume Point` in STATE.md (never prepend)
+4. `.now.md` — NOW/LAST_VERIFIED/NEXT, <=5 lines
+5. push to origin
+6. emit the CONTINUE block
+```
+
+Everything below is the **full protocol: pre-`/compact` only.**
+
 The orchestrator runs this skill BEFORE `/compact` to make sure no work is lost across the compaction boundary. Compaction summarizes the conversation — anything not persisted outside the chat is at risk.
 
 ## Why this exists

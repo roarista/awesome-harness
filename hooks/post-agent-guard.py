@@ -11,7 +11,7 @@ REMINDER = (
     "agent back. no chat. log 1 line -> $CLAUDE_JOB_DIR/tmp/pending.md. keep orchestrating.\n"
     "more agents running? wait all. no double-spew. ONE final summary after last agent.\n"
     "next code spawn: prompt CONTEXT(graphify map+file:line)/CHANGE/GOAL/VERIFY, no invented APIs, "
-    "1 runnable check. guide: ~/awesome-harness/docs/CODING_AGENT_PROMPTING.md"
+    "1 runnable check. guide: /Users/rodrigoarista/Downloads/awesome-harness/docs/CODING_AGENT_PROMPTING.md"
 )
 
 

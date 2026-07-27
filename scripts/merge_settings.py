@@ -70,7 +70,9 @@ HOOKS = {
                          # token discipline: warn on the 3rd full re-read of the same file
                          ("Read", f'python3 "{HOOK}/token-discipline.py"')],
     "Stop":             [# compact-prep ENFORCED: block turn-end until .now.md/STATE refreshed (rate-limited)
-                         ("", f'python3 "{HOOK}/compact-prep-gate.py"')],
+                         ("", f'python3 "{HOOK}/compact-prep-gate.py"'),
+                         # abs-path-nudge ADVISORY: next-turn reminder to list absolute paths
+                         ("", f'python3 "{HOOK}/abs-path-nudge.py"')],
     "PreCompact":       [("", f'bash "{HOOK}/pre_compact_global.sh"'),
                          # context-preservation: cheap model writes a 7-field handoff before compaction
                          ("", f'python3 "{HOOK}/precompact-handoff.py"')],

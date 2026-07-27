@@ -1,3 +1,8 @@
+---
+name: check-all
+description: Run a deterministic battery of pre-ship checks against any repo — composes the repo's own gate commands and adds universal ones (file-size caps, no-TODO scan, duplicate-code detection). Use when Ro says "check-all", "/check-all", or before shipping, handing off to another agent, or opening a PR.
+---
+
 # check-all — Deterministic Readiness Gate
 
 ## Purpose
