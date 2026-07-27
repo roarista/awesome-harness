@@ -12,6 +12,13 @@ COMPANION = re.compile(r"\bnode\b[^\n;|&]*\bcodex-companion(?:\.mjs)?\b[^\n;|&]*
 BUILD_EDIT = re.compile(r"\bexec\b|--edit\b|--write\b|\bgit apply\b|<<")
 BRIEF = re.compile(r"\b(?:CONTEXT|CHANGE|GOAL|VERIFY)\b", re.IGNORECASE)
 REUSE = re.compile(r"\bREUSE\b", re.IGNORECASE)
+# FIX 2: a bare `".northstar.md" in command` blocked prompts that merely NAME the
+# north star (e.g. "...DO NOT MODIFY .northstar.md"). Match a WRITE-SHAPED target
+# instead: redirection, tee, sed -i, mv/cp destination, or an explicit --edit.
+NORTHSTAR_WRITE = re.compile(
+    r"(?:>>?\s*|\btee\s+(?:-a\s+)?|\bsed\s+-i\b[^|;&]*?|\b(?:mv|cp)\s+\S+\s+)"
+    r"\S*\.northstar\.md\b"
+    r"|--edit\s+\S*\.northstar\.md\b")
 
 
 def _is_builder(command):
@@ -35,15 +42,23 @@ def preflight(event):
     if not _is_builder(command):
         return "", False
     edit_intent = bool(BUILD_EDIT.search(command))
-    # Block the north star only on an actual EDIT - a builder READ of it is fine.
-    if ".northstar.md" in command and edit_intent:
+    # Block the north star only on a WRITE-SHAPED target — naming it in a prompt
+    # (even "DO NOT MODIFY .northstar.md") is fine, and so is a builder READ.
+    if NORTHSTAR_WRITE.search(command):
         return "builder must never edit the north star.", True
-    # Required decompose headings AND a codebase-first REUSE pointer (discovery
-    # artifact / explicit REUSE-ADAPT-REJECT verdict) — either missing → nudge.
+    # NUDGE ONLY, never blocks (FIX 3). This can only inspect tool_input["command"],
+    # and for codex:codex-rescue the brief is a positional argv token produced by a
+    # Sonnet forwarding wrapper that is instructed to rewrite/tighten the prompt —
+    # heading survival is not guaranteed and the parent cannot amend the child's
+    # Bash line, so no orchestrator-authored prompt could reliably pass. The real
+    # enforcement of this policy lives in hooks/understand-gate.py at
+    # PreToolUse(Task), where the full prompt IS the payload. Kept here only to
+    # cover hand-typed `codex exec` from the main session, which never passes
+    # through PreToolUse(Task).
     if edit_intent and (not BRIEF.search(command) or not REUSE.search(command)):
         msg = ("builder call missing CONTEXT/CHANGE/GOAL/VERIFY/REUSE — decompose + "
                "codebase-first reuse decision first (code-decompose).")
-        return _context("PreToolUse", msg), os.environ.get("BUILDER_FENCE") == "enforce"
+        return _context("PreToolUse", msg), False
     return "", False
 
 
@@ -99,8 +114,10 @@ def _selftest():
     event = {"hook_event_name": "PreToolUse", "tool_name": "Bash"}
     event["tool_input"] = {"command": 'codex exec "CONTEXT: a CHANGE: x GOAL: g VERIFY: v REUSE: .scratch/discovery/foo.md"'}
     assert preflight(event) == ("", False)
+    # FIX 3: missing brief is a NUDGE, never a block
     event["tool_input"] = {"command": 'codex exec "just do it"'}
     assert "decompose" in preflight(event)[0]
+    assert preflight(event)[1] is False
     # read-only builder call (no exec/--edit/--write/git apply/heredoc) is exempt:
     # the REUSE/decompose requirement pins ONLY mutating calls -> clean, no nudge
     event["tool_input"] = {"command": 'codex "explain foo"'}
@@ -111,8 +128,19 @@ def _selftest():
     # all five headings incl. REUSE -> clean
     event["tool_input"] = {"command": 'codex exec "CONTEXT: a CHANGE: b GOAL: c VERIFY: d REUSE: .scratch/discovery/x.md"'}
     assert preflight(event) == ("", False)
-    event["tool_input"] = {"command": 'codex exec --edit .northstar.md'}
-    assert preflight(event)[1]
+    # FIX 2: write-shaped north-star targets still hard-block ...
+    for cmd in ('codex exec --edit .northstar.md',
+                'codex exec "x" && echo hi > .northstar.md',
+                'codex exec "x"; sed -i \'\' s/a/b/ .northstar.md',
+                'codex exec "x" && tee -a .northstar.md < f',
+                'codex exec "x"; cp new.md .northstar.md'):
+        event["tool_input"] = {"command": cmd}
+        assert preflight(event)[1], cmd
+    # ... but merely NAMING it in a prompt must NOT block (the bug this fixed)
+    for cmd in ('codex exec "CONTEXT: a CHANGE: b GOAL: c VERIFY: d REUSE: r. DO NOT MODIFY .northstar.md"',
+                'codex exec "read .northstar.md first"'):
+        event["tool_input"] = {"command": cmd}
+        assert not preflight(event)[1], cmd
     event["tool_input"] = {"command": "ls -la"}
     assert preflight(event) == ("", False)
     event["tool_input"] = {"command": "grep -w codex file"}
@@ -128,7 +156,10 @@ def _selftest():
     assert preflight(event) == ("", False)
     event["tool_input"] = {"command": 'node "/x/scripts/codex-companion.mjs" task "just do it" --write'}
     assert "decompose" in preflight(event)[0]
+    # naming the north star in a companion brief is a nudge, not a block (FIX 2)
     event["tool_input"] = {"command": 'node "/x/scripts/codex-companion.mjs" task "rewrite the .northstar.md file" --write'}
+    assert preflight(event)[1] is False
+    event["tool_input"] = {"command": 'node "/x/scripts/codex-companion.mjs" task "x" --write > .northstar.md'}
     assert preflight(event)[1]
     assert _is_builder('node "/x/scripts/codex-companion.mjs" task "x" --write')
     # merely PRINTING the phrase (no real node invocation) must NOT be a builder call

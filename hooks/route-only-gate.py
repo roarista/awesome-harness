@@ -24,6 +24,18 @@ Deliberately narrow so it enforces without collateral:
   * codex/glm build via their OWN CLI (Bash), not Write/Edit — so the builders
     are unaffected; only DIRECT orchestrator edits are blocked.
   * kill-switch env ROUTING_GATE=0 → no-op.  Any error → fail-open (exit 0).
+
+LIMITATIONS (by design): registered on Write|Edit|MultiEdit ONLY. Bash writes
+(`sed -i`, heredocs, interpreters, `make`, `npm run build`, `git apply`) bypass
+this gate and always will. Closing that with a write-shaped command regex was
+considered and REJECTED: it is a heuristic parser for an unparseable language —
+it cannot see through `python3 script.py` or `$VAR` expansion, yet it would fire
+on `echo done >> log.txt` and every `>/dev/null`. This gate is a hard exit-2
+with no `log` mode, so each false positive wedges a tool call. Treat it as a
+BEHAVIORAL NUDGE, not a sandbox. The real backstop is
+`builder-fence.postflight()`'s `git status --porcelain` diff review plus the
+audit step; for true enforcement use a `deny` permission rule or a git
+pre-commit hook, not a command-line regex.
 """
 import json
 import os

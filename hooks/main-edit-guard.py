@@ -17,6 +17,16 @@ Modes via env MAIN_EDIT_GUARD:
   enforce     -> SUB allowed; MAIN denied (exit 2) with a delegate-it message
 Kill-switch: write `off` to state/main-edit-guard.mode (overrides env, live,
 no restart), or MAIN_EDIT_GUARD=off. Fail-open on any error.
+
+LIMITATIONS (by design): this hook is registered on Write|Edit|MultiEdit ONLY.
+Bash writes — `sed -i`, heredocs, `python3 -c 'open(...,"w")'`, `make`, `npm run
+build`, `git apply` — bypass it entirely and always will. That is deliberate:
+matching writes in a shell command line requires parsing an unparseable
+language, and every false positive on a hard exit-2 gate wedges a real tool
+call. Treat this as a BEHAVIORAL NUDGE, not a sandbox. The real backstop is
+`builder-fence.postflight()`'s `git status --porcelain` diff review plus the
+audit step. If true enforcement is ever wanted, the correct mechanism is a
+`deny` permission rule or a git pre-commit hook — not a command-line regex.
 """
 import json
 import os
@@ -76,15 +86,27 @@ def main() -> None:
         fp = str((data.get("tool_input", {}) or {}).get("file_path", "") or "")
         base = os.path.basename(fp)
         low = fp.replace("\\", "/")
+        # Normalise so a RELATIVE payload (".scratch/discovery/x.md" or
+        # "./.scratch/x.md") hits the same "/<dir>/" substring tests as an
+        # absolute one. (Do NOT use lstrip("./") — it would eat the leading
+        # dot of ".scratch".)
+        if low.startswith("./"):
+            low = low[2:]
+        if not low.startswith("/"):
+            low = "/" + low
         orientation = (
-            base in (".northstar.md", ".northstar.done", "MEMORY.md")
+            base in (".northstar.md", ".northstar.done", "MEMORY.md", ".now.md",
+                     "STATE", "STATE.md", "STATE-ARCHIVE.md")
             or "/memory/" in low
+            or "/.scratch/" in low
+            or "/.mulch/" in low
         )
         if orientation:
             return  # allow silently
         sys.stderr.write(
             f"MAIN-EDIT BLOCKED: {base} — main orchestrates, subagents write "
-            f"code; delegate it. (allowed: .northstar/memory; "
+            f"code; delegate it. (allowed: orientation/.now/STATE/memory/"
+            f".scratch/.mulch; "
             f"kill: MAIN_EDIT_GUARD=off)\n"
         )
         sys.exit(2)
@@ -113,6 +135,28 @@ def _selftest() -> None:
     finally:
         if _home is not None:
             os.environ["HOME"] = _home
+    # orientation allowlist (FIX 1): absolute AND relative payloads
+    for fp, want_allowed in [
+        ("/r/.scratch/discovery/foo.md", True),
+        (".scratch/discovery/foo.md", True),
+        ("./.scratch/discovery/foo.md", True),
+        ("/r/.mulch/x.md", True),
+        ("/r/.now.md", True), (".now.md", True),
+        ("/r/STATE.md", True), ("/r/STATE", True),
+        ("/r/.northstar.md", True), ("/r/memory/m.md", True),
+        ("/r/src/runner.py", False), ("/r/scratch/foo.md", False),
+    ]:
+        base = os.path.basename(fp)
+        low = fp.replace("\\", "/")
+        if low.startswith("./"):
+            low = low[2:]
+        if not low.startswith("/"):
+            low = "/" + low
+        got = (base in (".northstar.md", ".northstar.done", "MEMORY.md", ".now.md",
+                        "STATE", "STATE.md", "STATE-ARCHIVE.md")
+               or "/memory/" in low or "/.scratch/" in low or "/.mulch/" in low)
+        ok &= got == want_allowed
+        print(f"  orientation({fp}) = {got} (want {want_allowed})")
     print("PASS" if ok else "FAIL")
     sys.exit(0 if ok else 1)
 

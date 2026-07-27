@@ -91,6 +91,7 @@ caveman/message discipline · **tool-search** (MCP schema deferral, `ENABLE_TOOL
 ## The floor that's already armed (announce, don't re-implement)
 
 - **BLOCKING (exit 2):** reread-guard · filesize-cap · now-gate · main-edit-guard (`MAIN_EDIT_GUARD=enforce`) · builder-fence (`BUILDER_FENCE=enforce`) · northstar-protect · irreversible-pause · compact-prep-gate · check-all-commit-gate (per-repo opt-in). graphify-gate + route-only-gate are armed but fire only in a graphify repo / a `.route-only` repo.
+- **Scope limit (do not overclaim):** main-edit-guard and route-only-gate are registered on `Write|Edit|MultiEdit` ONLY. Bash writes (`sed -i`, heredocs, interpreters, `make`, `git apply`) bypass them BY DESIGN — they are behavioral nudges, not sandboxes. The real backstop is `builder-fence.postflight()`'s git-status diff review plus the audit step; for true enforcement use a `deny` permission rule or a git pre-commit hook, not a command regex.
 - **ADVISORY:** caveman-discipline · northstar-inject · harness-enforce · recall-inject · coding-routing-guard · understand-gate (default `warn`; `UNDERSTAND_GATE=enforce` promotes it to BLOCK) · post-agent-guard · token-discipline · graphify-blindspot · manifest-guard · session-checkpoint · harness-usage-telemetry · precompact-handoff · pre_compact_global · abs-path-nudge · senduserfile-path-echo · phantom-edit-guard (`log`).
 
 ## Do NOT route to these (retired / dead — excluded on purpose)
