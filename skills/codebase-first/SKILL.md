@@ -23,11 +23,11 @@ Skip for: genuinely trivial one-line edits; docs-only wording that makes no arch
 
 1. **Need** — Does this need building at all, or does current behavior already satisfy it?
 2. **Front door** — Which files define current truth: architecture, commands, active handoff/state, forbidden/retired paths?
-3. **Map / Graphify** — What does the repo-native code map identify for THIS task? (see fallback below)
+3. **Map — graphify + repowise together (refresh first)** — What do the code maps identify for THIS task? Use BOTH when the repo has both, each for its strength (see the **Map** section below).
 4. **Native / platform** — Does stdlib, the language runtime, framework, OS, DB, browser, or external platform already provide it?
 5. **Installed dependency** — Is it in the lockfile/manifest or an already-installed adapter?
 6. **Nearby workflow** — Which active implementations do something similar? Inspect real symbols, not just docs.
-7. **Downstream contract** — Who consumes the output, and what identity/provenance/error/ordering/coordinate assumptions do they impose?
+7. **Downstream contract + blast radius** — Who consumes the output, what assumptions do they impose (identity/provenance/error/ordering/coordinates), AND what is the blast radius of the files this will touch? Pull blast radius HERE — it is part of *understanding* the change, not a build-time afterthought (`graphify-blast.sh`, or repowise `get_risk` / `get_context(include=["callers"])`).
 8. **Empirical probe** — What smallest read-only or disposable check distinguishes competing assumptions on real data?
 9. **Gap** — What is actually missing after reuse/adaptation? Name it narrowly.
 10. **Plan** — Decompose only that residual gap.
@@ -39,11 +39,16 @@ Skip for: genuinely trivial one-line edits; docs-only wording that makes no arch
 - The discovery agent **does not edit and does not spawn**.
 - It returns to the orchestrator ONLY: **artifact path + a 5-10 line finding + the gate + the proposed next seam.** Not the raw reading.
 
-## Graphify: first-with-fallback (never wedge on it)
+## Map: use graphify AND repowise together (each for its strength)
 
-If `graphify-out/graph.json` exists: run a **task-specific** `graphify query` first, `graphify explain` for candidate modules/symbols, `graphify path` when producer/consumer or old/new relationships matter. Graphify is orientation, not authority — **verify every load-bearing conclusion by opening the exact source ranges.** Record the exact commands in the artifact.
+The two code maps answer different questions — when the repo has both, use **both**, one for structure and one for meaning:
 
-If no usable graph exists: do **not** block the task on Graphify. Record `GRAPH: unavailable|stale|insufficient` and use repo-native indexes/LSP, then `rg --files` and narrowly-scoped `rg`, plus dependency manifests/lockfiles and front-door docs. Do not build a graph as part of an unrelated urgent fix unless repo policy requires it.
+- **repowise — semantic / risk / history** (*how / where / why / how-risky*). First move in any indexed repo: `get_answer("how/where/why …")` (cite when `confidence: high`), `get_context(targets=[…], include=["callers","decisions","metrics"])` for a verified skeleton, `search_codebase("<identifier|path|prose>")` to locate, `get_symbol("path.py::Name" | "path.py:120-160")` for a verified body instead of a Read, `get_why("…")` before a refactor, `get_risk(targets[, changed_files])` for blast + churn + `tests_to_run`. Respect `verified` / `stale_warning`.
+- **graphify — structural, deterministic** (*the literal call graph + blast radius*). Where `graphify-out/graph.json` exists, **refresh first** (`graphify update .` — no LLM, cheap), then `graphify query "<goal as a question>"`, `graphify explain "<file|symbol>"`, `graphify path "<producer>" "<consumer>"`, and `~/.claude/tools/graphify-blast.sh <touch-files>` for blast radius.
+
+Typical pairing: **repowise to locate + understand + gauge risk, graphify to confirm exact structure + blast** before editing. Neither is authority — **verify every load-bearing conclusion by opening the exact source ranges.** Record the exact calls in the artifact.
+
+Fallback: if a repo has neither map, record `GRAPH: unavailable` and use repo-native indexes/LSP, `rg --files` + narrow `rg`, dependency manifests + front-door docs. Literal rename-every-callsite sweeps → plain `Grep` regardless (unbeatable). Never wedge the task on a missing map; never build a map as part of an unrelated urgent fix unless repo policy requires it.
 
 ## Required artifact — `.scratch/discovery/<slug>.md`
 
@@ -59,7 +64,7 @@ For non-trivial changes, write this (or use the repo's existing scratch/research
 
 ## Orientation evidence
 - Front door read:
-- Graph/map commands (or GRAPH: unavailable|stale + fallback used):
+- Map calls used — repowise (get_answer/get_context/get_risk…) + graphify (query/explain/path/blast), or GRAPH: unavailable + fallback:
 - Targeted source anchors (file:line):
 
 ## Capability inventory

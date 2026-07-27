@@ -44,11 +44,11 @@ The orchestrator gets back the compact specs (not the codebase). It sanity-check
 
 ## Phase 3 — Execute (BUILDER = Codex 5.5 — NEVER Claude)
 
-The builder is always the `codex` CLI (gpt-5.5); Claude only orchestrates and never writes the code itself. kimi 2.7 is an acceptable alternate builder if Codex is unavailable — but never a Claude subagent. Before spawning, the orchestrator runs `graphify query/explain/path` to confirm whether the unit already exists / where it lives, and passes that down (ponytail: reuse before writing).
+The builder is always the `codex` CLI (gpt-5.5); Claude only orchestrates and never writes the code itself. kimi 2.7 is an acceptable alternate builder if Codex is unavailable — but never a Claude subagent. The map + reuse decision were already established by codebase-first in Phase 1 (graphify + repowise together); pass those anchors down to the coder — do not re-run discovery here.
 
 Spawn one worker per independent unit (parallel where DEPENDS allows; sequential where it doesn't). Each worker prompt = the **BUILDER CODING STANDARD** (`~/.claude/BUILDER_STANDARD.md`) + that unit's full spec + "implement exactly this; run VERIFY; report the VERIFY output verbatim; do not expand scope." Because the spec is complete, a cheaper model is sufficient — the more decomposed the spec, the cheaper the model you can trust. Respect the global spawn depth limit (2). On a worker stall, kill its process tree.
 
-Before spawning, the orchestrator runs `~/.claude/tools/graphify-blast.sh <files-the-unit-touches>` (or `graphify-blast.sh` from the repo to use `git diff`) to get the blast radius — impacted symbols/neighbors of what's about to change — and passes that down so the coder doesn't grep blind.
+Blast radius was already computed during codebase-first (Phase 1, pulled early) and rides in each unit's **REUSE** field as the impacted symbols/neighbors — pass it to the coder so it doesn't grep blind. Re-run `~/.claude/tools/graphify-blast.sh <files>` (bare = use `git diff`) only if the touch-set changed since decomposition.
 
 If a `scaffold-<category>.md` exists for this task-category (it surfaces via recall), pass its verified approach to the decomposer/coder as the starting decomposition — don't re-invent it.
 

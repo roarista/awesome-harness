@@ -25,9 +25,8 @@ Do these in order, fast, then report a 6-8 line "harness up" confirmation and ge
 - **Compaction-safe every turn:** update `.now.md` (≤5 lines) + the STATE resume point, sync memory; state in the final message what was saved and the exact resume point.
 
 ### 3. Before writing any code — reflexes
-- **codebase-first:** run the discovery ladder (front door → graphify map → native → installed dep → nearby workflow → downstream contract → empirical probe → gap). Return an evidence-backed **REUSE / ADAPT / REJECT** decision + a **STOP / PLAN / BUILD** gate before decomposing.
-- **code-decompose:** for anything beyond a one-line edit, decompose into unit specs (CONTEXT / CHANGE / GOAL / VERIFY / REUSE) in a disposable decomposer subagent; cheap coders execute; a non-builder audits each unit against its spec.
-- **graphify-first:** where a `graphify-out/graph.json` exists, `graphify query/explain/path` to orient before cold browsing.
+- **Run `codebase-first`** — the single orient pipeline: front door → **map (graphify for structure/blast + repowise for how/why/risk, used together, refresh first)** → ponytail reuse ladder → REUSE/ADAPT/REJECT table → **STOP/PLAN/BUILD** gate. It owns map-selection + blast radius; ponytail is the always-on lens over it.
+- **Then `code-decompose`** consumes that gate + gap: unit specs (CONTEXT/CHANGE/GOAL/VERIFY/REUSE) in a disposable subagent → codex builds each → a non-builder audits. It *calls* codebase-first, it does not re-describe it.
 
 ### 4. For a multi-step objective — use `/goal`
 For "loop until done" / autonomous multi-step work, prefer the **`goal`** skill (strong SEED → maximal decomposition → verifiable checklist → cheap workers + independent verifier + hard stop conditions, interruptible) over hand-prompting each step. Give it detailed success criteria and an explicit "come to Ro if blocked" escape.
