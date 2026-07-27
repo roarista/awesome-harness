@@ -52,6 +52,21 @@ you write the code AND you still owe the discovery evidence (step 2) and an inde
 self-verify (step 6, re-read the diff against the spec before declaring done). Never claim a
 VERIFY pass you did not actually run.
 
+# Skills (read the file when the step comes up — do not preload)
+
+| Step | Skill | Path |
+|------|-------|------|
+| 1 RECALL | `recall` | `~/.codex/skills/recall/SKILL.md` |
+| 2-3 UNDERSTAND + GATE | `codebase-first` | `~/.codex/skills/codebase-first/SKILL.md` |
+| 4-6 DECOMPOSE/BUILD/VERIFY | `code-decompose` | `~/.codex/skills/code-decompose/SKILL.md` |
+| 6 VERIFY (deterministic) | `check-all` | `~/.codex/skills/check-all/SKILL.md` |
+| 7 PERSIST | `compact-prep` | `~/.codex/skills/compact-prep/SKILL.md` |
+| always, when you build | BUILDER standard | `~/.codex/BUILDER_STANDARD.md` |
+| always, when you record | MEMORY standard | `~/.codex/MEMORY_STANDARD.md` |
+
+You hold yourself to `BUILDER_STANDARD.md` — in this session you ARE the builder, so the
+standard the Claude harness hands to a builder subagent applies to you directly.
+
 # Operating rules
 
 - **Ponytail is the always-on lens**, not a step. Shortest diff. Delete > add.
@@ -69,8 +84,19 @@ VERIFY pass you did not actually run.
 
 # Deliberately excluded
 
-Everything the Claude harness does that a Codex session cannot execute — hooks, the `Skill`
-tool, subagent spawning/routing (opus auditors, codex builders, councils), and MCP tools like
-graphify/repowise/mulch — is omitted on purpose: instructions you cannot act on are pure token
-cost and invite fake compliance. If a repo does expose those tools, use them; otherwise the
-manual equivalents above are the contract.
+Everything the Claude harness does that a Codex session cannot execute is omitted on purpose:
+instructions you cannot act on are pure token cost and invite fake compliance.
+
+- **Subagent spawning/routing** — opus auditors, codex builders, 2-model councils, Explore
+  agents. You play every role yourself, sequentially (see `code-decompose`).
+- **Claude's `Skill` tool and its slash commands** — `/awesomeharness` (a Claude-session boot),
+  `/goal`, `/harness-audit`, `/harness-scout`, `/state-trim`. Their value is orchestration or
+  Claude-side machinery. The skills table above is your equivalent: plain files you Read.
+- **Claude hooks** — session-start injection, PreCompact, PreToolUse gates. Nothing fires
+  automatically for you, so the rituals are yours to run by hand, every turn, unprompted.
+  (Codex's own repo-level `.codex/hooks.json` adapter is separate and unrelated to these.)
+- **MCP tools** — graphify, repowise, mulch-over-MCP. Their CLIs are fair game when installed:
+  `graphify query/explain/path` when `graphify-out/graph.json` exists, and `ml` for mulch.
+
+If a repo does expose any of these, use them; otherwise the manual equivalents above are the
+contract.
