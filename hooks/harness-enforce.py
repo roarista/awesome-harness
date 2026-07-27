@@ -57,7 +57,7 @@ MECHS = [
      "MULCH: check `ml` for prior decisions/failures before deciding, log new ones with `ml`. "
      "no re-litigate, no repeat past fail."),
     ("caveman", lambda r: True,
-     "MSG: zero mid-turn chat. narrate -> pending.md. ONE final summary."),
+     "MSG: no mid-turn chat. ONE final summary."),
     ("routing", lambda r: True,
      "ROUTING: orchestrate, don't build. code writes -> codex 5.5 subagent, Opus-4.8-low audits. "
      "councils = Opus-4.8-low+Codex-5.5. edit only orientation files (.now/.northstar/"

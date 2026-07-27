@@ -44,11 +44,15 @@ Multi-step / "loop until done" objectives → wrap the whole procedure in **`/go
 
 ## The operating rules (re-assert with force — these decay)
 
-- **Message discipline / caveman:** ZERO intermediate chat. Call tools silently. Urge to narrate -> ONE caveman line to `$CLAUDE_JOB_DIR/tmp/pending.md`, never chat. The ONLY chat output is ONE thorough, standalone final summary per turn (Ro reads only that).
+**Invoking this skill mid-session RE-ASSERTS the SessionStart floor — it is the remedy when discipline has decayed, because the boot block is out of recent context by then.** The per-turn hook line is only a recall pointer; the full contract is stated here.
+
+- **Message discipline / caveman:** ZERO intermediate chat — no preamble, no narration, no status lines between or alongside tool calls. Call tools silently. Urge to narrate -> ONE terse caveman line to `$CLAUDE_JOB_DIR/tmp/pending.md`, never to chat. No hook can block chat prose (there is no hook event on model text) — this one is on you.
+- **Final-summary shape:** exactly ONE chat message per turn, at the end, thorough and standalone — what changed and why, results + verification, what is pending, decisions needed. Ro reads only this, so expand every `pending.md` line into it. Overrides ponytail brevity for the summary only; ponytail still governs code.
+- **Compaction-safe close, every turn — `compact-prep` owns the ritual:** `.now.md` (NOW/LAST_VERIFIED/NEXT, <=5 lines) + STATE resume point updated, memory/mulch synced, and the final message names what was saved and the exact resume point. Main routes those writes to a cheap (haiku) sub-agent, never does them itself.
+- **Orientation contract:** before deep work read `.northstar.md` + `.now.md` + the STATE resume point. Missing north star -> ask Ro for the one-sentence destination first.
 - **Ponytail (always-on lens, not a step):** laziest solution that works — YAGNI -> stdlib -> native -> installed dep -> one line. Delete > add. Shortest diff. No speculative abstraction.
-- **Orchestrate, don't build:** main routes and reviews. Code writes -> **codex** subagent; **Opus 4.8 (low effort)** audits. Councils / second opinions = **Opus-4.8-low + Codex-5.5** (optional 3rd: the `gemini` subagent). Default subagent effort = MEDIUM. Main writes nothing, including `.now.md`/STATE/memory — route those to a cheap (haiku) sub-agent, per `compact-prep`.
+- **Orchestrate, don't build:** main routes and reviews, and writes no code itself. Code writes -> **codex** subagent; **Opus 4.8 (low effort)** audits. Councils / second opinions = **Opus-4.8-low + Codex-5.5** (optional 3rd: the `gemini` subagent). Default subagent effort = MEDIUM.
 - **Main stays on Anthropic:** never set `ANTHROPIC_BASE_URL` / `ANTHROPIC_AUTH_TOKEN` / `ANTHROPIC_MODEL` to a third party for the main session.
-- **Compaction-safe every turn:** `.now.md` (<=5 lines) + STATE resume point updated and memory/mulch synced — main routes those writes to a cheap (haiku) sub-agent, never does them itself; state in the final message what was saved and the exact resume point.
 - **Memory standard:** mulch records <=2 sentences, overflow -> `.mulch/details/<slug>.md`; **read the detail file before you diagnose.** STATE trimmed to current scope, history archived never deleted.
 
 ---
@@ -101,7 +105,7 @@ caveman/message discipline · **tool-search** (MCP schema deferral, `ENABLE_TOOL
 
 ## What to do when invoked
 
-1. Read `.northstar.md` + `.now.md` (+ STATE resume point). Missing north star -> ask Ro for the one-sentence destination and route the write to a cheap (haiku) sub-agent before deep work.
+1. Run the orientation contract above (`.northstar.md` + `.now.md` + STATE resume point); route any write to a cheap (haiku) sub-agent.
 2. Run `recall` for task-relevant memory. Verify anything recalled against the live tree.
 3. Report the "harness up" confirmation as exactly these 6 lines — no more:
 ```
