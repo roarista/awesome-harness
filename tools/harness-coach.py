@@ -24,6 +24,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -33,6 +34,42 @@ OVERSIZE = 2048          # a tool_result over this many chars is "bloat"
 REREAD_N = 3             # same file Read >= this many times in a session = churn
 DIGEST_CAP = 45000       # hard cap on chars handed to the model
 MODEL_TIMEOUT = 900      # codex exec can be slow; weekly batch, generous
+PRIOR_N = 4
+PRIOR_CAP = 4000
+
+
+def _prior_reports() -> list[Path]:
+    """Date-named weekly reports only, newest first."""
+    today = dt.date.today().isoformat()
+    try:
+        return sorted(
+            (p for p in OUTDIR.glob("[0-9]*-[0-9]*-[0-9]*.md") if p.stem != today),
+            key=lambda p: p.name, reverse=True,
+        )[:PRIOR_N]
+    except OSError:
+        return []
+
+
+def prior_findings() -> str:
+    """Return unique finding headings from recent reports, newest first."""
+    try:
+        reports = _prior_reports()
+        seen, lines = set(), []
+        for report in reports:
+            for line in report.read_text(errors="replace").splitlines():
+                if not (line.startswith("#") or re.match(r"^\s*\*\*\d+\.", line)):
+                    continue
+                title = line.strip()
+                if title in seen:
+                    continue
+                seen.add(title)
+                dated = f"{report.stem}: {title}"
+                if len("\n".join(lines + [dated])) > PRIOR_CAP:
+                    return "\n".join(lines)
+                lines.append(dated)
+        return "\n".join(lines)
+    except OSError:
+        return ""
 
 
 def token_proxy(nbytes: int) -> int:
@@ -260,6 +297,9 @@ that ADDS tokens to the standing context must justify why the win beats the
 per-turn cost it imposes; and actively hunt for stale/duplicated/never-obeyed
 context already installed that should be removed. A shorter harness that is
 actually obeyed beats a bigger one that is skimmed.
+The prior-report section lists finding titles already proposed. Do NOT re-propose
+one as new; if it remains worthwhile, label it `[REPEAT n]` and add a one-line
+`STATUS` verified against the live tree. Prefer genuinely NEW findings.
 Your job: from the DIGEST of real sessions below, produce a PROPOSE-ONLY report.
 Rank findings by token/quality impact. For each: the evidence in the digest, the
 concrete fix, and a suggested diff to CLAUDE.md / a hook / a skill. Be specific and
@@ -276,7 +316,9 @@ def _workstyle() -> str:
 def call_gpt55(digest: str, snapshot: str) -> str:
     ws = _workstyle()
     ws_block = f"\n\n=== OPERATOR WORKSTYLE (weigh before judging waste) ===\n{ws}\n" if ws else ""
-    prompt = (f"{RUBRIC}{ws_block}\n\n=== {snapshot} ===\n\n=== DIGEST ===\n{digest}\n"
+    prior = prior_findings()
+    prompt = (f"{RUBRIC}{ws_block}\n\n=== ALREADY PROPOSED IN PRIOR RUNS (newest first) ===\n{prior}\n"
+              f"=== END PRIOR ===\n\n=== {snapshot} ===\n\n=== DIGEST ===\n{digest}\n"
               f"\n=== END DIGEST ===\nWrite the report as markdown only.")
     try:
         r = subprocess.run(
@@ -299,7 +341,11 @@ def main() -> None:
     ap.add_argument("--days", type=int, default=7)
     ap.add_argument("--deep", type=int, default=30)
     ap.add_argument("--no-model", action="store_true", help="digest only, skip GPT-5.5")
+    ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
+
+    if a.selftest:
+        sys.exit(_selftest())
 
     digest = build_digest(a.days, a.deep)
     if not digest:
@@ -331,6 +377,35 @@ def main() -> None:
             timeout=10)
     except Exception:
         pass
+
+
+def _selftest() -> int:
+    global OUTDIR
+    old_outdir = OUTDIR
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            OUTDIR = Path(tmp)
+            (OUTDIR / "2026-07-26.md").write_text("# New finding\n**2. Repeated finding\n")
+            (OUTDIR / "2026-07-25.md").write_text("# Older finding\n**2. Repeated finding\n")
+            (OUTDIR / "2026-07-24.md").write_text("# Oldest selected\n")
+            (OUTDIR / "enforcement-audit-2026-07-08.md").write_text("# Excluded lowercase\n")
+            (OUTDIR / "BUILD-BACKLOG-2026-07-08.md").write_text("# Excluded uppercase\n")
+            selected = [p.name for p in _prior_reports()]
+            selected_want = ["2026-07-26.md", "2026-07-25.md", "2026-07-24.md"]
+            got = prior_findings()
+            want = ("2026-07-26: # New finding\n2026-07-26: **2. Repeated finding\n"
+                    "2026-07-25: # Older finding\n2026-07-24: # Oldest selected")
+            ok = selected == selected_want and got == want
+            print(f"selected -> {selected} (want {selected_want})")
+            print(f"reports -> {got!r} (want {want!r})")
+            OUTDIR = Path(tmp) / "empty"
+            empty = prior_findings()
+            ok &= empty == ""
+            print(f"empty -> {empty!r} (want '')")
+            print("PASS" if ok else "FAIL")
+            return 0 if ok else 1
+    finally:
+        OUTDIR = old_outdir
 
 
 if __name__ == "__main__":

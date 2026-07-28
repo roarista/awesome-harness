@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
-"""abs-path-nudge — passive Stop hook: next-turn reminder to include ABSOLUTE
-clickable paths for files created/edited this turn.
+"""abs-path-nudge — optional Stop hook for a redundant chat file listing.
 
-Why a Stop hook (and its honest limit): Ro repeatedly asks that the MAIN
-session's FINAL message list full absolute clickable paths of every file it
-created/edited. A Stop hook fires AFTER that message is already sent, so it
-CANNOT rewrite it. Its only realistic value is a *next-turn* reminder that
-surfaces the next time the model speaks. So this is a nudge, not a fix.
+The phantom-edit log is the source of truth: it records every edit with the
+session transcript path, and agents can read it through `turn-files.py`.
+The old chat listing was for agents, not the operator, so this hook is OFF by
+default to avoid spending tokens duplicating data already on disk.
 
 Low-noise: only fires when the turn actually touched files. It reuses the
 phantom-edit log (state/phantom-edit.jsonl), which logs every Write/Edit with
@@ -16,7 +14,7 @@ the transcript path (== session id) + ts. If this session has a recent
 Passive & fail-open: never blocks the stop (never exit 2 / decision=block).
 Prints the reminder to stderr and exits 0. Any error → exit 0 silent.
 
-Mode: state/abs-path-nudge.mode — "off" disables; missing/anything-else = on.
+Mode: state/abs-path-nudge.mode — only "on" enables; missing/anything-else = off.
 """
 import json
 import os
@@ -32,14 +30,14 @@ MODE = HOOK_DIR / "state" / "abs-path-nudge.mode"
 WINDOW_SECS = 600  # 10 min
 EDIT_TOOLS = {"Write", "Edit", "MultiEdit", "NotebookEdit"}
 
-MSG = ("final msg: list FULL absolute path for every file created/edited this turn (e.g. /Users/...).")
+MSG = ("touched files: use python3 ~/.claude/tools/turn-files.py --session <session_id>.")
 
 
 def _enabled() -> bool:
     try:
-        return MODE.read_text().strip().lower() != "off"
+        return MODE.read_text().strip().lower() == "on"
     except OSError:
-        return True  # default ON
+        return False  # default OFF
 
 
 def _recent_edit(session_id: str, tpath: str) -> bool:
@@ -129,10 +127,14 @@ def _selftest() -> int:
     print(f"case3 stale-edit -> {got} (want False)")
     ok &= got is False
 
-    # Case 4: mode off -> disabled.
-    MODE.write_text("off")
-    print(f"case4 mode-off enabled -> {_enabled()} (want False)")
+    # Case 4: missing mode -> disabled by default.
+    print(f"case4 missing-mode enabled -> {_enabled()} (want False)")
     ok &= _enabled() is False
+
+    # Case 5: explicit on -> enabled.
+    MODE.write_text("on")
+    print(f"case5 mode-on enabled -> {_enabled()} (want True)")
+    ok &= _enabled() is True
 
     print("PASS" if ok else "FAIL")
     return 0 if ok else 1

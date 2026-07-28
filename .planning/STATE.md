@@ -1,26 +1,28 @@
-# Harness Enforcement Audit State
+# Harness Hardening — State
 
-## NOW (Summary)
-Harness enforcement audit DONE + per-repo hooks stripped (reversible .harnessbak). 
+## NOW
+Enforcement audit + Codex parity + auditor synthesis all SHIPPED (e639ff5 → 70e1713, pushed).
+The 2026-07-27 session that did this was deleted mid-flight; context recovered from transcript
+`~/.claude/projects/-Users-rodrigoarista-Downloads-awesome-harness/1a72c93c-*.jsonl` on 07-28.
 
-KEY FINDING: External codex/glm CLI builders bypass ALL write-side hooks (only the spawning Bash line is seen) — so read-before-write gate only works for Claude Task subagents, not codex/glm CLIs.
+## LAST_VERIFIED (2026-07-27)
+- `e639ff5` un-inverted guards (mention-matching → write-matching), main-edit-guard/builder-fence/route-only-gate
+- `a083ecc` boot-heavy / turn-light injection; `/awesomeharness` re-asserts the full floor
+- `d89589a` Codex parity — code-decompose/compact-prep/check-all/recall + both standards + AGENTS.md router
+- `70e1713` deduped graphify-blindspot in settings.json; harness-coach fails loud; irreversible-pause blocks graded submits
+- Auditor verdict in durable memory: `memory/harness-auditor-yield-verdict.md` (do NOT re-read the 10 reports)
 
-## LAST_VERIFIED
-- Cleanup stripped hooks from Vividlist/forclosure/intrn/virality (+virality local)
-- All .harnessbak backed up
-- Memory written: harness-enforcement-audit.md
-- Global CLAUDE.md=22 lines
-- repowise = codebase-intelligence platform (superset of graphify, MCP for agents, -96% tokens) — strong graphify replacement candidate
+## NEXT (open decisions, ranked)
+1. Give harness-coach + harness-scout memory of their own prior reports — highest value, XS effort
+2. `launchctl unload` the dead `com.ro.engineering-harness-audit` (exit 1 every Monday since 06-24)
+3. Move harness-scout back to weekly (was switched to daily 07-27)
+4. Trim the scout creator list
+5. Stop-hook violation counter (~30 lines in session-checkpoint.py; UX win, NOT a token win — measured 2166 saved vs 4224 spent)
 
-## NEXT (need Ro decision)
-1. Which builder does he code with? (codex/glm CLI vs Claude Task subagent?) — determines ponytail-gate design
-2. Then build top-5 strict upgrades:
-   - wrap codex/glm
-   - broaden irreversible-pause
-   - blocking now-gate/filesize
-   - graphify shell-escape
-   - arm route/check-all
-3. Pending work:
-   - per-repo CLAUDE.md trims (Vividlist 13KB)
-   - graphify-vs-repowise decision
-   - de-dup double-registered hooks
+## CARRIED
+- `understand-gate` still in `warn`, never armed to block
+- Map auto-refresh unwired
+- `~/awesome-harness` stale clone with unresolved `UU .now.md`
+- `northstar-protect.py` mention-matching inversion sweep
+- `~/.codex/skills/codex-primary-runtime/` is an empty dir — stale artifact?
+- Codex asymmetry (documented, not faked): self-audit instead of independent auditor; no hooks fire on the Codex side

@@ -7,6 +7,8 @@ description: Run before /compact to preserve session memory. Commits uncommitted
 
 ## MINIMUM PATH (every turn)
 
+Derive touched files from the edit log with `python3 ~/.claude/tools/turn-files.py --session <session_id>`; do not expect a redundant file list in the transcript.
+
 ```
 1. commit the work
 2. `ml record` the durable lesson  (exact syntax + the <=2-sentence rule: below)
