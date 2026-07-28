@@ -59,6 +59,40 @@ GCLOUD_DELETE = re.compile(r"\bgcloud\b[^\n;|&]*\bdelete\b")
 RCLONE_DELETE = re.compile(r"\brclone\s+(?:delete|purge)\b")
 
 
+# 5. Graded-submission surfaces (Canvas / Blackboard / Gradescope / Turnitin /
+#    Moodle). Ro's coursework was actually submitted by an agent on 2026-07-17;
+#    submitting is UNRECOVERABLE, so this BLOCKS like the rest of the denylist.
+#    Match ACTION SHAPE, not mere mention (the same un-inversion the SQL rule
+#    needed): the LMS name must appear inside an actual URL, AND an HTTP client
+#    must be invoked, AND the request must be submit-shaped. Prose that merely
+#    NAMES Canvas — "read the Canvas rubric", a commit message about this very
+#    guard — must NOT trip it.
+LMS_URL = re.compile(
+    r"""(?:https?://|\bwww\.|//)[^\s'"<>]*"""
+    r"(?:instructure\.com|blackboard|gradescope|turnitin|moodle|canvas)",
+    re.IGNORECASE,
+)
+SUBMIT_VERB = re.compile(
+    r"(?:\bsubmit\b|\bsubmissions?\b|\bturn[-_ ]?in\b|\bupload\b|"
+    r"-X\s*POST|--request\s+POST|--data\b|--form\b|(?<![\w-])-[dF]\b|"
+    r"--upload-file\b|--post-file\b|--post-data\b)",
+    re.IGNORECASE,
+)
+SUBMIT_ENDPOINT = re.compile(r"/(?:submissions?|submit)(?:[/?#]|\b)", re.IGNORECASE)
+HTTP_CLIENT = re.compile(r"(?:^|[\s;|&(])(?:curl|wget|http|httpie|xh)\b")
+
+
+def _is_graded_submission(cmd: str) -> bool:
+    """True iff the command LOOKS LIKE submitting coursework to an LMS: an LMS
+    URL, an HTTP client actually invoked, and a submit-shaped endpoint or verb.
+    Mere mention of Canvas/Gradescope never qualifies."""
+    m = LMS_URL.search(cmd)
+    if not m or not HTTP_CLIENT.search(cmd):
+        return False
+    url = cmd[m.start():].split()[0]
+    return bool(SUBMIT_ENDPOINT.search(url) or SUBMIT_VERB.search(cmd))
+
+
 def _dequote(cmd: str) -> str:
     """Blank out single/double-quoted spans so a trigger word living inside a
     quoted ARGUMENT to another program (codex/claude/glm/echo "... rm -rf ...")
@@ -110,13 +144,17 @@ def matches_denylist(cmd: str) -> bool:
     # commit message / prose mentioning a client + the SQL keyword does NOT trip it.
     if DB_CLIENT.search(_dequote(cmd)) and SQL_DESTRUCTIVE.search(cmd):
         return True
+    # graded submission: match on the ORIGINAL cmd (URLs are often quoted)
+    if _is_graded_submission(cmd):
+        return True
     return False
 
 
 def deny() -> None:
     sys.stderr.write(
         "BLOCKED: this is an IRREVERSIBLE operation (recursive force-delete, "
-        "force push, or destructive SQL/DB reset) and cannot be undone. "
+        "force push, destructive SQL/DB reset, or a GRADED-COURSEWORK SUBMISSION) "
+        "and cannot be undone. NEVER submit Ro's coursework — he submits it himself. "
         "STOP and confirm with Ro before proceeding. After he approves, re-run "
         "the EXACT command prefixed with `" + OVERRIDE + " ` to re-arm and "
         "allow it through this guard."
@@ -147,6 +185,11 @@ def _selftest() -> None:
         "mkfs.ext4 /dev/disk9", "aws s3 rm s3://bucket --recursive",
         "gcloud projects delete test", "rclone delete remote:path", "rclone purge remote:path",
         "git push origin --force", 'psql -c "drop table x"',
+        # graded-submission guard — must BLOCK
+        "curl -X POST https://canvas.instructure.com/api/v1/courses/1/assignments/2/submissions -F file=@essay.pdf",
+        "curl -F 'file=@hw.pdf' https://www.gradescope.com/courses/1/assignments/2/submissions",
+        "curl -X POST https://myschool.blackboard.com/submit -d @essay.txt",
+        "wget --post-file=essay.pdf https://moodle.school.edu/mod/assign/submit",
     )
     for command in destructive:
         assert matches_denylist(command), command
@@ -155,6 +198,13 @@ def _selftest() -> None:
         "git push origin main && tar -f b.tar data/",
         'git commit -m "drop table x via psql"',
         "vim mkfs.sh",
+        # graded-submission guard — must NOT block (mere mention / read-only)
+        "curl -s https://canvas.instructure.com/api/v1/courses/1/assignments/2 -o rubric.json",
+        "curl -X POST https://api.example.com/v1/things -d '{}'",
+        "open https://canvas.instructure.com/courses/1/assignments/2",
+        "echo 'download the assignment from Canvas'",
+        "git commit -m 'guard: block Canvas/Gradescope submission uploads'",
+        "grep -rn canvas ~/Downloads/essays",
     )
     for command in allowed:
         assert not matches_denylist(command), command

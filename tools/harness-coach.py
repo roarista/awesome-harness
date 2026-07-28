@@ -284,9 +284,14 @@ def call_gpt55(digest: str, snapshot: str) -> str:
              "-c", "approval_policy=never", "-"],
             input=prompt, capture_output=True, text=True, timeout=MODEL_TIMEOUT,
         )
-        return r.stdout.strip()
+        out = r.stdout.strip()
+        if r.returncode != 0:
+            raise RuntimeError(f"codex exec exit {r.returncode}: {(r.stderr or '').strip()[:300]}")
+        if not out:
+            raise RuntimeError("codex exec produced an EMPTY report (no stdout)")
+        return out
     except Exception as e:
-        return f"(model call failed: {e})"
+        raise RuntimeError(f"LLM stage failed: {e}") from e
 
 
 def main() -> None:
@@ -303,7 +308,11 @@ def main() -> None:
     if a.no_model:
         print(digest); return
 
-    report = call_gpt55(digest, harness_snapshot())
+    try:
+        report = call_gpt55(digest, harness_snapshot())
+    except Exception as e:
+        report = f"## LLM STAGE FAILED: {e}\n\n_No model report this run. The deterministic digest below is intact._"
+        sys.stderr.write(f"harness-coach: {e}\n")
     today = dt.date.today().isoformat()
     header = (f"# harness-coach — {today}\n"
               f"_propose-only. GPT-5.5 over the last {a.days} days of sessions. "
