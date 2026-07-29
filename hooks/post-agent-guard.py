@@ -8,8 +8,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import _hookout
 
 REMINDER = (
-    "agent back. no chat. log 1 line -> $CLAUDE_JOB_DIR/tmp/pending.md. keep orchestrating.\n"
-    "more agents running? wait all. no double-spew. ONE final summary after last agent.\n"
+    "AGENT BACK: no chat. ONE caveman line -> $CLAUDE_JOB_DIR/tmp/pending.md; summary ONLY when last agent in wave is back.\n"
     "next code spawn: prompt CONTEXT(graphify map+file:line)/CHANGE/GOAL/VERIFY, no invented APIs, "
     "1 runnable check. guide: /Users/rodrigoarista/Downloads/awesome-harness/docs/CODING_AGENT_PROMPTING.md"
 )

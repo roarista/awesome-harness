@@ -64,6 +64,11 @@ MECHS = [
      "STATE/memory) or tiny harness tweaks. Ro naming a model overrides."),
 ]
 
+WAVE_RULE = (
+    "WAVE: agent returned, not your summary. Any still running? ONE caveman line, "
+    "no headings/findings; full summary only after last returns."
+)
+
 
 def bump(root: Path) -> int:
     try:
@@ -80,12 +85,12 @@ def bump(root: Path) -> int:
     return n
 
 
-def main() -> None:
-    root = repo_root()
+def injected_text(prompt: str, root: Path, n: int) -> str:
+    if "<task-notification>" in prompt:
+        return WAVE_RULE
     applicable = [m for m in MECHS if m[1](root)]
     if not applicable:
-        return
-    n = bump(root)
+        return ""
     caveman = next((m for m in applicable if m[0] == "caveman"), None)
     others = [m for m in applicable if m[0] != "caveman"]
     parts = []
@@ -97,10 +102,61 @@ def main() -> None:
     if not parts:  # caveman not applicable and no others (shouldn't happen)
         okey, _, oline = applicable[n % len(applicable)]
         parts.append(f"[{okey}] {oline}")
-    _hookout.inject("UserPromptSubmit", "HARNESS ENFORCE (obey now): " + "  ||  ".join(parts))
+    return "HARNESS ENFORCE (obey now): " + "  ||  ".join(parts)
+
+
+def main() -> None:
+    prompt = str(json.load(sys.stdin).get("prompt", "") or "")
+    root = repo_root()
+    n = 0 if "<task-notification>" in prompt or os.environ.get("HARNESS_ENFORCE_SELFTEST") == "1" else bump(root)
+    _hookout.inject("UserPromptSubmit", injected_text(prompt, root, n))
+
+
+def _selftest() -> None:
+    import io
+    import subprocess
+
+    def run(prompt: str) -> str:
+        env = {**os.environ, "HARNESS_ENFORCE_SELFTEST": "1"}
+        result = subprocess.run(
+            [sys.executable, __file__], input=json.dumps({"prompt": prompt}),
+            text=True, capture_output=True, check=True, env=env,
+        )
+        return result.stdout
+
+    wave = run("<task-notification> agent completed")
+    normal = run("please inspect this hook")
+    assert WAVE_RULE in wave
+    assert "HARNESS ENFORCE" not in wave and "[caveman]" not in wave
+    assert "HARNESS ENFORCE" in normal and "[caveman]" in normal and "[ponytail]" in normal
+    assert WAVE_RULE not in normal
+
+    calls = []
+    original_bump, original_inject, original_stdin = bump, _hookout.inject, sys.stdin
+    try:
+        globals()["bump"] = lambda root: calls.append(root) or len(calls)
+        _hookout.inject = lambda event, text: None
+        sys.stdin = io.StringIO(json.dumps({"prompt": "<task-notification> agent completed"}))
+        main()
+        assert not calls
+        sys.stdin = io.StringIO(json.dumps({"prompt": "please inspect this hook"}))
+        main()
+        assert len(calls) == 1
+    finally:
+        globals()["bump"] = original_bump
+        _hookout.inject = original_inject
+        sys.stdin = original_stdin
+    print("PASS")
 
 
 if __name__ == "__main__":
+    if "--selftest" in sys.argv:
+        try:
+            _selftest()
+        except Exception as e:
+            print(f"FAIL: {e}")
+            sys.exit(1)
+        sys.exit(0)
     try:
         main()
     except Exception:
