@@ -218,6 +218,46 @@ def path_exists_anywhere(tok: str, repo: Path) -> bool:
     return (repo / tok_path).exists()
 
 
+def scan_repo(repo: Path, include_state: bool = False) -> dict:
+    """Return deterministic harness-doc drift facts without changing the repo."""
+    doc_names = list(STRUCTURAL_DOCS)
+    if include_state:
+        doc_names.extend(STATE_LOG_DOCS)
+    contents = {}
+    for name in doc_names:
+        path = repo / name
+        if path.exists():
+            contents[name] = path.read_text(encoding="utf-8", errors="replace")
+
+    missing_paths = []
+    for doc_name, text in contents.items():
+        for tok in extract_path_candidates(text):
+            if looks_like_path(tok) and not path_exists_anywhere(tok, repo):
+                missing_paths.append({"doc": doc_name, "path": tok})
+
+    # npm-script drift is only meaningful in a repo that HAS a package.json --
+    # otherwise `npm run build` in a doc is prose, not a broken reference.
+    missing_commands = []
+    pkg_json = repo / "package.json"
+    if pkg_json.exists():
+        defined_scripts = set()
+        try:
+            defined_scripts = set(json.loads(pkg_json.read_text(
+                encoding="utf-8", errors="replace")).get("scripts", {}))
+        except (json.JSONDecodeError, OSError):
+            pass
+        for doc_name, text in contents.items():
+            for script in extract_npm_scripts(text):
+                if script not in defined_scripts:
+                    missing_commands.append({"doc": doc_name, "script": script})
+    return {
+        "missing_paths": missing_paths,
+        "missing_commands": missing_commands,
+        "docs_checked": list(contents),
+        "counts": {"paths": len(missing_paths), "commands": len(missing_commands)},
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description="CLAUDE.md/AGENTS.md drift validator")
     parser.add_argument("repo_dir", nargs="?", default=".", help="Repo root (default: cwd)")
@@ -231,28 +271,10 @@ def main():
 
     repo = Path(args.repo_dir).resolve()
 
-    # Build the list of docs to scan
-    doc_names_to_check = list(STRUCTURAL_DOCS)
-    if args.include_state:
-        doc_names_to_check.extend(STATE_LOG_DOCS)
-
-    # --- 1. Read docs ---
-    docs_checked = []
-    doc_contents = {}
-
-    for name in doc_names_to_check:
-        p = repo / name
-        if p.exists():
-            doc_contents[name] = p.read_text(encoding="utf-8", errors="replace")
-            docs_checked.append(name)
-
-    # Note when .planning/STATE.md was skipped
-    _state_log_skipped = (
-        not args.include_state
-        and any((repo / n).exists() for n in STATE_LOG_DOCS)
-    )
-
-    if not doc_contents:
+    result = scan_repo(repo, args.include_state)
+    _state_log_skipped = not args.include_state and any(
+        (repo / n).exists() for n in STATE_LOG_DOCS)
+    if not result["docs_checked"]:
         if args.json:
             print(json.dumps({
                 "missing_paths": [],
@@ -264,49 +286,20 @@ def main():
             print("No harness docs found.")
             print("drift: 0 paths, 0 commands")
         sys.exit(0)
-
-    # --- 2. Path-reference check ---
-    missing_paths = []
-
-    for doc_name, text in doc_contents.items():
-        candidates = extract_path_candidates(text)
-        for tok in candidates:
-            if not looks_like_path(tok):
-                continue
-            if not path_exists_anywhere(tok, repo):
-                missing_paths.append({"doc": doc_name, "path": tok})
-
-    # --- 3. Command check ---
-    missing_commands = []
-
-    pkg_json = repo / "package.json"
-    defined_scripts = set()
-    if pkg_json.exists():
-        try:
-            pkg = json.loads(pkg_json.read_text(encoding="utf-8", errors="replace"))
-            defined_scripts = set(pkg.get("scripts", {}).keys())
-        except (json.JSONDecodeError, OSError):
-            pass
-
-        for doc_name, text in doc_contents.items():
-            for script in extract_npm_scripts(text):
-                if script not in defined_scripts:
-                    missing_commands.append({"doc": doc_name, "script": script})
-
-    # --- 4. Output ---
-    n_paths = len(missing_paths)
-    n_cmds = len(missing_commands)
+    missing_paths = result["missing_paths"]
+    missing_commands = result["missing_commands"]
+    n_paths = result["counts"]["paths"]
+    n_cmds = result["counts"]["commands"]
 
     if args.json:
         print(json.dumps({
             "missing_paths": missing_paths,
             "missing_commands": missing_commands,
-            "docs_checked": docs_checked,
-            "counts": {"paths": n_paths, "commands": n_cmds},
+                **result,
         }, indent=2))
     else:
-        if docs_checked:
-            print(f"Docs checked: {', '.join(docs_checked)}")
+        if result["docs_checked"]:
+            print(f"Docs checked: {', '.join(result['docs_checked'])}")
         if _state_log_skipped:
             print("(.planning/STATE.md excluded by default; use --include-state to scan it)")
         if missing_paths:

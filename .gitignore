@@ -20,3 +20,6 @@ hooks/manifest/
 .mcp.json
 .vscode/
 .claude/
+
+# discovery / scratch notes (codebase-first, understand-gate evidence) — local only
+.scratch/

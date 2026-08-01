@@ -383,4 +383,28 @@ else
   print_table
 fi
 
+# ─── Scaffold capture (Ornith ledger) ──────────────────────────────────────────
+# Ambient replacement for the manual step in skills/code-decompose/SKILL.md: a GREEN
+# check-all is exactly the "passed the real verifier" moment scaffold-record.py wants,
+# and firing it from HERE keeps the hard rule that a builder never records its own
+# scaffold. Opt-in per task via env, because only the orchestrator knows the approach:
+#   SCAFFOLD_CATEGORY=db-migration SCAFFOLD_APPROACH=.scratch/approach.md \
+#   SCAFFOLD_ITERS=2 SCAFFOLD_AUDITOR=opus-4.8 check_all.sh <repo>
+if [[ $OVERALL_FAIL -eq 0 && -n "${SCAFFOLD_CATEGORY:-}" && -r "${SCAFFOLD_APPROACH:-}" ]]; then
+  "$HOME/.claude/tools/scaffold-record.py" "$SCAFFOLD_CATEGORY" "${SCAFFOLD_ITERS:-1}" \
+    --auditor "${SCAFFOLD_AUDITOR:-unspecified}" < "$SCAFFOLD_APPROACH" || true
+fi
+
+# ─── Stamp the run (LAST, and only after the readiness table) ──────────────────
+# One line per run, so check-all-commit-gate.sh can tell whether check-all has run
+# since the newest source edit in hooks/state/phantom-edit.jsonl. `ok` carries the
+# RESULT: a failing run must not silence the "check-all not run" notice. Written at
+# the end so an aborted run leaves no stamp at all. Best-effort only.
+_st="$HOME/.claude/hooks/state"
+_ok=false; [[ $OVERALL_FAIL -eq 0 ]] && _ok=true
+mkdir -p "$_st" 2>/dev/null && \
+  printf '{"ts": "%s", "root": "%s", "ok": %s}\n' \
+    "$(date +%Y-%m-%dT%H:%M:%S)" "$REPO_DIR" "$_ok" \
+  >> "$_st/check-all.jsonl" 2>/dev/null || true
+
 exit $OVERALL_FAIL

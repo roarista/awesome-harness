@@ -375,6 +375,7 @@ def main() -> None:
         subprocess.run(["osascript", "-e",
             f'display notification "harness-coach report ready: {today}" with title "harness-coach"'],
             timeout=10)
+        subprocess.run([str(Path(__file__).resolve().parent / "open-findings.sh"), str(out)], timeout=30)
     except Exception:
         pass
 

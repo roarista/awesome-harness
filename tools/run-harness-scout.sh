@@ -52,4 +52,9 @@ else
 fi
 
 echo "[$(date)] harness-scout run end (rc=$RC)" >>"$LOG"
+
+# success only: rc=0 AND the report actually exists -> open it for review (non-fatal)
+REPORT="$HOME/Downloads/HARNESS_SCOUT_$DATE.md"
+[ "$RC" -eq 0 ] && [ -f "$REPORT" ] && "$(dirname "$0")/open-findings.sh" "$REPORT" >>"$LOG" 2>&1
+
 exit 0

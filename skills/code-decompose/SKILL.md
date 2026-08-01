@@ -70,9 +70,13 @@ Auditor returns: PASS / FAIL + specific findings tied to spec lines. On FAIL, th
 
 1. Run the **real, deterministic verifier** for the whole change (full test suite / real-DB suite / run the app / screenshot — whatever proves the feature works in practice, not just that it compiles).
 2. `ml record` — exact syntax and the <=2-sentence rule: see `compact-prep` — the durable lessons: any failure mode hit, any decision + rationale, any new convention. This is what makes the next change smarter.
-   - **Scaffold capture (Ornith ledger).** If the change passed the real verifier, capture the winning APPROACH (not the code) for reuse next time the same category recurs:
-     `echo "<the decomposition/routing that worked>" | ~/.claude/tools/scaffold-record.py <task-category> <iterations_it_took_to_pass> --auditor <the auditor model>`
-     It only keeps the scaffold if it beat the prior one (fewer iterations) — promote-on-beat. Recall re-injects it next time. Run this from the orchestrator after a real PASS only — never let a builder write its own scaffold.
+   - **Scaffold capture (Ornith ledger) — now AMBIENT, don't hand-run it.** Write the winning APPROACH (the decomposition/routing that worked, not the code) to a file, then set four env vars on the step-1 check-all run. `check_all.sh` calls `scaffold-record.py` itself, but only on a GREEN run — so the capture cannot happen without a real PASS, and a builder can never record its own scaffold:
+     ```sh
+     SCAFFOLD_CATEGORY=<task-category> SCAFFOLD_APPROACH=.scratch/approach.md \
+     SCAFFOLD_ITERS=<iterations_it_took_to_pass> SCAFFOLD_AUDITOR=<auditor model> \
+       ~/.claude/tools/check-all/check_all.sh <repo>
+     ```
+     It only keeps the scaffold if it beat the prior one (fewer iterations) — promote-on-beat. Recall re-injects it next time. If you skip the env vars, nothing is recorded (that is the only failure mode; there is no manual fallback command).
 3. Close per the `compact-prep` skill (THE PROCEDURE step 7) — commit → record → update state → push.
 
 ## Why this beats one big prompt

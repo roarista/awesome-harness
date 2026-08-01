@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  REPURPOSED dead slot. This label has exited 1 every Monday since 2026-06-24.
+  Root cause, read out of ~/engineering-harness/reports/launchd.err.log (NOT the
+  suspected `timeout: command not found` and NOT `claude: Not logged in` — neither
+  string appears anywhere in that log):
+
+      PermissionError: [Errno 1] Operation not permitted:
+        '/Users/rodrigoarista/Downloads/NOTION_WORKFLOW_MINING_2026-06-16.md'
+
+  i.e. macOS TCC denied the job access to ~/Downloads. Note the frames in that same
+  traceback: they run under
+  /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9
+  — that IS /usr/bin/python3. So the denied process was itself /usr/bin/python3, and
+  Full Disk Access for /usr/bin/python3 is REQUIRED before this job can read
+  ~/Downloads/<repo>/CLAUDE.md. Grant it first (step 0 of INSTALL-claudemd-trim.md);
+  switching the Program alone does NOT fix the denial.
+
+  Fixes applied here:
+    1. Program is /usr/bin/python3 directly (no bash wrapper) — but see the TCC note
+       above: this binary needs the manual Full Disk Access grant.
+    2. No `timeout(1)`: claudemd-trim enforces its own subprocess timeouts in Python.
+    3. No dependency on the interactively-authenticated `claude` CLI: the model stage
+       shells out to `codex exec` via an ABSOLUTE path baked into the script
+       (~/.npm-global/bin/codex), because launchd's PATH does not include it.
+    4. EnvironmentVariables/PATH mirrors the working harness-coach plist.
+  Runs Monday 09:00 (the original slot), one hour after nothing else.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.ro.engineering-harness-audit</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/python3</string>
+        <string>/Users/rodrigoarista/.claude/tools/claudemd-trim.py</string>
+    </array>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/Users/rodrigoarista/.npm-global/bin:/Users/rodrigoarista/.local/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key>
+        <integer>1</integer>
+        <key>Hour</key>
+        <integer>9</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>/Users/rodrigoarista/engineering-harness/reports/claudemd-trim.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/rodrigoarista/engineering-harness/reports/claudemd-trim.err.log</string>
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>
