@@ -34,11 +34,13 @@ Skills load from disk at invoke time, so **this works in an already-running sess
                rows. Anything short of all three -> back to step 5, never step 7.
 7. PERSIST     `compact-prep` -> commit, mulch record, .now.md, STATE, push
                + `scaffold-record` if it passed (capture the approach)
-               CADENCE: commit after EACH completed unit, not at session end.
+               CADENCE = PER UNIT, not per session: the moment a unit is built
+               AND verified, commit + push it. Another terminal may be working in
+               this repo, so integrate before pushing and NEVER force/reset — that
+               is exactly what `"$(git rev-parse --show-toplevel)/tools/git-sync.sh"`
+               does (absolute; a relative path breaks when cwd isn't the repo root).
                (The uncommitted-work nudge only sees Write/Edit/MultiEdit rows —
                Bash-heredoc writes are invisible to it, so silence proves nothing.)
-               Another terminal may be working in this repo: integrate before
-               you push (`tools/git-sync.sh`) and NEVER force/reset.
 ```
 
 Steps 2-3 are one skill (`codebase-first`), 4-6 are one skill (`code-decompose`) — the procedure is 2 skills plus rituals, not 8 things to remember. **Escape hatch:** genuinely trivial one-line edits and docs-only wording skip 2-4, never 0/1/7 — but still spawn the edit with a one-line inline `REUSE:`/`REJECT:` verdict in the prompt; that is what satisfies understand-gate.
@@ -72,8 +74,9 @@ Six systems. Within each row, the pieces are already wired to each other; **use 
 **Procedure step 0.** These are one file-set with one job — read all three at boot, update all three at close.
 
 ### 2. MEMORY *(start warm, never re-derive)*
-**memgraph** (FTS + link graph over markdown memory) · **`recall` skill** (1-3 lookups, the front end to memgraph) · recall-inject hook (auto-surfaces 1-3 records/turn) · **mulch** (per-repo decisions/conventions/failures; `ml prime` / `ml sync`) · **MEMORY_STANDARD.md** (the write conventions) · **scaffold-ledger** (`scaffold-record.py` — captures the *approach* that passed, promote-on-beat) · **precompact-handoff** (7-field handoff + monotonic ratchet + stable-files list).
+**memgraph** (FTS + link graph over markdown memory) · **`recall` skill** (1-3 lookups, the front end to memgraph) · recall-inject hook (auto-surfaces 1-3 records/turn) · **mulch** (per-repo decisions/conventions/failures; `ml prime` / `ml sync`) · **MEMORY_STANDARD.md** (the write conventions) · **scaffold-ledger** (`scaffold-record.py` — captures the *approach* that passed; now fires automatically from `check_all.sh` on a green run, but only when `SCAFFOLD_CATEGORY` + `SCAFFOLD_APPROACH` are exported — without them nothing is recorded) · **precompact-handoff** (7-field handoff + monotonic ratchet + stable-files list).
 **These are ONE loop:** `prime -> recall -> decide -> record -> handoff -> recall` (`ml prime`; `ml record` syntax lives in `compact-prep`). Anti-drift and memory are the same system viewed from two ends — memory is what makes step 0 cheap.
+`tools/git-sync.sh` — the step-7 push itself: commit tracked edits, integrate, push, never force/reset; untracked files and conflicts are a hard STOP, it refuses rather than guesses.
 **Procedure steps 1 and 7.**
 
 ### 3. UNDERSTAND-BEFORE-YOU-CODE *(the pre-code map)*
@@ -93,6 +96,7 @@ caveman/message discipline · **tool-search** (MCP schema deferral, `ENABLE_TOOL
 
 ### 6. SELF-IMPROVEMENT *(the harness improves itself, proposal-only)*
 **harness-coach** (weekly deterministic transcript miner -> ranked report tagged NEW/IMPROVE/ALREADY-COVERED) · **harness-scout** (repetition-mine + external research scout; daily via `run-harness-scout.sh` + launchd `StartInterval`, once-per-day guard, fires on wake) · **harness-audit** (per-repo drift report vs the real codebase) · harness-enforce (anti-decay re-injection) · harness-usage-telemetry · drift-replay (measure a candidate judge before building it) · scaffold-ledger (verify -> capture -> recall -> beat -> replace).
+`tools/claudemd-trim.py` (weekly PROPOSE-ONLY CLAUDE.md diet — deterministic stale-path check + model pass, classifies every line KEEP/TRIM/DELETE/STALE-WRONG, NEVER edits any repo's CLAUDE.md; its launchd job is staged in `tools/launchd/` but NOT loaded yet, pending a Full Disk Access grant, so today it only runs when you invoke it) · `tools/open-findings.sh` (on a successful propose-only auditor run, opens a Terminal with a Claude session seeded with the fresh report; kill-switch `OPEN_FINDINGS=0`).
 **All propose-only. None of them edit the tree.** Reports land in `~/Downloads/`.
 
 ---
