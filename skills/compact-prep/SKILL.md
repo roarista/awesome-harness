@@ -224,9 +224,15 @@ Goal: confirm baseline is the same as start of session. If new failures appeared
 
 ### 7. Push to origin (if upstream tracking + clean enough)
 
+Another terminal may be working in this repo. **Fetch and integrate BEFORE you push** — never push from a branch that is behind:
+
 ```bash
-git push origin <current-branch>
+bash "$(git rev-parse --show-toplevel)/tools/git-sync.sh" -m "<what you finished>"   # fetch -> rebase -> push, then CHECKS (after the push) that no remote commit was dropped
 ```
+
+It commits TRACKED modifications only; untracked files are a STOP unless you pass `--include-untracked` (that is how `.env` files get published). The post-push ancestry check is DETECTION, not prevention — it tells you loudly if remote history was rewritten, it cannot undo it.
+
+Never `push --force`/`--force-with-lease`, `reset --hard`, `checkout --ours/--theirs`, or `clean -fd` — they delete the other terminal's work. On a conflict, git-sync aborts and leaves your work in a local commit; resolve by hand. Bare `git push origin <branch>` is the fallback only when git-sync is unavailable.
 
 Skip if:
 - No upstream tracking (would require `-u` flag — ask the user first)

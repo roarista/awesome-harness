@@ -34,6 +34,11 @@ Skills load from disk at invoke time, so **this works in an already-running sess
                rows. Anything short of all three -> back to step 5, never step 7.
 7. PERSIST     `compact-prep` -> commit, mulch record, .now.md, STATE, push
                + `scaffold-record` if it passed (capture the approach)
+               CADENCE: commit after EACH completed unit, not at session end.
+               (The uncommitted-work nudge only sees Write/Edit/MultiEdit rows —
+               Bash-heredoc writes are invisible to it, so silence proves nothing.)
+               Another terminal may be working in this repo: integrate before
+               you push (`tools/git-sync.sh`) and NEVER force/reset.
 ```
 
 Steps 2-3 are one skill (`codebase-first`), 4-6 are one skill (`code-decompose`) — the procedure is 2 skills plus rituals, not 8 things to remember. **Escape hatch:** genuinely trivial one-line edits and docs-only wording skip 2-4, never 0/1/7 — but still spawn the edit with a one-line inline `REUSE:`/`REJECT:` verdict in the prompt; that is what satisfies understand-gate.
