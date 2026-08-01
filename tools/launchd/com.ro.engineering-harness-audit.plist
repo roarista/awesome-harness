@@ -1,31 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
-  REPURPOSED dead slot. This label has exited 1 every Monday since 2026-06-24.
-  Root cause, read out of ~/engineering-harness/reports/launchd.err.log (NOT the
-  suspected `timeout: command not found` and NOT `claude: Not logged in` — neither
-  string appears anywhere in that log):
+  REPURPOSED dead slot: this label now runs the weekly CLAUDE.md trimmer.
+
+  History: it exited 1 every Monday since 2026-06-24 with
 
       PermissionError: [Errno 1] Operation not permitted:
         '/Users/rodrigoarista/Downloads/NOTION_WORKFLOW_MINING_2026-06-16.md'
 
-  i.e. macOS TCC denied the job access to ~/Downloads. Note the frames in that same
-  traceback: they run under
-  /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9
-  — that IS /usr/bin/python3. So the denied process was itself /usr/bin/python3, and
-  Full Disk Access for /usr/bin/python3 is REQUIRED before this job can read
-  ~/Downloads/<repo>/CLAUDE.md. Grant it first (step 0 of INSTALL-claudemd-trim.md);
-  switching the Program alone does NOT fix the denial.
+  i.e. macOS TCC denied the job access to ~/Downloads. The traceback frames ran under
+  /Library/Developer/CommandLineTools/.../python3.9 — that IS /usr/bin/python3, so the
+  denied process was /usr/bin/python3 itself.
 
-  Fixes applied here:
-    1. Program is /usr/bin/python3 directly (no bash wrapper) — but see the TCC note
-       above: this binary needs the manual Full Disk Access grant.
-    2. No `timeout(1)`: claudemd-trim enforces its own subprocess timeouts in Python.
-    3. No dependency on the interactively-authenticated `claude` CLI: the model stage
+  SUPERSEDED: the old instruction "grant Full Disk Access to /usr/bin/python3 first"
+  is no longer the fix and is not achievable — /usr/bin is hidden in the Finder picker
+  used by System Settings, so that binary cannot be added to Full Disk Access at all.
+
+  CURRENT DESIGN: the job BORROWS Terminal.app's existing TCC grant. launchd now runs
+  the run-claudemd-trim.sh shim (canonical copy in this repo at
+  tools/launchd/run-claudemd-trim.sh, INSTALLED to ~/.claude/tools/run-claudemd-trim.sh
+  because launchd cannot even READ a script that lives under ~/Downloads — doing so
+  fails with `/bin/bash: ...: Operation not permitted`, exit 126). The shim touches no
+  protected path itself; it uses
+  osascript to ask Terminal.app to run /usr/bin/python3 ~/.claude/tools/claudemd-trim.py.
+  The real work executes inside Terminal, under Terminal's already-granted access to
+  ~/Downloads. Side benefit: the weekly run happens in a visible window.
+
+  Other properties preserved:
+    1. No `timeout(1)`: claudemd-trim enforces its own subprocess timeouts in Python.
+    2. No dependency on the interactively-authenticated `claude` CLI: the model stage
        shells out to `codex exec` via an ABSOLUTE path baked into the script
        (~/.npm-global/bin/codex), because launchd's PATH does not include it.
-    4. EnvironmentVariables/PATH mirrors the working harness-coach plist.
-  Runs Monday 09:00 (the original slot), one hour after nothing else.
+    3. EnvironmentVariables/PATH mirrors the working harness-coach plist.
+  Runs Monday 09:00 (the original slot).
 -->
 <plist version="1.0">
 <dict>
@@ -33,8 +40,8 @@
     <string>com.ro.engineering-harness-audit</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/usr/bin/python3</string>
-        <string>/Users/rodrigoarista/.claude/tools/claudemd-trim.py</string>
+        <string>/bin/bash</string>
+        <string>/Users/rodrigoarista/.claude/tools/run-claudemd-trim.sh</string>
     </array>
     <key>EnvironmentVariables</key>
     <dict>

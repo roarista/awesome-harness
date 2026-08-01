@@ -13,23 +13,32 @@
 # you pass --include-untracked — blind `add -A` has published .env files and
 # half-written sources before.
 #
+# Every commit is stamped with a "Terminal: <id>" trailer so you can tell WHICH of the
+# parallel terminals made it. Before committing/pushing, a READ-ONLY survey reports the
+# other remote branches (AHEAD / RECENT / STALE) so nobody's work dies unnoticed.
+#
 # Usage: git-sync.sh [--dry-run] [--include-untracked] [-m "message"] [-C <repo>]
+#                    [--terminal <id>]
 # ponytail: plain git porcelain, no deps, no daemon, no wrapper CLI. --dry-run is the
 # SAME code path with mutations stubbed out, not a hand-maintained parallel script.
 set -uo pipefail
 
-DRY=0; MSG=""; REPO="."; INC_UNTRACKED=0
+DRY=0; MSG=""; REPO="."; INC_UNTRACKED=0; TERM_ID=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --dry-run) DRY=1 ;;
     --include-untracked) INC_UNTRACKED=1 ;;
     -m|--message) MSG="${2:-}"; shift ;;
     -C) REPO="${2:-.}"; shift ;;
-    -h|--help) sed -n '2,18p' "$0"; exit 0 ;;
+    --terminal) TERM_ID="${2:-}"; shift ;;
+    -h|--help) sed -n '2,23p' "$0"; exit 0 ;;
     *) echo "git-sync: unknown arg: $1" >&2; exit 2 ;;
   esac
   shift
 done
+
+# WHICH terminal is this? explicit flag > $HARNESS_TERMINAL > tty basename + shell PID > host-PID.
+TERM_ID="${TERM_ID:-${HARNESS_TERMINAL:-}}"; _t="$(tty 2>/dev/null || true)"; case "$_t" in /dev/*) TERM_ID="${TERM_ID:-$(basename "$_t")-$$}" ;; *) TERM_ID="${TERM_ID:-$(hostname -s 2>/dev/null || echo host)-$$}" ;; esac
 
 die() { echo "git-sync: STOP — $*" >&2; exit 1; }
 g()   { git -C "$REPO" "$@"; }                      # real git (reads are always real)
@@ -70,7 +79,72 @@ RBRANCH="${UP#"$REMOTE"/}"                          # remote-side branch; may di
 run fetch "$REMOTE" "$RBRANCH" || die "git fetch $REMOTE $RBRANCH failed (bad ref, network, or auth). Nothing was changed."
 PRE_REMOTE="$(g rev-parse "$UP" 2>/dev/null || echo "")"
 PRE_REMOTE_COUNT="$(g rev-list --count "$UP" 2>/dev/null || echo 0)"
-echo "git-sync: branch=$BRANCH upstream=$UP remote_branch=$RBRANCH remote_head=${PRE_REMOTE:0:12} ($PRE_REMOTE_COUNT commits)"
+echo "git-sync: branch=$BRANCH upstream=$UP remote_branch=$RBRANCH remote_head=${PRE_REMOTE:0:12} ($PRE_REMOTE_COUNT commits) terminal=$TERM_ID"
+
+# --- 1b. survey the OTHER remote branches (READ-ONLY report, never blocks) -----
+# Parallel terminals leave branches behind. Do not commit/push blindly on top of them:
+# anything AHEAD of us holds work that would be lost if ignored; anything with nothing
+# we lack whose last commit is older than GIT_BRANCH_STALE_DAYS is left to die. This
+# block NEVER merges, deletes, blocks, or changes the exit code.
+STALE_DAYS="${GIT_BRANCH_STALE_DAYS:-3}"
+# --dry-run must NOT mutate: 'fetch --all --prune' both fetches and DELETES
+# remote-tracking refs. In dry-run we survey whatever refs already exist.
+if [ "$DRY" = 1 ]; then
+  echo "DRY-RUN: would run: git fetch --all --prune (surveying the refs already present)"
+else
+  g fetch --all --prune >/dev/null 2>&1 || echo "git-sync: (survey) 'git fetch --all --prune' failed — survey may be incomplete" >&2
+fi
+SURVEY_NOW="$(date +%s)"
+# Exclude OURSELVES by EXACT field match. A grep pattern would treat '.' (and every
+# other BRE metacharacter) in a branch name as a wildcard and silently drop innocent
+# branches from the survey — the exact failure this survey exists to prevent.
+SURVEY_ALL="$(g for-each-ref --sort=-committerdate \
+  --format='%(refname:short)|%(committerdate:unix)|%(committerdate:short)|%(authorname)' \
+  refs/remotes 2>/dev/null | awk -F'|' -v a="$REMOTE" -v b="$UP" '$1!=a && $1!=b' || true)"
+SURVEY_TOTAL=0
+[ -n "$SURVEY_ALL" ] && SURVEY_TOTAL="$(printf '%s\n' "$SURVEY_ALL" | wc -l | tr -d ' ')"
+echo "git-sync: branch survey (read-only) — $SURVEY_TOTAL other remote branch(es); stale = nothing we lack AND older than ${STALE_DAYS}d"
+SURVEY_AHEAD=""
+SURVEY_CAP=20
+SURVEY_SHOWN=0
+SURVEY_OMITTED=0
+# Classify EVERY branch. The cap applies only to PRINTED RECENT/STALE lines — an AHEAD
+# branch is always printed, or work outside the cap would die silently.
+if [ "$SURVEY_TOTAL" -gt 0 ]; then
+  while IFS='|' read -r _ref _ts _when _who; do
+    [ -n "$_ref" ] || continue
+    _counts="$(g rev-list --left-right --count "HEAD...$_ref" 2>/dev/null || true)"
+    _ours="$(printf '%s' "$_counts" | awk '{print ($1==""?0:$1)}')"
+    _theirs="$(printf '%s' "$_counts" | awk '{print ($2==""?0:$2)}')"
+    _age=$(( (SURVEY_NOW - _ts) / 86400 ))
+    if [ "${_theirs:-0}" -gt 0 ]; then
+      _class="AHEAD "; _note="has $_theirs commit(s) we do NOT have — integrate before it is lost"
+      SURVEY_AHEAD="$SURVEY_AHEAD$_ref"$'\n'
+    elif [ "$_age" -gt "$STALE_DAYS" ]; then
+      _class="STALE "; _note="ignore, let it die"
+    else
+      _class="RECENT"; _note="nothing we lack, but recent — keep an eye on it"
+    fi
+    if [ "$_class" = "AHEAD " ] || [ "$SURVEY_SHOWN" -lt "$SURVEY_CAP" ]; then
+      [ "$_class" = "AHEAD " ] || SURVEY_SHOWN=$(( SURVEY_SHOWN + 1 ))
+      printf 'git-sync:   %s %s  ahead=%s behind=%s  age=%sd  last=%s by %s  [%s]\n' \
+        "$_class" "$_ref" "${_theirs:-0}" "${_ours:-0}" "$_age" "$_when" "$_who" "$_note"
+    else
+      SURVEY_OMITTED=$(( SURVEY_OMITTED + 1 ))
+    fi
+  done <<< "$(printf '%s\n' "$SURVEY_ALL")"
+  if [ "$SURVEY_OMITTED" -gt 0 ]; then
+    echo "git-sync:   ... $SURVEY_OMITTED older branch(es) omitted (showing the $SURVEY_CAP most recently committed; every AHEAD branch is always shown)"
+  fi
+fi
+if [ -n "$SURVEY_AHEAD" ]; then
+  echo "git-sync: !! ATTENTION — these branches carry commits you do not have:" >&2
+  printf '%s' "$SURVEY_AHEAD" | sed '/^$/d;s/^/git-sync:      /' >&2
+  printf '%s' "$SURVEY_AHEAD" | sed '/^$/d' | while read -r _b; do
+    echo "git-sync:      inspect (read-only): git log $_b ^HEAD --oneline" >&2
+  done
+  echo "git-sync: (not blocking — decide by hand whether that work must be integrated)" >&2
+fi
 
 # --- 2. commit local work (only ever adds a commit) ---------------------------
 UNTRACKED="$(g ls-files --others --exclude-standard)"
@@ -82,6 +156,10 @@ fi
 TRACKED_DIRTY="$(g status --porcelain --untracked-files=no)"
 if [ -n "$TRACKED_DIRTY" ] || { [ "$INC_UNTRACKED" = 1 ] && [ -n "$UNTRACKED" ]; }; then
   [ -n "$MSG" ] || MSG="sync: work in progress from $(hostname -s 2>/dev/null || echo terminal) $(date +%Y-%m-%dT%H:%M:%S)"
+  # Stamp WHICH terminal made this commit — auto-generated and -m messages alike.
+  case "$MSG" in *"Terminal: $TERM_ID"*) ;; *) MSG="$MSG
+
+Terminal: $TERM_ID" ;; esac
   if [ "$INC_UNTRACKED" = 1 ]; then
     run add -A || die "git add failed — nothing committed, nothing pushed."
   else
