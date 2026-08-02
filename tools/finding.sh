@@ -9,9 +9,25 @@ set -euo pipefail
 cd "$(git rev-parse --show-toplevel 2>/dev/null || echo .)"
 D=.findings
 
+# a session must be a single safe path component: no empties, no "/", no ".."
+sess_ok() {
+  local s="$1"
+  [ -n "${s//[[:space:]]/}" ] || return 1
+  case "$s" in */*|*..*) return 1 ;; esac
+  return 0
+}
+
 sess() {
-  [ -n "${HARNESS_SESSION:-}" ] && { echo "$HARNESS_SESSION"; return; }
-  [ -s "$D/.current" ] && { head -1 "$D/.current"; return; }
+  if [ -n "${HARNESS_SESSION:-}" ]; then
+    sess_ok "$HARNESS_SESSION" || {
+      echo "finding.sh: invalid HARNESS_SESSION '$HARNESS_SESSION' (no empty, '/', or '..')" >&2; exit 2; }
+    echo "$HARNESS_SESSION"; return
+  fi
+  if [ -s "$D/.current" ]; then
+    local c; c="$(head -1 "$D/.current")"
+    # a bad .current is ignored and recomputed below (self-healing)
+    if sess_ok "$c"; then echo "$c"; return; fi
+  fi
   # same tty+PID derivation as tools/git-sync.sh:40-41
   local t; t="$(tty 2>/dev/null || true)"
   case "$t" in /dev/*) T="$(basename "$t")-$$" ;; *) T="$(hostname -s 2>/dev/null || echo host)-$$" ;; esac
@@ -22,6 +38,10 @@ sess() {
 
 case "${1:-}" in
 record)
+  # guard FIRST: with a tty on stdin `cat >` would block forever and leave an empty dump
+  if [ -t 0 ]; then
+    echo "finding.sh: record reads the dump from stdin; pipe it in" >&2; exit 2
+  fi
   S="$(sess)"; shift; TITLE="${*:-untitled}"
   mkdir -p "$D/$S"; ID="$(date +%H%M%S)-$$"
   cat > "$D/$S/$ID.md"
@@ -54,17 +74,23 @@ get)
   cat "${matches[0]}" ;;
 list)
   S="${2:-$(sess)}"
-  IDX="$D/$S/index.jsonl" python3 -c '
-import json, os, sys
-p = os.environ["IDX"]
-if not os.path.exists(p):
-    sys.exit(0)
-for line in open(p, encoding="utf-8"):
-    line = line.strip()
-    if not line: continue
-    r = json.loads(line)
-    t = " ".join(str(r.get("title","")).split())
-    print("%s · %s · %s · %s lines" % (r.get("id"), r.get("ts"), t, r.get("lines")))
+  SDIR="$D/$S" IDX="$D/$S/index.jsonl" python3 -c '
+import glob, json, os
+p, sdir = os.environ["IDX"], os.environ["SDIR"]
+seen = set()
+if os.path.exists(p):
+    for line in open(p, encoding="utf-8"):
+        line = line.strip()
+        if not line: continue
+        r = json.loads(line)
+        seen.add(r.get("id"))
+        t = " ".join(str(r.get("title","")).split())
+        print("%s · %s · %s · %s lines" % (r.get("id"), r.get("ts"), t, r.get("lines")))
+# a dump with no index line means UNKNOWN (crash before record), never "nothing happened"
+for f in sorted(glob.glob(os.path.join(sdir, "*.md"))):
+    fid = os.path.basename(f)[:-3]
+    if fid not in seen:
+        print("%s · UNINDEXED · %s" % (fid, f))
 ' ;;
 search)
   shift; [ "$#" -gt 0 ] || { sed -n '2,7p' "$0"; exit 2; }
