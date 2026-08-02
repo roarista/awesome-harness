@@ -15,22 +15,11 @@ REMINDER = (
 
 
 def main():
-    payload = {}
     try:
-        raw = sys.stdin.read()  # matcher already scopes to Task/Agent; we only need session_id
-        if raw.strip():
-            import json
-            payload = json.loads(raw) or {}
+        sys.stdin.read()  # drain; content irrelevant, matcher already scopes to Task/Agent
     except Exception:
         pass
     # BEHAVIOR CHANGE 2026-07-12: hidden model-only inject, not raw stdout.
-    # CONTEXT DIET 2026-08-02 (audit 13): this fired 186x in 5 sessions at ~85
-    # tok = 15.7 K tokens of byte-identical text, all of it re-sent on every
-    # later API call, with 35.7% measured caveman compliance. The reminder is
-    # static, so saying it 186 times cannot beat saying it once. Once per
-    # session now; silence afterwards costs 0 tokens.
-    if not _hookout.once("post-agent", _hookout.sid_of(payload)):
-        sys.exit(0)
     _hookout.inject("PostToolUse", REMINDER)
     sys.exit(0)
 
