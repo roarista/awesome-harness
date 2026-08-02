@@ -7,6 +7,108 @@ The 2026-07-27 session that did this was deleted mid-flight; context recovered f
 
 ## Active Resume Point
 
+**Last updated:** 2026-08-02 (night) — AUDIT WAVE 2 + FIRST REAL CUT
+**Status:** SHIPPED + pushed `b8daf8a`. Four more audits (10-13) in `docs/audits/2026-08-02/`,
+plus the FIRST measured change: hooks are now silent-by-default.
+
+**THE REFRAME — I aimed at the wrong target and the data corrected me.**
+Hooks are 14.70% of billed main-session INPUT but **~5.5% of DOLLARS**, because 93.1% of
+input is `cache_read` at 0.1x. Meanwhile **the delegation fleet is 1,798M tokens vs 1,664M
+for its parents = 51.9% of ALL tokens, ~55% of cost-weighted spend**, entirely outside the
+context window audit 04 measured. ~41 subagents/session at ~1.42M each. **One avoided
+subagent launch is worth ~22% of the entire hook-diet prize.** Cutting prompt text is
+cosmetic next to cutting a launch.
+
+**THE KILLER NULL:** evidenced-completion rate is **31% with the harness vs 33% without** —
+identical. The thing the harness exists to fix, it demonstrably did not move. Ro's thesis is
+**confirmed on cost** (+23 ktok standing floor before task difficulty can act; +42% tok/turn
+with the skill) and **NOT established on efficiency** (cheaper per durable edit 3.33 vs
+3.97M; interrupts LOWER at 1.6 vs 2.7 per 100 turns; first productive action at turn 1 in
+29/29). Only component with positive evidence: **auditor subagents** (12% of fleet, 39/55
+rejects, 36 invented-API catches).
+
+**BUILT AND MEASURED (13-context-diet):** feasibility answer to "can hooks be taken out of
+context" is **partly — but the useful part fully**. Hook text cannot be invisible-but-present;
+anything the model reads becomes a permanent attachment re-sent every call. BUT **a hook that
+exits 0 printing nothing costs literally zero** (proved: `PostToolUse:Agent`, 186 fires, 0
+bytes). So the fix is silence-by-default, not hiding.
+- `_hookout.once()` — fail-open session-scoped sentinel, the idempotency primitive
+- `coding-routing-guard` (was **17,160 tok/session**) — silent unless a spawn ACTUALLY writes
+  code AND is misrouted; its 421-token policy was already verbatim in `~/.claude/CLAUDE.md`,
+  so 192 of its fires were pure duplication
+- `post-agent-guard` (3,140) — once/session, was 186x
+- `caveman-discipline` — condensed 5-line form on compact/resume (1756 -> 459 bytes)
+- NEW `skill-reinject-guard.py` — 85 tokens instead of re-loading the 13,300-token skill body
+**Measured 30.2 -> 8.5 ktok/session (-71.8%).** Backups: `hooks/.bak-contextdiet/`,
+`~/.claude/settings.json.bak-contextdiet-20260802`. Smoke-tested live: a non-code spawn now
+produces **0 bytes**. Untouchable: `skill_listing` (14.5K) and compact summaries (15.6K) are
+Claude Code internals — the only levers are fewer skills and compacting less (all 54 triggers
+were `manual`).
+
+**TWO CORRECTIONS TO MY OWN EARLIER REPORTING — tell Ro, do not bury:**
+1. I said "zero blocking-hook fires, guards are unproven." **Corpus artifact.**
+   `irreversible-pause` fired and blocked a real destructive delete twice during this wave.
+2. `irreversible-pause` is **mention-matching, not command-matching** — it blocked a plain
+   `cat >>` to a notes file merely for containing the phrase. Same inversion bug already
+   listed under CARRIED. Real false-positive cost.
+
+**SEARCH — Ro's actual question, finally answered (10-search-intent).** Not mechanics:
+PURPOSE and SUCCESS, over a census of **1,456 episodes**.
+| intent | n | success | wasted |
+| name-recovery-hedge | 303 (20.8%) | 46.2% | 1.31M |
+| enumerate-occurrences | 234 (16.1%) | **41.9%** | 1.20M |
+| check-existence | 196 (13.5%) | 51.5% | 0.79M |
+| history/prior-art | 229 | 59.4% | 0.41M |
+| targeted-slice-read | 162 | **69.8%** | 0.19M |
+| verify-landed | 35 | **77.1%** | - |
+The expensive-AND-failing three are **half of all episodes and ~46% of all search spend
+(3.3M tokens wasted)**. `blast-radius` is asked only **2.3%** of the time — that is an
+AGENDA bug, not a tool bug: we don't ask what breaks.
+**Two real bugs found:** 137 searches (3.1%) died because zsh glob-expanded an unquoted
+`--include=*.py` so grep never ran — **49 were never retried**; and 634 (14.5%) had a
+silently empty sub-section inside an `echo ===` compound bundle. 33.6% of episodes flail
+(3+ searches), 142 hit 8+.
+**Routing table:** name uncertain -> dump the graph label/id vocab and copy the literal token,
+never guess-grep alternations · "all places" -> `semgrep -e` with a COUNT, never `| head` ·
+what-breaks -> `graphify affected "<node_id>" --depth 1` (a LABEL instead of the id returns
+`No affected nodes found` = silent false negative, verified live) · prove absence -> a zero
+PLUS the printed scope and file count · slice-read / verify-landed / git history -> keep grep,
+it wins · diagnose-failure -> nothing we have, stop at 3.
+**Three invariants:** quote `--include`; ONE search per Bash call; 3-search circuit breaker.
+
+**THE PROCEDURE DOES NOT RUN (12) — Ro's suspicion was right.** n=22 substantive coding
+sessions, 615 source writes, 301 commits.
+- **`codex:codex-rescue`: 84 transcripts, ZERO source writes, ever.** It is a forwarder. Of
+  102 forwards: 15% substantive, 17% hard-failed, **48% (49) returned a receipt that never
+  resolved** -> **27 units evaporated**, 19 silently redone by a Claude agent, 3 committed
+  anyway. No fabricated "done" claims found, which is the one mercy.
+- **"Main NEVER writes feature code": violated in 73% of sessions.** Main wrote 90/763
+  (11.8%), and **55 of those 90 (61%) via Bash**, invisible to `main-edit-guard`.
+- check-all: **32%** of sessions, **18%** of commits (biggest gap). `git-sync.sh`: **9%** of
+  commits. push 41%. **32% of sessions end with uncommitted source**, 6 never committed.
+- What DOES work: recall 91%, graphify 95%, delegate-at-all 95%, auditor 77%, orient 77%,
+  decompose 68%. repowise step: **5% -> CUT**.
+- **Decay measured:** second half of a session = +66% source writes with **-50% audits and
+  -66% decompose spawns**. Post-compaction sessions score HIGHEST (9,9,8) — fresh context
+  restores compliance.
+
+**NEXT SESSION = BUILD, NOT AUDIT. Ranked by the ROI data, not by loudness:**
+1. **Subagent necessity ledger** — the fleet is 51.9% of spend and ~75% of returns are
+   dropped. Biggest single lever by far.
+2. **8-line subagent return contract** (verdict/headline/evidence/next/risks/finding-id).
+3. **ASK LEDGER hook** — Stop hook blocks the final summary until every enumerated ask is
+   DONE or DEFERRED (kills the 36 "declared done, sub-ask untouched").
+4. **RESTATE-AND-HOLD gate** — GOAL/NOT-GOAL/DONE_WHEN/PROOF before the first write.
+5. **Search routing rules + the 3 invariants** into the skill.
+6. **CUT:** `codex:codex-rescue` as default builder · the repowise tier in CLAUDE.md · the
+   unenforceable "main NEVER writes" claim · 280 never-invoked MCP tools (~3.09%) ·
+   `manifest-guard` -> `systemMessage` · `phantom-edit-guard`.
+7. **FIX:** default-on check-all gate in Vividlist/virality/intrn; `irreversible-pause`
+   mention-matching inversion.
+8. **LAST:** restart the repowise MCP (kills this session — Ro's explicit ordering).
+
+**Prior status (superseded):**
+
 **Last updated:** 2026-08-02 (late) — SELF-AUDIT WAVE
 **Status:** SHIPPED + pushed `6191ef1`. Nine forensic audits over the REAL corpus
 (2,033 sessions + 852 subagent transcripts, ~826 MB, 103,750 records, 0 parse errors).
