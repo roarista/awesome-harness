@@ -7,6 +7,83 @@ The 2026-07-27 session that did this was deleted mid-flight; context recovered f
 
 ## Active Resume Point
 
+**Last updated:** 2026-08-02 (late) — SELF-AUDIT WAVE
+**Status:** SHIPPED + pushed `6191ef1`. Nine forensic audits over the REAL corpus
+(2,033 sessions + 852 subagent transcripts, ~826 MB, 103,750 records, 0 parse errors).
+Reports in `docs/audits/2026-08-02/`. **Nothing has been BUILT off these findings yet** —
+that is the next session's whole job.
+
+**THE DIAGNOSIS (one line):** the harness optimizes the ROUTE (which model, which skill,
+which hook) because the route is the only checkable thing in a prompt. Ro names a
+mechanism in 55% of asks but a finish condition in only **6.0%**. So agents declare
+victory on a route they followed instead of an outcome they reached. **DONE and PROOF
+are what's missing.**
+
+**THE THREE INTERVENTIONS THE DATA SUPPORTS (build these, in order):**
+1. **ASK LEDGER** — a hook enumerates every ask in a Ro message; the Stop hook blocks the
+   final summary until each is DONE or explicitly DEFERRED. Targets the largest drift
+   category: 36 cases of "declared done with a named sub-ask untouched".
+2. **RESTATE-AND-HOLD gate** — GOAL / NOT-GOAL / DONE_WHEN / PROOF / TARGET FILES stated
+   before the first write. `NOT-GOAL` is load-bearing (Ro: "if I don't mention something
+   it's because I probably just think it's good"). Targets scope-widened (24) +
+   solved-nearby-problem (24) + over-delivered (9).
+3. **8-line subagent return contract** (verdict / headline / evidence / next / risks /
+   `finding.sh` id). Median return today is 3,448 chars and 64.3% blow the 15-line
+   contract; the cap cuts median parent input ~85% and p90 ~96%.
+
+**MEASURED FACTS — do not re-derive, cite `docs/audits/2026-08-02/`:**
+- MEMORY (09): recall precision **11.3%** (88.7% noise, ~177k wasted tokens); **74.1%
+  re-derivation** even when relevant; **25%** of memory records name files that no longer
+  exist; end-of-session write compliance **16%**; top re-derived fact repeated 1,584 sessions.
+- BUILDERS (08): all-5-field specs **5/72 (6.9%)**; REUSE missing **64/72 (88.9%)**;
+  completion claimed with no captured evidence **48/72 (66.7%)**; audits REJECT **70.9%**
+  of the actionable subset; only 23.6% of prompts carry a `file:line` anchor; 36
+  invented-API findings.
+- HOOKS (07): **ZERO recorded exit-2 fires** in the attributable corpus → workaround rate
+  is UNMEASURABLE and no guard has demonstrated effect. caveman compliance **35.7%**
+  (144/403). Verdict: CUT phantom-edit-guard, caveman-discipline, coding-routing-guard
+  (186 fires), post-agent-guard (180), manifest-guard. DEMOTE builder-fence,
+  understand-gate, northstar-inject. **PROMOTE: none** — promotion would be evidence-free.
+- DUMPS (03): n=852; median return 3,448 chars / 24 lines, p90 12,162 / 98 lines, max
+  48,703; **64.3% exceed the 15-line contract**; parent reuses ~24% of vocabulary (UPPER
+  BOUND) and **2.49% verbatim** → ~75% dropped on arrival; median session absorbs
+  **31,315 tok**, p90 **119,299**, max **203,611**.
+- CONTEXT (04): hooks cost **61.4 ktok/session** (15.7% raw); **~48.4 ktok/session is
+  byte-identical re-injected text** (awesomeharness skill body 3.0x, compact summary 2.5x,
+  skill_listing 5.5x; worst session 186 K); mean amplification **390x**; turn-1 floor
+  **57.5 ktok** median; 50% of a 200K window by turn 3, 80% by turn 6-7; 20/22 sessions
+  compacted, all `trigger: manual`. `PreToolUse:Agent` fires 48x/session with an identical
+  421-token policy. Cuts ranked: per-project MCP/tool-schema pruning (~25-40 ktok),
+  idempotent skill/listing injection (~48 ktok), trim PreToolUse:Agent + rate-limit
+  hook_additional_context to once/turn (~35-45 ktok).
+- SEARCH (01): **4,918 Bash `rg`/`grep`/`find` vs ONE native Grep, zero Glob, zero Task**;
+  Read 2,138 calls of which **72.31% are FULL-file**; 380 extra re-reads = **784,736
+  wasted tokens**; orientation tax median **9** tool calls before the first Edit (p90 27);
+  229 search-flailing episodes.
+- ADOPTION (06): graphify **7.3%** of available sessions with **82.1% immediate fallback**
+  to grep/Read; semgrep 0.3%; recall 2 calls total; finding.sh 1 session; repowise CLI
+  **49% failure rate** and never left awesome-harness; **280 of 304 exposed MCP tools
+  never invoked** (~28-56 ktok standing cost).
+- WRONG ANSWERS (02): 580 lexical hits → **17 validated incidents**. Top mode: **claimed
+  ABSENT when PRESENT (5/17)**. Real cases: "cero retrieval bajo `src/originated/`" (false);
+  "el S2 no está en el camino" (it was renamed `src/s2` → `src/strategy_folded`); 9 failing
+  tests dismissed as "las 9 de siempre" that were never diagnosed (rotten dates); 18 of 19
+  blocking rules pointed at fields that exist in NO model. Honest limit: this counts only
+  DOCUMENTED self-corrections, so it is a lower bound.
+- GOALS (05): 501 genuine Ro messages, 2026-07-11 → 08-02. Repeated expectations (repetition
+  = harness failure rate): verify-before-claiming **149**, delegate-to-subagents **102**,
+  scope fences **75**, evidence-not-inference **74**, cost discipline **65**. Drift: declared
+  done w/ named sub-ask untouched **36**, solved a nearby problem **24**, scope widened **24**,
+  process abandoned **14**, over-delivered **9**. **~60 redirects = 1 in 8 Ro messages exists
+  only to stop a confidently-wrong trajectory.**
+
+**PROCESS FINDING:** the `codex:codex-rescue` subagent is a FORWARDER — it hands off to a
+background Codex runtime and returns immediately, so it never reports results back. Two of
+the nine audits also died under it (read-only sandbox blocked their temp files) and were
+re-run as `general-purpose`. Do not use codex-rescue when you need the result in-session.
+
+**Prior status (superseded):**
+
 **Last updated:** 2026-08-02
 **Status:** SHIPPED + pushed `a7d082d`. Ro redirected: do NOT cut tools, COMBINE them, and
 first check whether the bad scores were OUR misuse. Three agents ran; the redirect was right.
