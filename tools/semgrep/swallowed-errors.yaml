@@ -1,0 +1,52 @@
+# swallowed-errors.yaml — "every handler missing an error branch".
+# The class that a ranked retriever silently under-returns: you need ALL of them,
+# ordered by file, not the top-k most semantically similar.
+rules:
+  - id: py-except-swallows
+    languages: [python]
+    severity: WARNING
+    message: "Exception swallowed with no branch: the failure becomes invisible. Log, re-raise, or record."
+    patterns:
+      - pattern-either:
+          - pattern: |
+              try:
+                  ...
+              except ...:
+                  pass
+          - pattern: |
+              try:
+                  ...
+              except:
+                  ...
+      - pattern-not: |
+          try:
+              ...
+          except $E:
+              ...
+              raise
+    paths:
+      exclude: ["node_modules/**"]
+
+  - id: py-subprocess-unchecked
+    languages: [python]
+    severity: WARNING
+    message: "subprocess.run without check= : a non-zero exit is silently ignored (the P5 'claimed a verification that could not have run' shape)."
+    patterns:
+      - pattern: subprocess.run(...)
+      - pattern-not: subprocess.run(..., check=$B, ...)
+      - pattern-not: subprocess.run(..., capture_output=True, ...)
+    paths:
+      exclude: ["node_modules/**"]
+
+  - id: sh-pipeline-no-pipefail
+    languages: [bash]
+    severity: WARNING
+    message: "Shell script without `set -euo pipefail`-style failure propagation is the shell form of a swallowed error."
+    patterns:
+      - pattern: $CMD | $CMD2
+      - pattern-not-inside: |
+          set -euo pipefail
+          ...
+    paths:
+      include: ["tools/**", "hooks/**"]
+      exclude: ["node_modules/**"]

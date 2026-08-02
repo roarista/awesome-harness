@@ -1,0 +1,24 @@
+# deny-sites.yaml — harness-specific. P3: "where can a tool call be blocked?" has 13
+# answers in awesome-harness, spread over hooks/, codex/hooks/, two languages and two
+# registration files. Ranked retrieval found 8/13 at best; this rule finds 13/13.
+# AST-awareness matters here: a COMMENTED-OUT sys.exit(2) must not count.
+rules:
+  - id: py-deny-site
+    languages: [python]
+    severity: INFO
+    message: "DENY site — this can block a tool call."
+    patterns:
+      - pattern-either:
+          - pattern: sys.exit(2)
+          - pattern: '{..., "permissionDecision": "deny", ...}'
+          - pattern: '{..., "decision": "block", ...}'
+    paths:
+      include: ["hooks/**", "codex/hooks/**", "**/hooks/**"]
+
+  - id: sh-deny-site
+    languages: [bash]
+    severity: INFO
+    message: "DENY site (shell) — exit 2 blocks the tool call."
+    pattern: exit 2
+    paths:
+      include: ["hooks/**", "codex/hooks/**", "**/hooks/**"]

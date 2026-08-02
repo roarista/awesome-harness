@@ -1,0 +1,26 @@
+# fragile-config.yaml — config that fails at runtime instead of at load time.
+# Justified by history: these repos read API keys / paths out of the environment in
+# ~11 modules of virality-pipeline. A bare os.environ["X"] raises KeyError deep inside
+# a pipeline run, hours in, instead of failing the preflight.
+rules:
+  - id: env-var-no-default
+    languages: [python]
+    severity: WARNING
+    message: "os.environ[\"...\"] with no default: raises KeyError at call time, not at startup. Use os.environ.get with an explicit check, or validate in a preflight."
+    patterns:
+      - pattern: os.environ[$K]
+      - pattern-not-inside: |
+          try:
+              ...
+          except ...:
+              ...
+    paths:
+      exclude: ["tests/**", "node_modules/**"]
+
+  - id: hardcoded-home-path
+    languages: [python]
+    severity: WARNING
+    message: "Hardcoded absolute path to a developer home directory — not portable, breaks in CI and in any other checkout."
+    pattern-regex: '"/Users/[a-z]+/'
+    paths:
+      exclude: ["tests/**", "node_modules/**"]

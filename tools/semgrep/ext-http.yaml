@@ -1,0 +1,28 @@
+# ext-http.yaml — the blast-radius enumeration: EVERY place that leaves the process
+# over the network. Used by chain c3-enumerate to answer "what breaks if the provider
+# API changes / what needs a timeout / what costs money per call".
+rules:
+  - id: external-http-call
+    languages: [python]
+    severity: INFO
+    message: "External HTTP call site."
+    pattern-either:
+      - pattern: requests.$M(...)
+      - pattern: httpx.$M(...)
+      - pattern: $C.request(...)
+      - pattern: urllib.request.urlopen(...)
+      - pattern: aiohttp.ClientSession(...)
+      - pattern: openai.$M(...)
+
+  - id: http-call-without-timeout
+    languages: [python]
+    severity: WARNING
+    message: "HTTP call with no timeout= : this can hang the pipeline forever."
+    patterns:
+      - pattern-either:
+          - pattern: requests.$M(...)
+          - pattern: httpx.$M(...)
+      - pattern-not: requests.$M(..., timeout=$T, ...)
+      - pattern-not: httpx.$M(..., timeout=$T, ...)
+    paths:
+      exclude: ["tests/**", "node_modules/**"]

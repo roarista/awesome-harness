@@ -1,0 +1,61 @@
+# reuse-retry.yaml — P2: "agent re-implements something the repo already has".
+# Ground truth: virality-pipeline contains 6 independent hand-rolled retry/backoff
+# loops plus 3 separately-named _retry_* helpers, while `tenacity>=9.0` sits declared
+# in pyproject.toml and imported zero times.
+# This is an ENUMERATION rule (severity INFO), not a lint. A hit is a REUSE candidate.
+rules:
+  - id: hand-rolled-retry-loop
+    languages: [python]
+    severity: INFO
+    message: "Hand-rolled retry loop (sleep inside a bounded loop). REUSE candidate — check for an existing helper before writing another."
+    patterns:
+      - pattern-either:
+          - pattern: |
+              for $I in range(...):
+                  ...
+                  time.sleep(...)
+          - pattern: |
+              for $I in range(...):
+                  ...
+                  await asyncio.sleep(...)
+          - pattern: |
+              while ...:
+                  ...
+                  time.sleep(...)
+                  ...
+    paths:
+      exclude: ["tests/**", "node_modules/**", "*_test.py", "test_*.py"]
+
+  - id: retry-helper-definition
+    languages: [python]
+    severity: INFO
+    message: "Named retry/backoff helper. If more than one exists in the repo, they are duplicates."
+    patterns:
+      - pattern-either:
+          - pattern: |
+              def $F(...):
+                  ...
+          - pattern: |
+              async def $F(...):
+                  ...
+      - metavariable-regex:
+          metavariable: $F
+          regex: "^_{0,2}(retry|with_retry|retrying|backoff|do_retry|retry_[a-z_]+|[a-z_]+_retry|[a-z_]+_with_retry|[a-z_]*backoff[a-z_]*)$"
+
+  - id: retry-decorator-use
+    languages: [python]
+    severity: INFO
+    message: "A retry decorator is in use here — this is the existing mechanism; reuse it."
+    pattern-either:
+      - pattern: |
+          @retry(...)
+          def $F(...):
+              ...
+      - pattern: |
+          @tenacity.retry(...)
+          def $F(...):
+              ...
+      - pattern: |
+          @backoff.on_exception(...)
+          def $F(...):
+              ...
