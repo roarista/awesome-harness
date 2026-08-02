@@ -16,6 +16,9 @@ hooks/manifest/
 # repowise per-repo code-intelligence index (caches + wiki.db — never publish)
 .repowise/
 
+# subagent ledger dumps (per-session, per-machine — never publish)
+.findings/
+
 # graphify generated code map (~1.5MB build artifact — never publish)
 graphify-out/
 

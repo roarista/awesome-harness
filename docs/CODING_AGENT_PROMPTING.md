@@ -154,8 +154,10 @@ subagent must carry this rule:
 > literal VERIFY output for the checks that matter · anything unresolved. Nothing else.
 
 Long detail — full diffs, full logs, per-case tables, reasoning, rejected alternatives — goes
-into a file under `.scratch/` and the report **names the path** instead of pasting it. The
-orchestrator reads the file only if it needs to. A 700-word report that could have been 12
+into the ledger — `<your dump> | tools/finding.sh record "<title>"` prints an id, and the report
+**names that id** (fetch it later with `tools/finding.sh get <id>`) instead of pasting it. If the
+ledger is unavailable, write the detail to a `.scratch/` file and name that path instead — either
+way the orchestrator fetches it only if it needs to. A 700-word report that could have been 12
 lines is a defect, same as a failing check.
 
 ---
