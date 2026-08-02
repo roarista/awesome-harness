@@ -16,6 +16,9 @@ hooks/manifest/
 # repowise per-repo code-intelligence index (caches + wiki.db — never publish)
 .repowise/
 
+# graphify generated code map (~1.5MB build artifact — never publish)
+graphify-out/
+
 # repowise per-repo scaffolding (absolute local paths — machine-local, never publish)
 .mcp.json
 .vscode/
