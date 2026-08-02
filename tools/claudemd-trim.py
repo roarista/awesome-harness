@@ -465,6 +465,16 @@ def _selftest() -> int:
     return 0 if ok else 1
 
 
+def _finding_count(report: Path) -> int:
+    """Actionable findings in a written report (TRIM+DELETE+STALE-WRONG). 0 if unreadable."""
+    try:
+        m = re.search(r"verdicts: KEEP \d+ . TRIM (\d+) . DELETE (\d+) . STALE-WRONG (\d+)",
+                      report.read_text(errors="replace"))
+        return sum(int(g) for g in m.groups()) if m else 0
+    except Exception:
+        return 0
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="propose-only CLAUDE.md trim audit")
     ap.add_argument("repos", nargs="*", help="repo paths (default: the 4 live repos + pilot)")
@@ -496,6 +506,10 @@ def main() -> None:
             subprocess.run(["osascript", "-e",
                             'display notification "%d CLAUDE.md trim proposals" '
                             'with title "claudemd-trim"' % len(written)], timeout=10)
+            # ONE interactive session, seeded with the report holding the most
+            # actionable findings (TRIM+DELETE+STALE-WRONG) — never 5 windows.
+            subprocess.run([str(Path(__file__).resolve().parent / "open-findings.sh"),
+                            str(max(written, key=_finding_count))], timeout=30)
         except Exception:
             pass
 

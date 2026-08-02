@@ -144,6 +144,22 @@ diff is a `git checkout` away, not surgery.
 
 ---
 
+## 5b. Report contract (protect the orchestrator's context)
+
+Every spawned agent's final message lands **verbatim** in the orchestrator's context window —
+it is context the orchestrator pays for, on every subsequent turn. So every prompt you send a
+subagent must carry this rule:
+
+> **Your final report is at most ~15 lines:** verdict/outcome · what changed (file list) ·
+> literal VERIFY output for the checks that matter · anything unresolved. Nothing else.
+
+Long detail — full diffs, full logs, per-case tables, reasoning, rejected alternatives — goes
+into a file under `.scratch/` and the report **names the path** instead of pasting it. The
+orchestrator reads the file only if it needs to. A 700-word report that could have been 12
+lines is a defect, same as a failing check.
+
+---
+
 ## 6. Ready-to-fill PROMPT TEMPLATE (paste per unit)
 
 ```
