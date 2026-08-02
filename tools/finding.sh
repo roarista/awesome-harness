@@ -13,14 +13,16 @@ D=.findings
 sess_ok() {
   local s="$1"
   [ -n "${s//[[:space:]]/}" ] || return 1
-  case "$s" in */*|*..*) return 1 ;; esac
+  [ "${#s}" -le 96 ] || return 1
+  # single path component already (no "/"), so ".." can only be the whole string
+  case "$s" in */*|.|..) return 1 ;; esac
   return 0
 }
 
 sess() {
   if [ -n "${HARNESS_SESSION:-}" ]; then
     sess_ok "$HARNESS_SESSION" || {
-      echo "finding.sh: invalid HARNESS_SESSION '$HARNESS_SESSION' (no empty, '/', or '..')" >&2; exit 2; }
+      echo "finding.sh: invalid HARNESS_SESSION '$HARNESS_SESSION' (no empty, '/', '..', or >96 chars)" >&2; exit 2; }
     echo "$HARNESS_SESSION"; return
   fi
   if [ -s "$D/.current" ]; then
@@ -45,6 +47,8 @@ record)
   S="$(sess)"; shift; TITLE="${*:-untitled}"
   mkdir -p "$D/$S"; ID="$(date +%H%M%S)-$$"
   cat > "$D/$S/$ID.md"
+  # the dump exists now — print the id before indexing, so a python3 failure can't lose it
+  echo "$ID"
   N=$(awk 'END{print NR}' < "$D/$S/$ID.md")
   ID="$ID" TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)" TITLE="$TITLE" TERM_ID="${S#????-??-??-}" \
   DUMP="$D/$S/$ID.md" LINES="$N" IDX="$D/$S/index.jsonl" python3 -c '
@@ -59,10 +63,10 @@ with open(os.environ["IDX"], "a", encoding="utf-8") as f:
     f.write(line)
     f.flush()
     fcntl.lockf(f, fcntl.LOCK_UN)
-'
-  echo "$ID" ;;
+' ;;
 get)
-  id="${2:?id}"
+  [ "$#" -ge 2 ] || { sed -n '2,7p' "$0"; exit 2; }
+  id="$2"
   case "$id" in */*|.|..) echo "finding.sh: no dump for id $id" >&2; exit 1 ;; esac
   matches=(); for f in "$D"/*/"$id".md; do [ -f "$f" ] && matches+=("$f"); done
   [ "${#matches[@]}" -gt 0 ] || { echo "finding.sh: no dump for id $id" >&2; exit 1; }
@@ -79,10 +83,15 @@ import glob, json, os
 p, sdir = os.environ["IDX"], os.environ["SDIR"]
 seen = set()
 if os.path.exists(p):
-    for line in open(p, encoding="utf-8"):
+    for n, line in enumerate(open(p, encoding="utf-8"), 1):
         line = line.strip()
         if not line: continue
-        r = json.loads(line)
+        # one bad byte must not hide every other finding (same guard as `search`)
+        try:
+            r = json.loads(line)
+            if not isinstance(r, dict): raise ValueError("not an object")
+        except Exception:
+            print("%s · MALFORMED" % n); continue
         seen.add(r.get("id"))
         t = " ".join(str(r.get("title","")).split())
         print("%s · %s · %s · %s lines" % (r.get("id"), r.get("ts"), t, r.get("lines")))
