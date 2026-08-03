@@ -27,6 +27,8 @@ Two directions, one discipline: evidence-cited, proposal-only, fit-filtered, nev
 5. **Hand back:** report path, headline drift count, single highest-value fix. Apply nothing.
 6. **Record (optional):** if a recurring drift pattern emerged, `ml record` it when idle.
 
+**Audit-cadence sweeps, not hot-path — run as part of an AUDIT pass, not per-task:** `REPO=<repo> tools/chains/c5-dead.sh [min-confidence]` (dead-code, safe-to-delete candidates) and `REPO=<repo> tools/chains/c6-vestigial.sh` (declared-but-never-used dependencies).
+
 **When NOT to run AUDIT:** mid-implementation of an unrelated task; a repo with no harness yet; as an auto-fixer.
 
 ## Mode B — SCOUT (outward: what to add)

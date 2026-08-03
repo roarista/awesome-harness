@@ -43,6 +43,7 @@ The hooks enforce a floor automatically. Most of the harness is **behavioral** �
                verifier green, and `check-all` shows no FAIL rows. Short of
                all three -> back to step 5, never step 7.
 7. PERSIST     `compact-prep` -> commit, mulch record, .now.md, STATE, push
+               Optional deeper gate before a risky ship: `REPO=$(pwd) tools/chains/c7-preship.sh [revspec]` — scores the change, re-runs committed predicates over only the touched files. Opt-in, not part of `check-all`'s automatic run.
                + `scaffold-record` if it passed. CADENCE = per unit: commit +
                push the moment a unit is built AND verified. Integrate before
                pushing, NEVER force/reset — use
@@ -122,6 +123,7 @@ harness-coach (weekly transcript miner) · **`harness-intel`** (Mode A drift rep
 2. Run `orient` Part A for task-relevant memory. Verify anything recalled against the live tree.
 3. Bootstrap this repo's `.findings/` (idempotent, safe outside git):
    `git rev-parse --is-inside-work-tree >/dev/null 2>&1 && { mkdir -p .findings; command grep -qxF '.findings/' .gitignore 2>/dev/null || echo '.findings/' >> .gitignore; }`
+   First boot in THIS repo (once per repo, not once per session): `REPO=$(pwd) tools/chains/c0-preflight.sh` — reports which chains are trustworthy here before you trust any of their verdicts.
 4. Report "harness up" as exactly these 7 lines, no more, no hook-name enumeration:
 ```
 NORTH STAR: …

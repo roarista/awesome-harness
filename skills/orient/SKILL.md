@@ -28,7 +28,7 @@ Owns the missing middle: `user goal -> front door/live state -> capability/reuse
 **Skip when:** genuinely trivial one-line edits; docs-only wording with no architecture claim; an already-known workflow. Even for a tightly-scoped urgent fix, still check callers/blast radius.
 
 ### Discovery ladder (stop at the first rung that FULLY satisfies the goal)
-1. **Need** — does current behavior already satisfy this?
+1. **Need** — does current behavior already satisfy this? Deterministic answer: `REPO=<repo> tools/chains/c2-prior-art.sh <concept> [name-regex]` — the three-leg codebase-first gate (structural/nominal/declared); never stop at leg 1. Feeds the REUSE/ADAPT/REJECT verdict below.
 2. **Front door** — which files define current truth (architecture, commands, active handoff/state, forbidden/retired paths)?
 3. **Map — graphify + repowise together, refresh first.** State the **search intent** before searching: `REPO=<repo> tools/retrieve.sh <intent> <query>` — intents `name enumerate exists blast slice verify history diagnose` (table + invariants: `tools/chains/README.md`). Then:
    - **repowise** (semantic/risk/history): `get_answer` (cite when `confidence: high`), `get_context(include=["callers","decisions","metrics"])`, `search_codebase`, `get_symbol`, `get_why`, `get_risk(targets[, changed_files])`.

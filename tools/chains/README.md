@@ -39,22 +39,20 @@ always `FULL: <path>`.
 
 ## All seven chains — honest reachability
 
-Two chains are wired into the router; the other five have no caller anywhere in the
-harness (hooks, skills, tools) and are invoked by hand only.
+Two chains are wired into the router (`tools/retrieve.sh`); the other five are each
+named, with their literal invocation, inside the skill that owns that moment —
+they are not in the router because they're not per-search intents, they're
+per-repo-boot / per-reuse-check / per-audit-pass / per-ship moments.
 
 | chain | purpose | reached via |
 |---|---|---|
-| `c0-preflight.sh` | reports which chains are trustworthy in the current repo | manual only |
+| `c0-preflight.sh` | reports which chains are trustworthy in the current repo | `awesomeharness` skill, step 3 (bootstrap) — once per repo, first boot |
 | `c1-blast.sh` | blast-radius union (graphify affected ∪ semgrep importers) | `via tools/retrieve.sh blast` |
-| `c2-prior-art.sh` | prior-art / precedent search before building something new | manual only |
+| `c2-prior-art.sh` | prior-art / precedent search before building something new | `orient` skill, Part B discovery ladder rung 1 (Need) |
 | `c3-enumerate.sh` | complete-set enumeration via committed/generated semgrep rule | `via tools/retrieve.sh enumerate` |
-| `c5-dead.sh` | dead-code sweep | manual only |
-| `c6-vestigial.sh` | vestigial/leftover-artifact sweep | manual only |
-| `c7-preship.sh` | pre-ship checklist chain | manual only |
-
-`c0-preflight` / `c2-prior-art` / `c5-dead` / `c6-vestigial` / `c7-preship` are not
-documented anywhere else and not called by `tools/retrieve.sh` — run them directly
-(`bash tools/chains/<name>.sh …`) when you need them.
+| `c5-dead.sh` | dead-code sweep | `harness-intel` skill, Mode A (AUDIT) — audit-cadence, not hot-path |
+| `c6-vestigial.sh` | vestigial/leftover-artifact sweep | `harness-intel` skill, Mode A (AUDIT) — audit-cadence, not hot-path |
+| `c7-preship.sh` | pre-ship checklist chain | `awesomeharness` skill, step 7 (PERSIST) — optional deeper gate, opt-in, not part of `check-all`'s automatic run |
 
 ## Known gotchas
 
