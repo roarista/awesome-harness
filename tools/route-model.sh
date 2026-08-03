@@ -50,36 +50,66 @@ echo "NECESSITY: LAUNCH"
 
 # ---------------------------------------------------------------------------
 # STEP 2: OVERRIDE — Ro's explicit "run this one with model X". Wins over
-# everything below EXCEPT the auditor hard-lock (see STEP 3).
+# EVERYTHING below, no exceptions, including audit/judgment tasks. Ro's
+# directive 2026-08-02: "si Ro nombra un modelo, se usa ese" — the previous
+# auditor hard-lock that beat the override is gone. Ro always wins.
 # ---------------------------------------------------------------------------
-if [[ -n "$OVERRIDE_MODEL" ]] && [[ "$is_judgment" -eq 0 ]]; then
+if [[ -n "$OVERRIDE_MODEL" ]]; then
   echo "OVERRIDE"
   echo "AGENT: general-purpose"
   echo "MODEL: $OVERRIDE_MODEL"
   echo "EFFORT: medium"
-  echo "WHY: explicit override (ROUTE_MODEL/--model) requested by Ro"
+  echo "WHY: explicit override (ROUTE_MODEL/--model) requested by Ro — wins over every rule below"
   exit 0
 fi
 
 # ---------------------------------------------------------------------------
-# STEP 3: HARDCODED TABLE. Order matters — first match wins. Auditor rule is
-# checked FIRST and is never overridden: auditors are 12% of the fleet, 39/55
-# rejects, 36 invented-API catches — the one component with positive evidence.
+# STEP 3: HARDCODED TABLE. Order matters — first match wins.
+#
+# Codex-first directive (Ro, 2026-08-02, verbatim): "no me gusta, por ejemplo,
+# Opus. No, porque justo queremos usar Codex. Queremos usar Codex más porque
+# nos dan más créditos." Codex credits are cheap/abundant for Ro; Opus is not.
+# Codex is now the default for judgment/audit tasks too, not just builds.
+#
+# HONEST CAVEAT (do not delete): the one harness component with POSITIVE
+# MEASURED evidence was the opus auditor (12% of the fleet, 39/55 rejects,
+# 36 invented-API catches). Codex-as-auditor is UNMEASURED as of this change.
+# This is Ro's explicit call, executed here. To re-measure: run both an opus
+# and a codex audit against a known-bad diff and compare reject rate.
 # ---------------------------------------------------------------------------
 if [[ "$is_judgment" -eq 1 ]]; then
-  [[ -n "$OVERRIDE_MODEL" ]] && echo "OVERRIDE-DENIED: audit/judgment tasks are never downgraded, ignoring ROUTE_MODEL=$OVERRIDE_MODEL"
-  echo "AGENT: opus"
-  echo "MODEL: opus"
-  echo "EFFORT: low"
-  echo "WHY: judgment/audit task — hard rule, never downgraded (positive-evidence component)"
+  # NARROW escalation: a SECOND audit pass, opus, ONLY after a codex audit has
+  # already returned PASS on something irreversible (money/auth/credential/
+  # data-loss). Caller must say so explicitly (e.g. "second pass after codex
+  # passed the auth change") — the router is stateless and cannot infer this.
+  if echo "$lower" | grep -qE '\b(money|payment|billing|auth|authentication|credential|secret|api.?key|password|delete|data loss|irreversible|prod(uction)? database)\b' \
+     && echo "$lower" | grep -qE '\b(second pass|after codex (passed|approved)|post.?codex|escalat)\b'; then
+    echo "AGENT: opus"
+    echo "MODEL: opus"
+    echo "EFFORT: low"
+    echo "WHY: second audit pass on an irreversible-class change after a codex PASS — the one narrow opus escalation kept (REVERT: see docs/audits/2026-08-02/14-model-router.md)"
+    exit 0
+  fi
+  echo "AGENT: codex-audit"
+  echo "MODEL: codex"
+  echo "EFFORT: medium"
+  echo "WHY: judgment/audit task — codex default per Ro's directive (credits); UNMEASURED as auditor, opus escalation available for irreversible second-pass"
   exit 0
 fi
+# --- commented-out original opus-default row, restore by uncommenting: ---
+# if [[ "$is_judgment" -eq 1 ]]; then
+#   echo "AGENT: opus"
+#   echo "MODEL: opus"
+#   echo "EFFORT: low"
+#   echo "WHY: judgment/audit task — hard rule, never downgraded (positive-evidence component)"
+#   exit 0
+# fi
 
 if echo "$lower" | grep -qE '\b(money|payment|billing|auth|authentication|credential|secret|api.?key|password|delete|data loss|irreversible|prod(uction)? database)\b'; then
-  echo "AGENT: general-purpose"
-  echo "MODEL: sonnet"
+  echo "AGENT: codex"
+  echo "MODEL: codex"
   echo "EFFORT: medium"
-  echo "WHY: touches money/auth/security/data-loss — haiku is banned for this class"
+  echo "WHY: touches money/auth/security/data-loss — codex builder (haiku is banned for this class); pair with a follow-up audit before merge"
   exit 0
 fi
 
@@ -107,10 +137,10 @@ if echo "$lower" | grep -qE '\b(large.?context|whole.?repo|entire codebase|visio
 fi
 
 if echo "$lower" | grep -qE '\b(list|count|grep|find|locate|rename|extract|format|inventory|bulk|mechanical)\b' && [[ "$FILES" -le 5 ]]; then
-  echo "AGENT: general-purpose"
-  echo "MODEL: haiku"
+  echo "AGENT: codex"
+  echo "MODEL: codex"
   echo "EFFORT: low"
-  echo "WHY: bounded mechanical/lookup task — cheap tier is safe here"
+  echo "WHY: bounded mechanical/enumeration task — codex default per Ro's directive (credits)"
   exit 0
 fi
 

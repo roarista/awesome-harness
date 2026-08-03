@@ -1,0 +1,405 @@
+{
+  "_mirror_note": "This file is a copy of ~/.claude/settings.json (authoritative = the live ~/.claude copy). Re-sync: cp ~/.claude/settings.json templates/settings.json",
+  "env": {
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "60",
+    "MAIN_EDIT_GUARD": "enforce",
+    "PHANTOM_EDIT_GUARD": "log",
+    "HARNESS_TELEMETRY": "on",
+    "PONYTAIL_DEFAULT_MODE": "full",
+    "API_TIMEOUT_MS": "3000000",
+    "ENABLE_TOOL_SEARCH": "true",
+    "BUILDER_FENCE": "enforce"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(*)",
+      "Read(*)",
+      "Write(*)",
+      "Edit(*)",
+      "WebSearch(*)",
+      "WebFetch(*)"
+    ],
+    "defaultMode": "dontAsk"
+  },
+  "model": "claude-opus-5[1m]",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"$HOME/.claude/hooks/caveman-discipline.sh\""
+          },
+          {
+            "type": "command",
+            "command": "python3 \"/Users/rodrigoarista/.claude/hooks/northstar-inject.py\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/reread-guard.py\""
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/graphify-gate.py\""
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/manifest-guard.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "startup|resume|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "repowise-augment",
+            "timeout": 10,
+            "statusMessage": "Loading repowise context..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "SendUserFile",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"/Users/rodrigoarista/.claude/hooks/senduserfile-path-echo.js\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/graphify-blindspot.py\""
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/token-discipline.py\""
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/reread-guard.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/session-checkpoint.py\""
+          },
+          {
+            "type": "command",
+            "command": "python3 \"/Users/rodrigoarista/.claude/hooks/harness-usage-telemetry.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"/Users/rodrigoarista/.claude/hooks/phantom-edit-guard.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/graphify-gate.py\""
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/builder-fence.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "Task|Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/post-agent-guard.py\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|PowerShell|Grep|Glob|Read|Edit|Write|mcp__.*[Rr]epowise.*__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "repowise-augment",
+            "timeout": 10,
+            "statusMessage": "Checking codebase context..."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/northstar-protect.py\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/now-gate.py\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/route-only-gate.py\""
+          },
+          {
+            "type": "command",
+            "command": "python3 \"/Users/rodrigoarista/.claude/hooks/main-edit-guard.py\""
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/graphify-blindspot.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"/Users/rodrigoarista/.claude/hooks/check-all-commit-gate.sh\"",
+            "timeout": 120
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/northstar-protect.py\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/irreversible-pause.py\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/builder-fence.py\""
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/bash-write-fence.py\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"$HOME/.claude/hooks/coding-routing-guard.sh\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/understand-gate.py\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Task|Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/contract-nudge.py\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/reread-guard.py\""
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/graphify-gate.py\""
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/filesize-cap.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/graphify-gate.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/skill-reinject-guard.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/recall-inject.py\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/northstar-inject.py\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/harness-enforce.py\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "sh \"/Users/rodrigoarista/.claude/hooks/voice-dictation-nudge.sh\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$HOME/.claude/hooks/pre_compact_global.sh\"",
+            "timeout": 60
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/precompact-handoff.py\"",
+            "timeout": 55
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/compact-prep-gate.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"/Users/rodrigoarista/.claude/hooks/speak.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/abs-path-nudge.py\""
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash \"$HOME/.claude/statusline-command.sh\""
+  },
+  "enabledPlugins": {
+    "vercel@claude-plugins-official": true,
+    "codex@openai-codex": true,
+    "cc-gemini-plugin@cc-gemini-plugin": true,
+    "frontend-design@claude-plugins-official": true,
+    "ponytail@ponytail": true
+  },
+  "extraKnownMarketplaces": {
+    "openai-codex": {
+      "source": {
+        "source": "github",
+        "repo": "openai/codex-plugin-cc"
+      }
+    },
+    "cc-gemini-plugin": {
+      "source": {
+        "source": "github",
+        "repo": "thepushkarp/cc-gemini-plugin"
+      }
+    },
+    "ponytail": {
+      "source": {
+        "source": "github",
+        "repo": "DietrichGebert/ponytail"
+      }
+    },
+    "zai-coding-plugins": {
+      "source": {
+        "source": "directory",
+        "path": "/Users/rodrigoarista/.npm/_npx/2f024689b4d0d3b0/node_modules/@z_ai/coding-helper/zai-coding-plugins"
+      }
+    }
+  },
+  "effortLevel": "low",
+  "tui": "fullscreen",
+  "skipDangerousModePermissionPrompt": true,
+  "switchModelsOnFlag": false,
+  "remoteControlAtStartup": true,
+  "agentPushNotifEnabled": true,
+  "defaultMode": "bypassPermissions",
+  "mcpServers": {
+    "obsidian": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "obsidian-mcp",
+        "/Users/rodrigoarista/Library/Mobile Documents/com~apple~CloudDocs/Obsidian/Brain"
+      ]
+    },
+    "repowise": {
+      "command": "/Users/rodrigoarista/.local/pipx/venvs/repowise/bin/repowise",
+      "args": [
+        "mcp",
+        "/Users/rodrigoarista/Downloads/awesome-harness",
+        "--transport",
+        "stdio"
+      ],
+      "description": "repowise: codebase intelligence — docs, graph, git signals, dead code, decisions"
+    }
+  }
+}

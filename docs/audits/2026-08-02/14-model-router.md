@@ -106,3 +106,25 @@ Honest caveat, unchanged from above: this is advisory and second-order. It was
 built and verified (13 test cases, zero network calls) but nothing currently
 calls it — no hook or orchestrator invokes `route-model.sh` before a spawn.
 Cutting launch count is still the higher-ROI, unshipped fix.
+
+## Codex-first table rewrite (2026-08-02, second pass)
+
+Ro's explicit directive: *"no me gusta Opus... queremos usar Codex más porque
+nos dan más créditos"* — global CLAUDE.md's own override clause ("if Ro names
+a model, use that instead") applies. New table: builds → `codex` (was already
+codex for bounded targets; now also for money/auth-class builds); audits/
+reviews/verify → `codex-audit` (was hard-locked `opus`, now the default,
+`ROUTE_MODEL` honored with no exceptions); mechanical/enumeration → `codex`
+(was `haiku`); wide-blast-radius builds and large-context/vision → `gemini`
+(unchanged). Exactly ONE opus row survives, commented-in but narrow: a
+second audit pass after a codex audit already PASSed something irreversible
+(money/auth/credential/data-loss), triggered only by explicit phrasing
+("second pass", "after codex passed", "escalate"). The old opus-default row
+is kept commented out in `tools/route-model.sh` for cheap revert.
+
+**Open risk, not buried:** opus-as-auditor was the one component with positive
+*measured* evidence (12% of fleet, 39/55 rejects, 36 invented-API catches).
+codex-as-auditor is now the default and is UNMEASURED. Settle it by running
+both an opus audit and a codex audit against the same known-bad diff and
+comparing reject rate — if codex's reject rate is materially lower, restore
+the commented-out opus row.
