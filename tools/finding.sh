@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# finding.sh — subagent ledger. Append-only, never deletes. See .scratch/design-subagent-ledger.md
+# finding.sh - subagent ledger. Append-only, never deletes. See .scratch/design-subagent-ledger.md
 #   record <title> < dump   record stdin as a finding, print the id
 #   get <id>                print the full dump
 #   list [session]          id · date · title · lines

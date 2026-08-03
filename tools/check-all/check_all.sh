@@ -321,8 +321,9 @@ PYEOF
       repo_rules_note=""
       unscanned_note="unscanned-count unknown"
     else
-      local tally_part="${repo_tally%%|*}"
-      local repo_errs="${repo_tally##*|}"
+      local tally_part repo_errs
+      tally_part="${repo_tally%%|*}"
+      repo_errs="${repo_tally##*|}"
       [[ "$tally_part" != EMPTY* ]] && repo_rules_note="; repo-rules: $tally_part"
       if [[ "$repo_errs" =~ ^[0-9]+$ && "$repo_errs" -gt 0 && "$unscanned_note" != "unscanned-count unknown" ]]; then
         local base_count

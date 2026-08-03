@@ -11,7 +11,8 @@
 set -euo pipefail
 CHAIN_NAME=c2-prior-art
 . "$(dirname "$0")/_lib.sh"
-CONCEPT="${1:?usage: c2-prior-art.sh <concept> [name-regex]}"
+[ -n "${1:-}" ] || { echo "usage: c2-prior-art.sh <concept> [name-regex]" >&2; exit 2; }
+CONCEPT="$1"
 RE="${2:-$CONCEPT}"
 full_file "c2-$CONCEPT" >/dev/null
 echo "== c2-prior-art $REPO_NAME concept=$CONCEPT re=$RE" >> "$FULL"

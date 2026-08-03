@@ -39,14 +39,16 @@ rules:
       exclude: ["node_modules/**"]
 
   - id: sh-pipeline-no-pipefail
-    languages: [bash]
+    languages: [generic]
     severity: WARNING
-    message: "Shell script without `set -euo pipefail`-style failure propagation is the shell form of a swallowed error."
+    message: "Shell script without `set -euo pipefail`-style failure propagation is the shell form of a swallowed error. Accepts set -euo pipefail / -eo pipefail / -uo pipefail / -o pipefail / -e."
     patterns:
-      - pattern: $CMD | $CMD2
-      - pattern-not-inside: |
-          set -euo pipefail
-          ...
+      # Matches from the start of the file up through the first `|` only if no
+      # accepted failure-propagation `set` line appears before it. Pure regex
+      # (languages: [generic]) so it never invokes the bash parser, which was
+      # failing on real scripts and silently marking them CLEAN under other
+      # rulesets (see finding: the culprit behind 4 unparsed shell files).
+      - pattern-regex: '(?s)\A(?:(?!set\s+-\S*o\S*\s+pipefail|set\s+-e\b).)*\|'
     paths:
-      include: ["tools/**", "hooks/**"]
+      include: ["tools/**/*.sh", "tools/*.sh", "hooks/**/*.sh", "hooks/*.sh"]
       exclude: ["node_modules/**"]

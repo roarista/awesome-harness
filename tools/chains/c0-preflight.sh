@@ -17,7 +17,9 @@ semgrep scan --validate --config "$RULES" --metrics=off >> "$FULL" 2>&1 || true
 
 # 2. graphify graph present, fresh, and not dangling (R-0b)
 if [ -f "$REPO/graphify-out/graph.json" ]; then
-  age=$(( ( $(date +%s) - $(stat -f %m "$REPO/graphify-out/graph.json") ) / 86400 ))
+  graph_mtime="$(stat -f %m "$REPO/graphify-out/graph.json")"
+  now_epoch="$(date +%s)"
+  age=$(( (now_epoch - graph_mtime) / 86400 ))
   if gg="$(graph_gate)"; then
     say "graphify: graph ${age}d old, import edges/dangling = $gg → C1 'graphify affected' TRUSTWORTHY."
   else

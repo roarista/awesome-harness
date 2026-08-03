@@ -243,7 +243,9 @@ case "$cmd" in
     [ -n "$root" ] && uncommitted_notice "$root"
     exit 0 ;;
 esac
-case "$cmd" in *"--no-verify"*) exit 0 ;; esac
+case "$cmd" in
+  *"--no-verify"*) exit 0 ;;
+esac
 
 root="$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null || true)"
 [ -n "$root" ] || exit 0

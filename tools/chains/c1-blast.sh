@@ -11,7 +11,8 @@
 set -euo pipefail
 CHAIN_NAME=c1-blast
 . "$(dirname "$0")/_lib.sh"
-TARGET="${1:?usage: c1-blast.sh <file-or-symbol>}"
+[ -n "${1:-}" ] || { echo "usage: c1-blast.sh <file-or-symbol>" >&2; exit 2; }
+TARGET="$1"
 full_file "c1-$(basename "$TARGET" | tr -c 'A-Za-z0-9' '-')" >/dev/null
 BASE="$(basename "${TARGET%.py}")"
 # semgrep patterns below splice $BASE into Python source, so it must be a valid
