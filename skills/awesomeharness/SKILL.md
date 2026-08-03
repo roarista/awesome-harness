@@ -21,6 +21,7 @@ The hooks enforce a floor automatically. Most of the harness is **behavioral** �
 5. **Every spawn carries a full unit spec; every return obeys the 8-line contract.** The contract lives IN the agent definitions (`~/.claude/agents/{codex,codex-audit,opus,gemini}.md`) — no need to retype it, unit spec is still the caller's job. Overflow -> `tools/finding.sh record`; return only the id + one-line summary.
 6. **A claim about repo state carries its receipt** (exact command + real output) and **every turn ends compaction-safe** (`.now.md` + STATE updated, memory/mulch synced, final message names what was saved) — no receipt, no entry into a commit/handoff/summary.
 7. **`command grep`, not `grep -r`, for gitignored territory** (`.claude/`, `.findings/`, `.codemap`, `.scratch/`, `.mulch/`) — plain `grep -r` execs ugrep with `--ignore-files` and silently returns a false zero; `--no-ignore` doesn't fix it.
+8. **3+ step objectives or fix lists → TaskCreate BEFORE work.** One per fix: DONE_WHEN/PROOF in description; mark `in_progress` at start, `completed` after PROOF. Abandoned tasks worse than none.
 
 ---
 
@@ -34,7 +35,7 @@ The hooks enforce a floor automatically. Most of the harness is **behavioral** �
                (graphify structure/blast + repowise semantics/risk) ->
                ponytail reuse ladder -> REUSE/ADAPT/REJECT -> STOP|PLAN|BUILD
                (STOP is a real outcome: no new code)
-4. DECOMPOSE   `code-decompose` -> unit specs CONTEXT/CHANGE/GOAL/VERIFY/REUSE
+4. DECOMPOSE   `code-decompose` -> unit specs CONTEXT/CHANGE/GOAL/VERIFY/REUSE (specs→tasks; decomposition visible, units close sequentially)
 5. BUILD       `codex` subagent per unit (NOT codex:codex-rescue — forwarder,
                0 source writes ever) + BUILDER_STANDARD.md prepended.
                Main NEVER writes feature code.
