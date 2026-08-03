@@ -72,8 +72,15 @@ BUILT-BY: codex exec | self (Edit/Write) — and why
 DEVIATIONS: <anything you did differently from the spec, or none>
 NEXT: <one thing, or none>
 
-If a field does not apply write `none`. If your findings do not fit, write them to a
-file and return the PATH, never the body.
+If a field does not apply write `none`. If anything does not fit in those lines — a full diff, a file listing, a long
+analysis, more than ~3 findings — do NOT paste it. Record it and return the id:
+
+    <your long output> | "$(git rev-parse --show-toplevel)/tools/finding.sh" record "<short title>"
+
+It prints an id like `142317-88421`. Put that id in the EVIDENCE (or VERIFY) field as
+`finding <id>` plus a one-line summary. The caller reads the full dump only if it wants,
+with `tools/finding.sh get <id>`. The ledger is append-only and is never pruned.
+Piping nothing records an empty dump — if you have nothing to record, say `none`.
 
 BUILT-BY must name what actually wrote the code (codex exec, or self/Edit). Do not
 write "codex" if you used Edit.

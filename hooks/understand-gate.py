@@ -65,7 +65,7 @@ ORIENT_RE = re.compile(r"^ORIENT\b|GATE:\s*(STOP|PLAN|BUILD)", re.I | re.M)
 
 MSG = (
     "UNDERSTAND GATE: this spawn writes code but carries no codebase-first evidence.\n"
-    "1. Run the `codebase-first` skill -> produces .scratch/discovery/<slug>.md\n"
+    "1. Run the `orient` skill -> produces .scratch/discovery/<slug>.md\n"
     "2. Pass that path in the subagent prompt, OR an inline REUSE:/ADAPT:/REJECT: verdict.\n"
     "STOP (no new code) is a valid outcome.\n"
     "Kill: UNDERSTAND_GATE=off, or write `off` to "

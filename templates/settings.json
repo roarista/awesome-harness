@@ -234,6 +234,16 @@
         ]
       },
       {
+        "matcher": "Task|Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/spawn-necessity.py\"",
+            "timeout": 12
+          }
+        ]
+      },
+      {
         "matcher": "Read",
         "hooks": [
           {

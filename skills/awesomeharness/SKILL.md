@@ -4,122 +4,123 @@ description: Boot the entire harness for this session in one command. Reads orie
 ---
 
 <!-- MIRROR: copy of ~/.claude/skills/awesomeharness/SKILL.md (authoritative = the live ~/.claude copy). Re-sync: cp ~/.claude/skills/awesomeharness/SKILL.md skills/awesomeharness/SKILL.md -->
-
 # awesomeharness — one-command harness boot
 
-The hooks enforce a floor automatically. Most of the harness is **behavioral** — it only happens if the agent does it. `/awesomeharness` turns the whole thing on for this session **and every subagent it spawns**.
-
-Skills load from disk at invoke time, so **this works in an already-running session**. (It cannot add new *hooks* to a live process; it activates the behavioral layer + rituals and announces the floor.)
+The hooks enforce a floor automatically. Most of the harness is **behavioral** — it only happens if the agent does it. `/awesomeharness` turns the whole thing on for this session **and every subagent it spawns**. Skills load from disk at invoke time, so this works in an already-running session (it can't add new *hooks* to a live process — it activates the behavioral layer + rituals).
 
 **Running `/awesomeharness` means: use ALL of the below, by default, for the rest of the session. Not a menu — the default operating mode.**
 
 ---
 
-## THE PROCEDURE (the spine — follow it for every non-trivial task)
+## NON-NEGOTIABLE
+
+1. **Start from `.codemap`, not exploratory search.** `hooks/codemap-inject.py` already printed the whole repo (files/LOC/symbols, `#HUB`/`#BIN`/`#DOC`) at SessionStart. Grepping/`find`/`ls` to learn what exists is waste — the map is a map, not proof, so a load-bearing claim still needs a real read or semgrep hit.
+2. **State the search INTENT and go through `tools/retrieve.sh`.** Never reflex-grep.
+3. **"All the places where X" is a semgrep question, never a grep question.** `~/.local/bin/semgrep` is the only tool measured to return a COMPLETE set; `tools/retrieve.sh enumerate` routes to it with a COUNT. Trap: a rule pattern containing `:` must be QUOTED in the YAML or the config is silently invalid — 0 results, 2 errors, no crash.
+4. **Main orchestrates and never writes feature code.** Code writes go to the `codex` subagent.
+5. **Every spawn carries a full unit spec; every return obeys the 8-line contract.** The contract lives IN the agent definitions (`~/.claude/agents/{codex,codex-audit,opus,gemini}.md`) — no need to retype it, unit spec is still the caller's job. Overflow -> `tools/finding.sh record`; return only the id + one-line summary.
+6. **A claim about repo state carries its receipt** — the exact command and its real output — or it does not enter a commit, handoff, or summary.
+7. **Every turn ends compaction-safe:** `.now.md` + STATE resume point updated, memory/mulch synced, final message names what was saved.
+
+---
+
+## THE PROCEDURE (the spine)
 
 ```
-0. ORIENT      .northstar.md + .now.md + STATE resume point        (every session)
-1-3. RECALL/UNDERSTAND/GATE  `orient` skill (one call) -> memgraph +
-               mulch + MEMORY.md (<=5 bullets prior art) -> front door ->
-               BOTH code maps (graphify structure/blast + repowise
-               semantics/risk, refreshed) -> ponytail reuse ladder ->
-               REUSE/ADAPT/REJECT -> STOP | PLAN | BUILD  (STOP is a real
-               outcome: no new code)
+0. ORIENT      .northstar.md + .now.md + STATE resume point (every session;
+               .codemap already injected — don't re-derive repo structure by hand)
+1-3. RECALL/UNDERSTAND/GATE  `orient` skill (one call) -> memgraph + mulch +
+               MEMORY.md (<=5 bullets) -> front door -> both code maps
+               (graphify structure/blast + repowise semantics/risk) ->
+               ponytail reuse ladder -> REUSE/ADAPT/REJECT -> STOP|PLAN|BUILD
+               (STOP is a real outcome: no new code)
 4. DECOMPOSE   `code-decompose` -> unit specs CONTEXT/CHANGE/GOAL/VERIFY/REUSE
 5. BUILD       `codex` subagent per unit (NOT codex:codex-rescue — forwarder,
                0 source writes ever) + BUILDER_STANDARD.md prepended.
                Main NEVER writes feature code.
-6. VERIFY      non-builder auditor (Opus-4.8-low) per unit -> `check-all`
-               VERIFY passes only when: every unit auditor returned PASS, the
-               whole-change verifier ran green, and `check-all` shows no FAIL
-               rows. Anything short of all three -> back to step 5, never step 7.
+6. VERIFY      non-builder auditor (Opus-4.8-low) per unit -> `check-all`.
+               Passes only when every unit auditor = PASS, whole-change
+               verifier green, and `check-all` shows no FAIL rows. Short of
+               all three -> back to step 5, never step 7.
 7. PERSIST     `compact-prep` -> commit, mulch record, .now.md, STATE, push
-               + `scaffold-record` if it passed (capture the approach)
-               CADENCE = PER UNIT, not per session: the moment a unit is built
-               AND verified, commit + push it. Another terminal may be working in
-               this repo, so integrate before pushing and NEVER force/reset — that
-               is exactly what `"$(git rev-parse --show-toplevel)/tools/git-sync.sh"`
-               does (absolute; a relative path breaks when cwd isn't the repo root).
-               (The uncommitted-work nudge only sees Write/Edit/MultiEdit rows —
-               Bash-heredoc writes are invisible to it, so silence proves nothing.)
+               + `scaffold-record` if it passed. CADENCE = per unit: commit +
+               push the moment a unit is built AND verified. Integrate before
+               pushing, NEVER force/reset — use
+               `"$(git rev-parse --show-toplevel)/tools/git-sync.sh"` (absolute).
 ```
 
-Steps 1-3 are one skill (`orient`), 4-6 are one skill (`code-decompose`) — the procedure is 2 skills plus rituals, not 8 things to remember. **Escape hatch:** genuinely trivial one-line edits and docs-only wording skip 1-4, never 0/7 — but still spawn the edit with a one-line inline `REUSE:`/`REJECT:` verdict in the prompt; that is what satisfies understand-gate.
+Steps 1-3 are one skill (`orient`), 4-6 are one skill (`code-decompose`) — 2 skills plus rituals, not 8 things to remember. **Escape hatch:** trivial one-line edits and docs-only wording skip 1-4, never 0/7 — still spawn with an inline `REUSE:`/`REJECT:` verdict; that satisfies understand-gate.
 
-Multi-step / "loop until done" objectives → wrap the whole procedure in **`/goal`** (SEED -> maximal decomposition -> verifiable checklist -> cheap workers + independent verifier + hard stop conditions).
+Multi-step / "loop until done" objectives → wrap the procedure in **`/goal`** (SEED -> decomposition -> checklist -> cheap workers + independent verifier + hard stop).
 
 ---
 
-## The operating rules (re-assert with force — these decay)
+## Operating rules (re-assert with force — these decay)
 
-**Invoking this skill mid-session RE-ASSERTS the SessionStart floor — it is the remedy when discipline has decayed, because the boot block is out of recent context by then.** The per-turn hook line is only a recall pointer; the full contract is stated here.
+**Invoking this skill mid-session RE-ASSERTS the SessionStart floor** — the remedy when discipline has decayed, because the boot block is out of recent context by then. The per-turn hook line is only a recall pointer; the full contract is stated here.
 
-- **Message discipline / caveman:** ZERO intermediate chat — no preamble, no narration, no status lines between or alongside tool calls. Call tools silently. Urge to narrate -> ONE terse caveman line to `$CLAUDE_JOB_DIR/tmp/pending.md`, never to chat. No hook can block chat prose (there is no hook event on model text) — this one is on you.
-- **Final-summary shape:** exactly ONE chat message per turn, at the end, thorough and standalone — what changed and why, results + verification, what is pending, decisions needed. Ro reads only this, so expand every `pending.md` line into it. Overrides ponytail brevity for the summary only; ponytail still governs code.
-- **Compaction-safe close, every turn — `compact-prep` owns the ritual:** `.now.md` (NOW/LAST_VERIFIED/NEXT, <=5 lines) + STATE resume point updated, memory/mulch synced, and the final message names what was saved and the exact resume point. Main routes those writes to a cheap (haiku) sub-agent, never does them itself.
-- **Orientation contract:** before deep work read `.northstar.md` + `.now.md` + the STATE resume point. Missing north star -> ask Ro for the one-sentence destination first.
-- **Ponytail (always-on lens, not a step):** laziest solution that works — YAGNI -> stdlib -> native -> installed dep -> one line. Delete > add. Shortest diff. No speculative abstraction.
-- **State the search INTENT before you search:** `REPO=<repo> tools/retrieve.sh <intent> <query>` — intents `name` `enumerate` `exists` `blast` `slice` `verify` `history` `diagnose`. It routes each class to the tool that empirically wins (semgrep for complete sets, graphify for blast, grep/git for slice/verify/history) and forces every route to hand back a receipt, so a zero can never be mistaken for a query that never ran. Table + the 3 invariants (quote `--include`; ONE search per call; 3-attempt circuit breaker): `tools/chains/README.md`. Reflex-grepping the three failing intents (`name`/`enumerate`/`exists`) is ~50% of all searches and 3.3M measured wasted tokens.
-- **Model routing:** `tools/route-model.sh` picks agent/model/effort per task (Ro's explicit override always wins); how to actually spawn a builder correctly is `docs/HOW_TO_CALL_BUILDERS.md`.
-- **Orchestrate, don't build:** main routes and reviews, and writes no code itself. Code writes -> the **`codex`** subagent — the real synchronous `codex exec` builder, **NOT `codex:codex-rescue`, which is a forwarder measured at 84 transcripts and ZERO source writes ever**. Audits -> **`codex-audit`** (read-only Codex) by default; **Opus 4.8 (low effort)** only as an explicit second-pass escalation on irreversible work (money/auth/credentials/data-loss) — opus-as-auditor is the one component with positive measured evidence (39/55 rejects, 36 invented-API catches), codex-as-auditor is currently UNMEASURED (reversible via the commented-out row in `tools/route-model.sh`). Councils / second opinions = **Opus-4.8-low + Codex-5.5** (optional 3rd: the `gemini` subagent). Default subagent effort = MEDIUM. Main also cannot write source via Bash any more — `bash-write-fence` blocks it (kill: `BASH_WRITE_FENCE=off`).
-- **Main stays on Anthropic:** never set `ANTHROPIC_BASE_URL` / `ANTHROPIC_AUTH_TOKEN` / `ANTHROPIC_MODEL` to a third party for the main session.
-- **Memory standard:** mulch records <=2 sentences, overflow -> `.mulch/details/<slug>.md`; **read the detail file before you diagnose.** STATE trimmed to current scope, history archived never deleted.
+- **Caveman:** ZERO intermediate chat between/alongside tool calls. Call tools silently. Urge to narrate -> ONE caveman line to `$CLAUDE_JOB_DIR/tmp/pending.md`, never chat.
+- **Final-summary shape:** exactly ONE chat message per turn, thorough and standalone — changes, verification, pending, decisions. Expand every `pending.md` line into it.
+- **Compaction-safe close, every turn (`compact-prep`):** `.now.md` + STATE resume point updated, memory/mulch synced, final message names what was saved. Route those writes to a cheap (haiku) sub-agent.
+- **Orientation contract:** read `.northstar.md` + `.now.md` + STATE resume point before deep work. Missing north star -> ask Ro for the destination first.
+- **Ponytail:** laziest solution that works — YAGNI -> stdlib -> native -> installed dep -> one line.
+- **Search intent, not reflex-grep:** `REPO=<repo> tools/retrieve.sh <intent> <query>` — intents `name`/`enumerate`/`exists`/`blast`/`slice`/`verify`/`history`/`diagnose`; routes to the empirical winner, forces a receipt. Invariants: `tools/chains/README.md`.
+- **Model routing:** `tools/route-model.sh` picks agent/model/effort (Ro's override wins); spawn mechanics in `docs/HOW_TO_CALL_BUILDERS.md`.
+- **Orchestrate, don't build:** code writes -> **`codex`** subagent (NOT `codex:codex-rescue` — forwarder, zero writes ever). Audits -> **`codex-audit`** by default; **Opus 4.8 low** only as escalation on irreversible work (money/auth/credentials/data-loss). Councils = Opus-4.8-low + Codex-5.5 (optional 3rd: `gemini`). Default effort MEDIUM. `bash-write-fence` blocks main's Bash writes too (kill `BASH_WRITE_FENCE=off`).
+- **Main stays on Anthropic:** never point `ANTHROPIC_BASE_URL`/`ANTHROPIC_AUTH_TOKEN`/`ANTHROPIC_MODEL` at a third party.
+- **Memory standard:** mulch <=2 sentences, overflow -> `.mulch/details/<slug>.md` — read the detail file before diagnosing.
+- **Spawn discipline:** `spawn-necessity` checks every spawn against `tools/route-model.sh`; silent unless `DO-NOT-LAUNCH` or a mismatch; asks once at spawn #8. Kill `SPAWN_NECESSITY=off`.
 
 ---
 
 ## The full map — what the harness has, and what composes with what
 
-Six systems. Within each row, the pieces are already wired to each other; **use the system, not the individual part.**
+Six systems; pieces within each row already wired together — **use the system, not the part.**
 
-### 1. ORIENT + anti-drift *(where are we, and are we still going there)*
-`.northstar.md` (OBJECTIVE/DONE_WHEN/NOT_NOW, re-injected every turn) · `.now.md` (NOW/LAST_VERIFIED/NEXT) · `.planning/STATE.md` resume point · `templates/FRONT_DOOR.md` (the single read-first doc) · STATE-bloat trim now folded into **`compact-prep`** step 4b -> archive · `state-distiller.py` (deterministic cap, manual CLI).
-**Enforced by:** northstar-inject (every turn), northstar-protect (BLOCK: agent can't edit its own goal), now-gate (BLOCK).
-**Procedure step 0.** These are one file-set with one job — read all three at boot, update all three at close.
+### 1. ORIENT + anti-drift
+`.northstar.md` · `.now.md` · `.planning/STATE.md` · `templates/FRONT_DOOR.md` · `.codemap` (`tools/codemap.py` — whole repo, ~1.9k tokens, `path|LOC|symbols` by directory + `#HUB`/`#BIN`/`#DOC`; `hooks/codemap-inject.py` prints at SessionStart, regenerates on `@sha` drift; kill `CODEMAP_INJECT=off`) · STATE-trim folded into `compact-prep` · `state-distiller.py`.
+**Enforced by:** northstar-inject, northstar-protect (BLOCK), now-gate (BLOCK), codemap-inject. **Step 0.**
 
-### 2. MEMORY *(start warm, never re-derive)*
-**memgraph** (FTS + link graph over markdown memory) · **`orient` skill Part A** (1-3 lookups, the front end to memgraph) · recall-inject hook (auto-surfaces 1-3 records/turn) · **mulch** (per-repo decisions/conventions/failures; `ml prime` / `ml sync`) · **MEMORY_STANDARD.md** (the write conventions) · **scaffold-ledger** (`scaffold-record.py` — captures the *approach* that passed; now fires automatically from `check_all.sh` on a green run, but only when `SCAFFOLD_CATEGORY` + `SCAFFOLD_APPROACH` are exported — without them nothing is recorded) · **precompact-handoff** (7-field handoff + monotonic ratchet + stable-files list).
-**These are ONE loop:** `prime -> recall -> decide -> record -> handoff -> recall` (`ml prime`; `ml record` syntax lives in `compact-prep`). Anti-drift and memory are the same system viewed from two ends — memory is what makes step 0 cheap.
-`tools/git-sync.sh` — the step-7 push itself: commit tracked edits, integrate, push, never force/reset; untracked files and conflicts are a hard STOP, it refuses rather than guesses.
-**Procedure steps 1 and 7.**
+### 2. MEMORY
+**memgraph** + **`orient` Part A** (1-3 lookups) · recall-inject hook · **mulch** (`ml prime`/`ml sync`) · MEMORY_STANDARD.md · **`tools/finding.sh`** (findings ledger, `.findings/<session>/<id>.md`, append-only; `record`/`get`/`list`/`search`) · scaffold-ledger · precompact-handoff.
+**One loop:** `prime -> recall -> decide -> record -> handoff -> recall`. `tools/git-sync.sh` is the step-7 push: commit, integrate, push, never force/reset; untracked/conflicts = hard STOP. **Steps 1 and 7.**
 
-### 3. UNDERSTAND-BEFORE-YOU-CODE *(the pre-code map)*
-**`orient` skill Part B** owns this entire layer — front door, both code maps, the ponytail reuse ladder, downstream contract, blast radius, the empirical probe, and the STOP/PLAN/BUILD gate.
-Inside it: **graphify** (deterministic structural graph — `update` then `query`/`explain`/`path`, + `graphify-blast.sh` for blast radius) **AND repowise** (per-repo — needs a `.mcp.json` in the repo + an index; absent that, fall back to graphify alone rather than hunting for it) (semantic/risk/history MCP — `get_answer`/`get_context`/`search_codebase`/`get_symbol`/`get_why`/`get_risk`). **Use both together: repowise to locate + understand + gauge risk, graphify to confirm exact structure + blast.** Refresh first; neither is authority — verify load-bearing claims against real source ranges.
-**Enforced by:** understand-gate (code-writing subagent spawns must carry orient reuse evidence), graphify-gate (BLOCK in graphify repos), graphify-blindspot (advisory: editing a hub whose callers you never opened), reread-guard (BLOCK), token-discipline.
-**Procedure steps 1-3.** Do not chain graphify/repowise/blast by hand — `orient` sequences them.
+### 3. UNDERSTAND-BEFORE-YOU-CODE
+**`orient` Part B** owns this layer — front door, both code maps, reuse ladder, blast radius, STOP/PLAN/BUILD gate. Inside it: **graphify** (`update` then `query`/`explain`/`path` + `graphify-blast.sh`; `graph.json` has almost no import graph — `imports_from=1` vs `contains=498`/`calls=303`/`references=62` — never ask it "what is a hub"; edge key `links` not `edges`) **AND repowise** (per-repo, needs `.mcp.json` + index; else fall back to graphify) **AND semgrep** (complete-set enumeration). Use together: repowise locates/risk, graphify confirms structure/blast, semgrep answers "all the places."
+**Enforced by:** understand-gate, graphify-gate (BLOCK), graphify-blindspot, reread-guard (BLOCK), token-discipline. **Steps 1-3.**
 
-### 4. BUILD *(better code from cheaper models)*
-**`code-decompose`** (unit specs -> one cheap coder per unit -> rotating non-builder auditor) · **BUILDER_STANDARD.md** (<40-line correctness/boundary ruleset prepended to every coder prompt) · **ponytail** (the lens over all of it) · **`check-all`** (deterministic gate: typecheck/lint/test/file-size/TODO/dup + **Semgrep SAST as ADVISORY** — it suggests ERROR-severity patterns with reasons, never blocks; `SEMGREP_STRICT=1` to gate).
-**Enforced by:** main-edit-guard (BLOCK — main cannot edit code), builder-fence (BLOCK — bash path only), coding-routing-guard, post-agent-guard, route-only-gate, filesize-cap (BLOCK), manifest-guard, irreversible-pause (BLOCK), check-all-commit-gate.
-**Procedure steps 4-6.**
+### 4. BUILD
+**`code-decompose`** (unit specs -> cheap coder per unit -> rotating auditor) · BUILDER_STANDARD.md · ponytail · **`check-all`** (typecheck/lint/test/file-size/TODO/dup + Semgrep SAST ADVISORY, `SEMGREP_STRICT=1` to gate) · 8-line return contract, baked into `~/.claude/agents/{codex,codex-audit,opus,gemini}.md` — overflow to `tools/finding.sh record`.
+**Enforced by:** main-edit-guard, builder-fence, coding-routing-guard, post-agent-guard, route-only-gate, filesize-cap, manifest-guard, irreversible-pause, check-all-commit-gate. **Steps 4-6.**
 
-### 5. TOKEN DISCIPLINE *(pay for less of the same thing)*
-caveman/message discipline · **tool-search** (MCP schema deferral, `ENABLE_TOOL_SEARCH`) · token-discipline hook (warns on the 3rd full re-read) · reread-guard (BLOCK) · filesize-cap · autocompact @ 60% · stable-files handoff ("already seen, don't re-read") · compact-prep's STATE-trim step/distiller · router slimming (CLAUDE.md stays a router, not an encyclopedia — cache-prefix stability is where ~90% of the savings live) · session-checkpoint (>=150 calls / >=25 errors / same command 3x -> re-scope nudge).
-**Cross-cutting** — applies to every step.
+### 5. TOKEN DISCIPLINE
+caveman discipline · tool-search (`ENABLE_TOOL_SEARCH`) · token-discipline hook · reread-guard (BLOCK) · filesize-cap · autocompact @60% · stable-files handoff · compact-prep STATE-trim · router slimming · session-checkpoint · `.codemap` (front-loads structure so step-0 doesn't burn tokens re-deriving it). Cross-cutting.
 
-### 6. SELF-IMPROVEMENT *(the harness improves itself, proposal-only)*
-**harness-coach** (weekly deterministic transcript miner -> ranked report tagged NEW/IMPROVE/ALREADY-COVERED) · **`harness-intel`** (Mode A per-repo drift report vs the real codebase; Mode B repetition-mine + external research scout, daily via `run-harness-scout.sh` + launchd `StartInterval`) · harness-enforce (anti-decay re-injection) · harness-usage-telemetry · drift-replay (measure a candidate judge before building it) · scaffold-ledger (verify -> capture -> recall -> beat -> replace).
-`tools/claudemd-trim.py` (weekly PROPOSE-ONLY CLAUDE.md diet — deterministic stale-path check + model pass, classifies every line KEEP/TRIM/DELETE/STALE-WRONG, NEVER edits any repo's CLAUDE.md; its launchd job is staged in `tools/launchd/` but NOT loaded yet, pending a Full Disk Access grant, so today it only runs when you invoke it) · `tools/open-findings.sh` (on a successful propose-only auditor run, opens a Terminal with a Claude session seeded with the fresh report; kill-switch `OPEN_FINDINGS=0`).
-**All propose-only. None of them edit the tree.** Reports land in `~/Downloads/`.
+### 6. SELF-IMPROVEMENT
+harness-coach (weekly transcript miner) · **`harness-intel`** (Mode A drift report, Mode B repetition-mine + research scout via launchd; folds the old `harness-audit`/`harness-scout` skills) · harness-enforce · harness-usage-telemetry · drift-replay · scaffold-ledger · `tools/claudemd-trim.py` (propose-only CLAUDE.md diet, staged not loaded) · `tools/open-findings.sh` (`OPEN_FINDINGS=0` to kill).
+**All propose-only. None edit the tree.**
 
 ---
 
 ## The floor that's already armed (announce, don't re-implement)
 
-- **BLOCKING (exit 2):** reread-guard · filesize-cap · now-gate · main-edit-guard (`MAIN_EDIT_GUARD=enforce`) · builder-fence (`BUILDER_FENCE=enforce`) · bash-write-fence (`BASH_WRITE_FENCE=off` to kill) · northstar-protect · irreversible-pause · compact-prep-gate · check-all-commit-gate (per-repo opt-in). graphify-gate + route-only-gate are armed but fire only in a graphify repo / a `.route-only` repo.
-- **Scope limit (do not overclaim):** main-edit-guard and route-only-gate are registered on `Write|Edit|MultiEdit` ONLY. `bash-write-fence` now blocks main's Bash source writes too, but it is a nudge, not a sandbox — `BASH_WRITE_FENCE=off` disables it, and `ed`, `ex`, `rsync`, `truncate`, `xargs`, `find -exec`, and command substitution are deliberately left open. The real backstop is `builder-fence.postflight()`'s git-status diff review plus the audit step; for true enforcement use a `deny` permission rule or a git pre-commit hook, not a command regex.
-- **ADVISORY:** caveman-discipline · northstar-inject · harness-enforce · recall-inject · coding-routing-guard · understand-gate (default `warn`; `UNDERSTAND_GATE=enforce` promotes it to BLOCK) · post-agent-guard · token-discipline · graphify-blindspot · manifest-guard · session-checkpoint · harness-usage-telemetry · precompact-handoff · pre_compact_global · abs-path-nudge · senduserfile-path-echo · phantom-edit-guard (`log`) · skill-reinject-guard · voice-dictation-nudge · speak.py · repowise-augment.
+- **BLOCKING (exit 2):** reread-guard · filesize-cap · now-gate · main-edit-guard · builder-fence · bash-write-fence (`BASH_WRITE_FENCE=off` to kill) · northstar-protect · irreversible-pause · compact-prep-gate · check-all-commit-gate. graphify-gate + route-only-gate armed but fire only in a graphify repo / `.route-only` repo.
+- **Scope limit:** main-edit-guard/route-only-gate cover `Write|Edit|MultiEdit` ONLY. `bash-write-fence` is a nudge not a sandbox; real backstop is `builder-fence.postflight()`'s diff review + the audit step. For true enforcement use a `deny` permission rule or a pre-commit hook.
+- **ADVISORY:** caveman-discipline · northstar-inject · harness-enforce · recall-inject · coding-routing-guard · understand-gate (`warn`; `UNDERSTAND_GATE=enforce` -> BLOCK) · post-agent-guard · token-discipline · graphify-blindspot · manifest-guard · session-checkpoint · harness-usage-telemetry · precompact-handoff · abs-path-nudge · phantom-edit-guard · skill-reinject-guard · spawn-necessity (`SPAWN_NECESSITY=off`).
 
-## Do NOT route to these (retired / dead — excluded on purpose)
-- **GLM / `glm` subagent + CLI** — retired (out of credits). Never an auditor/council option; use Opus-4.8-low.
-- **`cc-gemini-plugin` (`gemini-agent`)** — dead (missing binary). The real non-Claude voice is the **`gemini` subagent** / `tools/gemini-opencode.sh`.
+## Do NOT route to these (retired / dead)
+- **GLM / `glm` subagent + CLI** — retired (out of credits). Never auditor/council; use Opus-4.8-low.
+- **`cc-gemini-plugin` (`gemini-agent`)** — dead (missing binary). Real non-Claude voice is `gemini` subagent / `tools/gemini-opencode.sh`.
 - **zai / z.ai coding plugin** — dead provider.
+- **graphify for "what is a hub" / import-graph questions** — see system 3; use repowise or semgrep.
+
+## Live skill roster (exactly these 10 — anything else is stale)
+`awesomeharness` `check-all` `code-decompose` `compact-prep` `goal` `harness-intel` `notes-inbox` `orient` `ui-console-debug` `youtube-research`. `codebase-first`/`recall`/`state-trim`/`harness-audit`/`harness-scout` are NOT skills — folded into `orient`, `compact-prep`, `harness-intel`.
 
 ## What to do when invoked
-
-1. Run the orientation contract above (`.northstar.md` + `.now.md` + STATE resume point); route any write to a cheap (haiku) sub-agent.
+1. Run the orientation contract (`.northstar.md` + `.now.md` + STATE resume point); route any write to a cheap (haiku) sub-agent.
 2. Run `orient` Part A for task-relevant memory. Verify anything recalled against the live tree.
-3. Report the "harness up" confirmation as exactly these 6 lines — no more:
+3. Report "harness up" as exactly these 6 lines, no more, no hook-name enumeration:
 ```
 NORTH STAR: …
 NOW: …
@@ -128,8 +129,7 @@ PROCEDURE: armed (0-7)
 FLOOR: blocking hooks armed, understand-gate=warn
 NEXT: <the task>
 ```
-   **Do not enumerate hook names.** Then get to the actual task.
-4. From then on: **every code task walks THE PROCEDURE.** Announce the step you're on only in the final summary, never mid-turn.
+4. From then on: **every code task walks THE PROCEDURE.** Announce the step only in the final summary, never mid-turn.
 
 ## Ponytail note
-This file is a **router**: announcement + procedure + map. It does not re-implement what the hooks enforce or what the individual skills do — it invokes them. If a section starts duplicating a skill, delete it and point at the skill.
+This file is a **router**: announcement + procedure + map. It does not re-implement what hooks or skills already do — it invokes them. If a section starts duplicating a skill, delete it and point at the skill.
