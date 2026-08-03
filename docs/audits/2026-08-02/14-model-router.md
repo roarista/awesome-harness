@@ -85,3 +85,24 @@ embedding, no network call, no retraining when a model ships.
 3. Never auto-route auditors.
 4. Do not adopt RouteLLM/LiteLLM/NotDiamond: wrong layer (API calls, not agent
    spawns) and adopting them means proxying the session, which is forbidden.
+
+## Deterministic routing — actually built (2026-08-02)
+
+Shipped `tools/route-model.sh`, not the Python heuristic sketched above: a plain
+bash case/grep table, no deps, no network, no LLM call, hardcoded and readable
+at the top so Ro can edit a row by hand in 10 seconds — this is the version of
+"lazy heuristic" Ro actually asked for ("que se haga hard code").
+
+Differences from the sketch: (1) prints a **NECESSITY** verdict first
+(LAUNCH / DO-NOT-LAUNCH) — the sketch had no such gate, and launch *count* is
+the measured lever, not model price; (2) `ROUTE_MODEL=<x>` / `--model <x>`
+override short-circuits everything for a single run, **except** it is denied
+for audit/judgment tasks (auditor hard-lock wins over override — the one
+component with positive measured evidence is never downgradable, not even by
+Ro's own override, on the theory that an accidental `ROUTE_MODEL=haiku` in env
+shouldn't silently defang the only working quality gate).
+
+Honest caveat, unchanged from above: this is advisory and second-order. It was
+built and verified (13 test cases, zero network calls) but nothing currently
+calls it — no hook or orchestrator invokes `route-model.sh` before a spawn.
+Cutting launch count is still the higher-ROI, unshipped fix.

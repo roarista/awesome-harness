@@ -48,6 +48,11 @@ echo "== retrieve intent=$INTENT query=$QUERY scope=$SCOPE repo=$REPO_NAME" >> "
 
 # --- I3: 3-attempt circuit breaker ------------------------------------------
 CB="$OUTDIR/.attempts-$KEY"
+# stale sentinels (>24h old) never expired, so a FIRST search of an old
+# (intent,query) pair from a prior session would wrongly hit the breaker.
+if [ -f "$CB" ] && [ -z "$(find "$CB" -mmin -1440 2>/dev/null)" ]; then
+  rm -f "$CB"
+fi
 N="${RETRIEVE_ATTEMPT:-$(( $( [ -f "$CB" ] && cat "$CB" || echo 0 ) + 1 ))}"
 echo "$N" > "$CB"
 if [ "$N" -ge 4 ]; then
@@ -144,7 +149,7 @@ EOF
   [ "$ERRS" != 0 ] && say "PREFLIGHT WARN: $ERRS unparsed file(s) are MISSING from this set (see FULL)."
   if [ "$TOT" = 0 ]; then
     # I1: --include is quoted. Unquoted, zsh glob-expands it and grep NEVER RUNS.
-    GN="$(grep -rc --include='*.py' --include='*.sh' $EXCL -- "$QUERY" "$SCOPE" 2>/dev/null | awk -F: '{s+=$NF} END{print s+0}')"
+    GN="$(grep -rc --include='*.py' --include='*.sh' $EXCL -- "$QUERY" "$SCOPE" 2>/dev/null | awk -F: '{s+=$NF} END{print s+0}' || true)"
     say "FALLBACK: semgrep found 0 (python-only patterns). Literal grep cross-check: $GN line(s)."
     [ "$GN" -gt 0 ] && say "  -> the predicate is NOT python-structural here; use \`exists\` or a hand rule."
   fi
@@ -212,7 +217,6 @@ PY
 
 # ------------------------------------------------- slice / verify / history --
 slice)
-  [ -n "${3:-}" ] || SCOPE="${SCOPE}"
   [ -f "$SCOPE" ] || { say "slice needs a FILE as scope: retrieve.sh slice '<anchor>' <file>"; exit 2; }
   say "PREFLIGHT ok: grep is the RIGHT tool here (69.8% success, cheapest intent). Not escalating."
   grep -n -A30 -- "$QUERY" "$SCOPE" >> "$FULL" 2>/dev/null || true

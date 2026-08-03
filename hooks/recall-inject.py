@@ -52,7 +52,16 @@ def main():
         except Exception:
             top = rows[:2]
     lines = "\n".join(f"- **{n}**: {d}" for n, d in top)
-    _hookout.inject("UserPromptSubmit", f"🧠 maybe-relevant memory (recall index, verify first):\n{lines}")
+    msg = f"🧠 maybe-relevant memory (recall index, verify first):\n{lines}"
+    # Hard budget cap: recall-inject is measured at 11.3% precision (88.7% noise),
+    # so its injected context must not be allowed to grow unbounded. ~600 chars is
+    # roughly 2 short memory-record lines (our normal top-2 case) plus the header —
+    # enough for the "is this already decided?" nudge without becoming a second
+    # context dump. Truncate explicitly rather than silently.
+    CAP = 600
+    if len(msg) > CAP:
+        msg = msg[:CAP] + "\n...[truncated, recall-inject budget cap]"
+    _hookout.inject("UserPromptSubmit", msg)
 
 if __name__ == "__main__":
     main()

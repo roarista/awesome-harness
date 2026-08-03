@@ -36,7 +36,7 @@ ALLOW_BASE = {".now.md", ".northstar.md", ".northstar.done", "MEMORY.md",
 HEREDOC = re.compile(r"<<-?\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\1")
 INTERP = re.compile(r"\b(python3?|node|ruby|perl|php|bash|sh|zsh)\b")
 # write-shaped constructs, each with a capturable target
-REDIR = re.compile(r"(?<![0-9&])>>?\s*([^\s;|&<>()]+)")
+REDIR = re.compile(r"(?:&>{1,2}|(?<![0-9&])>{1,2})\|?\s*([^\s;|&<>()]+)")
 TEE = re.compile(r"\btee\s+(?:-a\s+)?([^\s;|&<>()]+)")
 # `-i` capture stops at [^\s]* (attached backup suffix, e.g. -i.bak) then grabs
 # the whole remaining statement tail; sed_i_targets() below tokenizes it because
@@ -46,13 +46,24 @@ SED_I = re.compile(r"\bsed\s+(?:[^;|&]*?\s)?-i[^\s]*\s+([^;|&]*)")
 SED_I_TOKEN = re.compile(r"'[^']*'|\"[^\"]*\"|\S+")
 DD_OF = re.compile(r"\bdd\b[^;|&]*?\bof=([^\s;|&<>()]+)")
 CPMV = re.compile(r"\b(?:cp|mv|install)\s+(?:-\S+\s+)*\S+\s+([^\s;|&<>()]+)")
-PATCHY = re.compile(r"\b(?:git\s+apply|patch)\b")
+PATCHY = re.compile(r"(?:^|[;&|]\s*)(?:git\s+apply|patch)\b")
 PATCH_SAFE = re.compile(r"--(?:check|stat|numstat|summary|dry-run)\b")
 # in-body writes for `python3 - <<PY` / `python3 -c '...'` / node equivalents
 PY_OPEN = re.compile(r"\bopen\(\s*['\"]([^'\"]+)['\"]\s*,\s*['\"][wax]")
 PY_WT = re.compile(r"['\"]([^'\"]+)['\"]\s*\)?\s*\.\s*write_(?:text|bytes)\(")
 JS_WF = re.compile(r"\bwriteFileSync?\(\s*['\"]([^'\"]+)['\"]")
 DASH_C = re.compile(r"-c\s+('([^']*)'|\"([^\"]*)\")")
+QUOTED = re.compile(r"'[^']*'|\"[^\"]*\"")
+
+
+def mask_quotes(s):
+    """Blank out the INTERIOR of quoted args (keep the quote chars + length) so
+    redirect-shaped text inside a quoted string (e.g. grep 'cat > x.py') cannot
+    be mistaken for an actual shell write."""
+    def _mask(m):
+        q = m.group(0)
+        return q[0] + ("x" * (len(q) - 2)) + q[0]
+    return QUOTED.sub(_mask, s)
 
 
 def is_subagent(data):
@@ -100,9 +111,10 @@ def sed_i_target(tail):
 def targets(cmd):
     """Every write-shaped target in `cmd`. Heredoc bodies never contribute text."""
     code, docs = split_heredocs(cmd)
+    unquoted = mask_quotes(code)
     out = []
     for rx in (REDIR, TEE, DD_OF, CPMV):
-        out += [m.group(1) for m in rx.finditer(code)]
+        out += [m.group(1) for m in rx.finditer(unquoted)]
     for m in SED_I.finditer(code):
         t = sed_i_target(m.group(1))
         if t:

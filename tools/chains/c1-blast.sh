@@ -26,10 +26,30 @@ PROD=""; TESTS=""; SRC=""
 if ! printf '%s' "$BASE_ID" | grep -qE '^[A-Za-z_][A-Za-z0-9_]*$'; then
   echo "== c1-blast $REPO_NAME target=$TARGET" >> "$FULL"
   say "PREFLIGHT: '$BASE' has no valid Python-identifier form ('$BASE_ID') → semgrep importer rule skipped. FALLBACK: literal grep."
-  IMP=$(grep -rlE "(^|[^A-Za-z0-9_])${BASE}([^A-Za-z0-9_]|$)" "$REPO" --include='*.py' 2>/dev/null | sed "s|^$REPO/||" | grep -v "/$BASE\.py$" | sort -u || true)
+  # widen grep to the TARGET's own extension (a .sh target must search *.sh, etc.)
+  case "$TARGET" in
+    *.*) TARGET_EXT=".${TARGET##*.}" ;;
+    *) TARGET_EXT="" ;;
+  esac
+  case "$TARGET_EXT" in
+    "") GREP_INCLUDES=(--include='*.py' --include='*.sh') ;;
+    *) GREP_INCLUDES=(--include="*$TARGET_EXT") ;;
+  esac
+  if gg="$(graph_gate)"; then
+    say "PREFLIGHT ok: graph import/dangling = $gg → graphify affected is trustworthy (R-0b), running alongside literal grep."
+    graphify affected "$TARGET" --depth 2 --relation calls --relation imports \
+        --relation imports_from --relation references 2>/dev/null >> "$FULL" || true
+    GPROD=$(grep -oE '(^|[^A-Za-z0-9_/])((src|scripts|hooks|tools|app|lib)/[^:"[:space:]]+\.(py|ts|js|sh))' "$FULL" \
+           | grep -oE '(src|scripts|hooks|tools|app|lib)/.*' | grep -v '^tests/' | sort -u || true)
+    TESTS=$(grep -oE '(tests?/[^:"[:space:]]+\.(py|ts|js))' "$FULL" | sort -u || true)
+  else
+    say "PREFLIGHT: graph dangling gate FAILED (${gg:-no graph}) → graphify affected is BLIND. Literal grep only."
+    GPROD=""
+  fi
+  IMP=$(grep -rlE "(^|[^A-Za-z0-9_])${BASE}([^A-Za-z0-9_]|$)" "$REPO" "${GREP_INCLUDES[@]}" 2>/dev/null | sed "s|^$REPO/||" | grep -v "/$(basename "$TARGET")\$" | sort -u || true)
   { echo; echo "== grep-literal importers of $BASE (semgrep skipped: invalid identifier)"; printf '%s\n' "$IMP"; } >> "$FULL"
-  PROD=$(printf '%s\n%s\n' "$PROD" "$IMP" | grep . | sort -u || true)
-  [ -n "$SRC" ] || SRC="literal-grep fallback (invalid identifier for semgrep)"
+  PROD=$(printf '%s\n%s\n%s\n' "$PROD" "$GPROD" "$IMP" | grep . | sort -u || true)
+  [ -n "$SRC" ] || SRC="literal-grep + graphify fallback (invalid identifier for semgrep)"
   np=$(printf '%s' "$PROD" | grep -c . || true); ni=$(printf '%s' "$IMP" | grep -c . || true)
   nt=$(printf '%s' "$TESTS" | grep -c . || true)
   say "BLAST: $np production file(s) (UNION of $SRC)."

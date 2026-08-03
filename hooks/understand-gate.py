@@ -59,6 +59,9 @@ BUILD_RE = re.compile(
     r"create (a|the) file)", re.I)
 DISCOVERY_RE = re.compile(r"\.scratch/discovery/[\w.-]+\.md")
 VERDICT_RE = re.compile(r"(REUSE|ADAPT|REJECT):")
+# orient skill (merged recall+codebase-first) exit artifact: an ORIENT block
+# headed by a GATE: STOP|PLAN|BUILD line counts as evidence too.
+ORIENT_RE = re.compile(r"^ORIENT\b|GATE:\s*(STOP|PLAN|BUILD)", re.I | re.M)
 
 MSG = (
     "UNDERSTAND GATE: this spawn writes code but carries no codebase-first evidence.\n"
@@ -87,7 +90,7 @@ def is_build_intent(ti: dict) -> bool:
 
 def has_evidence(ti: dict) -> bool:
     prompt = str(ti.get("prompt", "") or "")
-    return bool(DISCOVERY_RE.search(prompt) or VERDICT_RE.search(prompt))
+    return bool(DISCOVERY_RE.search(prompt) or VERDICT_RE.search(prompt) or ORIENT_RE.search(prompt))
 
 
 def _marked(start: Path) -> bool:
