@@ -347,3 +347,67 @@ a temp sentinel cleanup. Mention/glob matching, not command matching. Now confir
 **NEXT (ranked, unchanged by ROI):** 1) subagent necessity ledger 2) 8-line return contract
 3) ASK-LEDGER hook 4) restate-and-hold gate 5) decide the 4 skill folds 6) fix
 irreversible-pause 7) CUT the repowise tier + 280 dead MCP tools 8) LAST: repowise MCP restart.
+
+## Active Resume Point — 2026-08-02 (night) — WAVE 4: AUDITED, REJECTED, FIXED
+
+**Status:** SHIPPED + pushed `bf998f5` (89 commits). check-all OVERALL READY.
+
+**THE AUDIT REJECTED WAVE 3.** An independent `opus` auditor found the shipped retrieval
+router violated its own #1 spec on the exact branch built to prevent it. Both criticals were
+"confident empty, exit 0" — the class we built the thing to eliminate:
+1. `tools/retrieve.sh:147` — `enumerate` on a TRUE ZERO died rc=1 under `set -euo pipefail`
+   (grep exits 1 on no match, pipefail propagates) BEFORE reaching the `FALLBACK:` line.
+   The only case the fallback existed for was the one case it never printed.
+2. `tools/chains/c1-blast.sh` invalid-identifier branch — dropped the graphify leg entirely
+   and grepped `*.py` only, so `c1-blast tools/finding.sh` said "no importers found by EITHER
+   method" while 7 files reference it.
+Plus 9 fence bypasses and **2 fence FALSE POSITIVES that replicated `irreversible-pause`'s
+mention-match bug** (blocked `git diff > x.patch` on the bare word "patch"; blocked
+`grep 'cat > x.py'` by scanning inside quoted args).
+**All 6 fixed by a FRESH builder and re-verified by main directly.** Lesson: the auditor is
+the component with positive measured evidence, and it just earned it again.
+
+**Fence — deliberately left open, documented:** `ed`, `ex`, `rsync`, `truncate`, `xargs`,
+`find -exec`, `cp $(...)`. Precedence rule: a false positive costs more than a bypass. It is
+a behavioural nudge, not a sandbox; `BASH_WRITE_FENCE=off` always wins.
+
+**`tools/route-model.sh` (NEW, 128 lines)** — Ro's deterministic router. Hardcoded,
+hand-editable case table at the top of the file. No network, no API key (proved with
+`env -i`). Prints **NECESSITY first** (`LAUNCH` / `DO-NOT-LAUNCH: <reason>`) because the
+fleet is 51.9% of all tokens and the problem is launch COUNT, not price. Named rule in every
+verdict so the mapping is arguable. **Auditors hard-locked to `opus` — the lock beats even an
+explicit `ROUTE_MODEL` override** (chosen deliberately, documented in
+`docs/audits/2026-08-02/14-model-router.md`). Override for everything else: `ROUTE_MODEL=<m>`
+or `--model <m>`. **NOT WIRED — nothing calls it yet. That is the top open item.**
+
+**Skills 15 -> 10.** Motivation: **8 of 16 had ZERO invocations across 2,997 transcripts,
+including `codebase-first` and `recall` — steps 1-2 of THE PROCEDURE.**
+- `orient` = recall + codebase-first (14,888B -> 9,336B). Emits an `ORIENT` block ending in
+  `GATE: STOP|PLAN|BUILD`, folds in `tools/retrieve.sh` at the search rung.
+- `harness-intel` = harness-audit + harness-scout (27,973B -> 7,547B), Mode A / Mode B.
+- `state-trim` -> `compact-prep` step 4b. `clean-symbols` -> `essay-writing-skill` (both
+  course repos). `deep-research` was a BROKEN SYMLINK (target repo gone).
+- Net ~33KB / ~8.7 ktok off the per-session listing. All originals in
+  `~/.claude/skills/.bak-folds-20260802/` — nothing deleted.
+- **Dead slash commands now:** `/recall` `/codebase-first` `/state-trim` `/harness-audit`
+  `/harness-scout` `/clean-symbols`. Muscle memory will miss.
+
+**`hooks/understand-gate.py`** — now recognizes orient's exit block (`ORIENT_RE`). It blocked
+a legitimate spawn of mine mid-session, which is how we found it. Still default `warn`.
+**`hooks/recall-inject.py`** — 600-char hard cap with an explicit truncation marker.
+
+**TencentDB-Agent-Memory: REJECTED.** Self-hostable (no cloud lock-in) BUT license is
+NOASSERTION on the GitHub API vs README's MIT claim, 413 open issues, created 2026-04-07.
+Fixes **none** of our five measured memory failures (11.3% precision, 74.1% re-derivation,
+25% stale records, 16% write compliance, `recall` skill invoked 0 times). Only stealable
+idea was the injected-context budget cap — taken, one hook edit, no dependency.
+
+**Builders both PROVEN WORKING live:** `codex exec` authenticated and returned a real diff;
+`gemini -p` returned `google/gemini-2.5-pro`. Reference card:
+`docs/HOW_TO_CALL_BUILDERS.md`. **codex wart:** it leaves stray `.planning/STATE.md` and
+`.now.md` in the target directory.
+
+**NEXT (ranked):** 1) wire `route-model.sh` into a spawn path 2) subagent necessity ledger
+3) 8-line return contract 4) ASK-LEDGER hook 5) restate-and-hold gate 6) fix
+`irreversible-pause` mention-matching (**3 false positives today alone**) 7) CUT the repowise
+tier + 280 dead MCP tools 8) LAST: repowise MCP restart.
