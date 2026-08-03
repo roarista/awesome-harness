@@ -7,8 +7,7 @@
     "HARNESS_TELEMETRY": "on",
     "PONYTAIL_DEFAULT_MODE": "full",
     "API_TIMEOUT_MS": "3000000",
-    "ENABLE_TOOL_SEARCH": "true",
-    "BUILDER_FENCE": "enforce"
+    "ENABLE_TOOL_SEARCH": "true"
   },
   "permissions": {
     "allow": [

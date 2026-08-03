@@ -93,6 +93,41 @@ def _is_graded_submission(cmd: str) -> bool:
     return bool(SUBMIT_ENDPOINT.search(url) or SUBMIT_VERB.search(cmd))
 
 
+HEREDOC = re.compile(r"<<-?\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\1")
+COMMENT = re.compile(r"(?:^|\s)#.*$", re.MULTILINE)
+
+
+def _split_heredocs(cmd: str) -> str:
+    """Return `cmd` with heredoc BODIES stripped out (opener lines kept), so a
+    dangerous phrase living only inside a heredoc body (e.g. `cat >> f <<'EOF'`
+    ... `rm -rf /` ... `EOF`) is never scanned as if it were a real command.
+    COPIED from hooks/bash-write-fence.py:split_heredocs (same approach, same
+    directory) — kept minimal here since we only need the code text, not the
+    body list."""
+    lines = cmd.split("\n")
+    code, i = [], 0
+    while i < len(lines):
+        line = lines[i]
+        code.append(line)
+        delims = [m.group(2) for m in HEREDOC.finditer(line)]
+        i += 1
+        for delim in delims:
+            while i < len(lines) and lines[i].strip() != delim:
+                i += 1
+            if i < len(lines):
+                i += 1  # skip the closing delimiter line itself
+    return "\n".join(code)
+
+
+def _strip_comments(cmd: str) -> str:
+    """Blank out shell comments (an unquoted `#` to end of line) so `# rm -rf
+    build` in a comment is never scanned as a real command. Comments only make
+    sense outside quotes, and by the time this runs quoted spans have already
+    been left intact (dequoting happens after), so we only strip a `#` that is
+    preceded by start-of-line or whitespace — the common shell-comment shape."""
+    return COMMENT.sub("", cmd)
+
+
 def _dequote(cmd: str) -> str:
     """Blank out single/double-quoted spans so a trigger word living inside a
     quoted ARGUMENT to another program (codex/claude/glm/echo "... rm -rf ...")
@@ -125,9 +160,18 @@ def _git_clean_is_destructive(cmd: str) -> bool:
 
 
 def matches_denylist(cmd: str) -> bool:
-    # rm + force-push are SHELL-STRUCTURE ops: match on the dequoted command so a
-    # trigger buried in a quoted argument to codex/echo/git-commit doesn't fire.
-    bare = _dequote(cmd)
+    # COMMAND-match, not mention-match: strip heredoc BODIES first (a dangerous
+    # phrase living only in a heredoc body, e.g. `cat >> f <<'EOF'` ... `rm -rf /`
+    # ... `EOF`, is text being written to a file, not a command being run) — the
+    # heredoc delimiter itself may be quoted (<<'EOF'), so this must run BEFORE
+    # dequoting or the delimiter match breaks. Comments are stripped AFTER
+    # dequoting so a legitimate `#` inside a quoted argument isn't mistaken for
+    # a comment opener and doesn't truncate real quoted content early.
+    cmd = _split_heredocs(cmd)
+    # rm + force-push are SHELL-STRUCTURE ops: match on the dequoted, comment-
+    # stripped command so a trigger buried in a quoted argument or a `# comment`
+    # doesn't fire.
+    bare = _strip_comments(_dequote(cmd))
     if _rm_is_recursive_force(bare):
         return True
     if GIT_FORCE_PUSH.search(bare):
@@ -142,10 +186,10 @@ def matches_denylist(cmd: str) -> bool:
     # destructive SQL only when a real DB client is invoked OUTSIDE quotes
     # (dequoted cmd), while the SQL keyword may live anywhere (original cmd) - so a
     # commit message / prose mentioning a client + the SQL keyword does NOT trip it.
-    if DB_CLIENT.search(_dequote(cmd)) and SQL_DESTRUCTIVE.search(cmd):
+    if DB_CLIENT.search(bare) and SQL_DESTRUCTIVE.search(_strip_comments(cmd)):
         return True
-    # graded submission: match on the ORIGINAL cmd (URLs are often quoted)
-    if _is_graded_submission(cmd):
+    # graded submission: match on the heredoc-stripped cmd (URLs are often quoted)
+    if _is_graded_submission(_strip_comments(cmd)):
         return True
     return False
 
@@ -190,6 +234,8 @@ def _selftest() -> None:
         "curl -F 'file=@hw.pdf' https://www.gradescope.com/courses/1/assignments/2/submissions",
         "curl -X POST https://myschool.blackboard.com/submit -d @essay.txt",
         "wget --post-file=essay.pdf https://moodle.school.edu/mod/assign/submit",
+        # real destructive commands as ACTUAL commands, not mentions — must BLOCK
+        "rm -rf /some/path", "git reset --hard HEAD~1",
     )
     for command in destructive:
         assert matches_denylist(command), command
@@ -205,6 +251,10 @@ def _selftest() -> None:
         "echo 'download the assignment from Canvas'",
         "git commit -m 'guard: block Canvas/Gradescope submission uploads'",
         "grep -rn canvas ~/Downloads/essays",
+        # mention-match false positives (the defect this fix targets) — must NOT block
+        "cat >> notes.md <<'EOF'\nrm -rf /\nEOF",
+        'echo "git push --force"',
+        "# rm -rf build\ngit status",
     )
     for command in allowed:
         assert not matches_denylist(command), command

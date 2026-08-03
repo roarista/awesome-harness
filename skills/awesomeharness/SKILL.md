@@ -106,7 +106,7 @@ harness-coach (weekly transcript miner) · **`harness-intel`** (Mode A drift rep
 
 ## The floor that's already armed (announce, don't re-implement)
 
-- **BLOCKING (exit 2):** reread-guard · filesize-cap · now-gate · main-edit-guard · builder-fence · bash-write-fence (`BASH_WRITE_FENCE=off` to kill) · northstar-protect · irreversible-pause · compact-prep-gate · check-all-commit-gate. graphify-gate + route-only-gate armed but fire only in a graphify repo / `.route-only` repo.
+- **BLOCKING (exit 2):** reread-guard · filesize-cap · now-gate · main-edit-guard · builder-fence (only when a builder writes `.northstar.md` — every other path is advisory; no `BUILDER_FENCE` env toggle exists) · bash-write-fence (`BASH_WRITE_FENCE=off` to kill) · northstar-protect · irreversible-pause · compact-prep-gate · check-all-commit-gate. graphify-gate + route-only-gate armed but fire only in a graphify repo / `.route-only` repo.
 - **Scope limit:** main-edit-guard/route-only-gate cover `Write|Edit|MultiEdit` ONLY. `bash-write-fence` is a nudge not a sandbox; real backstop is `builder-fence.postflight()`'s diff review + the audit step. For true enforcement use a `deny` permission rule or a pre-commit hook.
 - **ADVISORY:** caveman-discipline · northstar-inject · harness-enforce · recall-inject · coding-routing-guard · understand-gate (`warn`; `UNDERSTAND_GATE=enforce` -> BLOCK) · post-agent-guard · token-discipline · graphify-blindspot · manifest-guard · session-checkpoint · harness-usage-telemetry · precompact-handoff · abs-path-nudge · phantom-edit-guard · skill-reinject-guard · spawn-necessity (`SPAWN_NECESSITY=off`).
 
