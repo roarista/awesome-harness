@@ -182,6 +182,16 @@ For Ro's coding pipeline repos, the default load-bearing context includes the ha
 
 Source pointers to preserve rather than re-summarize: `~/Downloads/NOTION_WORKFLOW_MINING_2026-06-16.md`, `~/Downloads/HARNESS_BUILD_PLAN_2026-06-16.md`, and `~/.claude/projects/-Users-rodrigoarista/memory/project_harness_notion_mining.md`.
 
+### 4b. Trim STATE.md if it has bloated (folded from `state-trim`)
+
+STATE.md is append-only and re-bloats; a cold agent re-reads all of it every session. Run this BEFORE step 5 whenever STATE.md exceeds ~30 non-empty lines or drifts off the current lane (or a SessionStart nudge flagged it).
+
+1. Read it fully once. Identify: (a) the canonical model of what we're building now, (b) the active resume point (NOW/NEXT), (c) everything else = history.
+2. Trim the live file to <=~30 lines: a one-line disambiguation banner (only if this checkout hosts >1 workstream), the canonical model (2-4 lines), the active resume point. Front-door detail (pipelines, invariants, file:line) belongs in `templates/FRONT_DOOR.md`, not STATE.md.
+3. **Archive the rest — never delete.** Append removed content to `STATE-ARCHIVE.md` (or `.planning/STATE-ARCHIVE.md`) under a dated heading. Deterministic fallback: `python3 tools/state-distiller.py <repo_dir> --apply` (keeps leading metadata + last top-level section, archives the full original).
+4. Verify nothing lost: `wc -l STATE-ARCHIVE.md` grew by the removed lines; the STATE.md diff is only removals + the new head. Commit both together (reversible).
+5. `.now.md` stays <=5 lines regardless (that's `now-gate.py`) — this step only governs STATE.md.
+
 ### 5. Update STATE.md with the resume point (if `.planning/STATE.md` exists)
 
 **Delegate this write to a cheap sub-agent (haiku) — don't do it in the orchestrator (Ro's rule: the main terminal shouldn't burn context on housekeeping).** Hand the sub-agent the turn's changes + decisions; it opens the file and does steps below, then returns a one-line confirm.

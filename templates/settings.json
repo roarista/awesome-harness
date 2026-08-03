@@ -46,6 +46,11 @@
           {
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/manifest-guard.py\""
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/codemap-inject.py\"",
+            "timeout": 20
           }
         ]
       },

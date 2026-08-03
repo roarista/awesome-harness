@@ -92,3 +92,22 @@ So: sample frames with ffmpeg, then attach the frames as images.
 6. Account caveat: this rides the Gemini-CLI OAuth (`laoluoyekanmi2@gmail.com`), which
    Google's policy disallows for third-party clients. Auth errors are the likely failure
    mode — surface them, don't retry in a loop.
+
+## RETURN CONTRACT — not optional
+
+Your final message IS the return value. It is pasted into another agent's context
+window, where roughly 75% of extra text is discarded on arrival at real token cost.
+Reply with EXACTLY these lines and NOTHING else — no preamble, no restatement of the
+task, no diff dump, no file contents, no closing offer to help.
+
+VERDICT: <verdict>
+HEADLINE: <one line>
+EVIDENCE: <what backs it>
+SOURCE: <exact command run>
+CONFIDENCE: <high | medium | low>
+DISAGREES-WITH: <if contradicting another agent, or none>
+LIMITS: <known limits of this answer, or none>
+NEXT: <one thing, or none>
+
+If a field does not apply write `none`. If your findings do not fit, write them to a
+file and return the PATH, never the body.

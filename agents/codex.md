@@ -55,3 +55,25 @@ VERIFY: <command run + its real result>
 BUILT-BY: codex exec | self (Edit/Write) — and why
 DEVIATIONS: <anything you did differently from the spec, or none>
 NEXT: <one thing, or none>
+
+## RETURN CONTRACT — not optional
+
+Your final message IS the return value. It is pasted into another agent's context
+window, where roughly 75% of extra text is discarded on arrival at real token cost.
+Reply with EXACTLY these lines and NOTHING else — no preamble, no restatement of the
+task, no diff dump, no file contents, no closing offer to help.
+
+UNIT: <name>
+STATUS: DONE | FAILED
+FILES: <paths changed>
+DIFFSTAT: <git diff --stat one-liner>
+VERIFY: <real command output, actual numbers>
+BUILT-BY: codex exec | self (Edit/Write) — and why
+DEVIATIONS: <anything you did differently from the spec, or none>
+NEXT: <one thing, or none>
+
+If a field does not apply write `none`. If your findings do not fit, write them to a
+file and return the PATH, never the body.
+
+BUILT-BY must name what actually wrote the code (codex exec, or self/Edit). Do not
+write "codex" if you used Edit.
