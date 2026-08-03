@@ -285,3 +285,65 @@ does NOT propagate to the other repos; each needs its own.
 - `northstar-protect.py` mention-matching inversion sweep
 - `~/.codex/skills/codex-primary-runtime/` is an empty dir — stale artifact?
 - Codex asymmetry (documented, not faked): self-audit instead of independent auditor; no hooks fire on the Codex side
+
+## Active Resume Point — 2026-08-02 (late) — WAVE 3: BUILT, NOT AUDITED
+
+**Status:** SHIPPED + pushed `a42c07f` (87 commits on origin/main). check-all OVERALL READY.
+
+**Ro's #1 ask, delivered: `tools/retrieve.sh`** — the intent-classified retrieval front door.
+8 intents: `name enumerate exists blast slice verify history diagnose`. Routing (from the
+1,456-episode census in `docs/audits/2026-08-02/10-search-intent.md`):
+- `enumerate` -> semgrep (the ONLY tool returning a complete set: 100%/100% vs grep 80%/92%)
+- `blast` -> label->node-id resolution then `c1-blast.sh` (graphify affected UNION semgrep)
+- `name` -> graphify vocab dump to COPY a literal token; never guess-grep alternations
+- `exists` -> grep + a receipt: zero is printed WITH scope, file count, exact command
+- `slice` / `verify` / `history` -> **grep and git KEPT** (69.8% / 77.1% / 59.4% — they win)
+- `diagnose` -> honest non-answer; nothing we own wins this; stop at 3
+- unknown intent -> prints the table, exit 2. Never guesses.
+Invariants in-script: quoted `--include`; ONE search per call; 3-attempt circuit breaker.
+Table: `tools/chains/README.md`. Folded into `~/.claude/skills/awesomeharness/SKILL.md:62`.
+
+**`hooks/bash-write-fence.py`** (NEW, live + registered, backup
+`~/.claude/settings.json.bak-bashfence-2026-08-02`) — PreToolUse:Bash, blocks MAIN writing
+source via Bash. Closes the measured 61%-of-illegal-writes hole that main-edit-guard cannot
+see. 12 block cases exit 2 / 9 pass cases 0 bytes. Silent by default; fails open.
+`BASH_WRITE_FENCE=off|warn|enforce`. Allowed for main: `*.md`, `.planning/`, `docs/`,
+`.mulch/`, memory, `/tmp`. Scope is the repo cwd only — `~/.claude/**/*.py` is still writable.
+
+**MY OWN RE-TEST CAUGHT A GAP THE BUILDER MISSED:** `sed -i '' ...` (the macOS BSD form,
+i.e. the most likely real case on this machine) passed with exit 0. GNU and `-i.bak` blocked
+fine. Fixed and re-verified. Do not accept a fence's self-report without re-running it.
+
+**`~/.claude/agents/codex.md`** (NEW) — a REAL builder. `codex exec` (codex-cli 0.145.0,
+`~/.npm-global/bin/codex`) IS synchronous and writes to disk; only the `codex:codex-rescue`
+PLUGIN is the forwarder. The documented default builder was MISSING, not impossible.
+Dogfooded twice this wave (the sed/c1-blast fix, and the SKILL.md edit) — both PASS.
+
+**`tools/chains/c1-blast.sh`** — dashed basenames (`northstar-inject`) produced an
+unparseable semgrep rule and exit 3. Now sanitized (`-`->`_`); an invalid identifier falls
+back to a LABELLED literal grep instead of a silent zero.
+
+**Skills (survey, `14-model-router.md` + agent report):** 16 global skills, 32.2 ktok of
+SKILL.md; **8 NEVER invoked across 2,997 transcripts** (check-all, clean-symbols,
+codebase-first, harness-audit, notes-inbox, recall, state-trim, ui-console-debug).
+`essay-writing-skill` -> ENGL2328 + GOVT2305; `clyde-pdf` -> Consulting. Originals in
+`~/.claude/skills/.bak-scoping-20260802/` (moved, never deleted). Destinations are NOT
+gitignored (ENGL2328/GOVT2305 are not git repos at all). `deep-research/` is an empty dead
+dir. **PENDING RO'S CALL — 4 folds worth ~11 ktok at zero measured usage loss:**
+harness-audit+harness-scout -> `harness-intel`; state-trim -> compact-prep;
+clean-symbols -> essay-writing-skill. REGRESSION RISK: a directory-scoped skill is invisible
+when cwd is elsewhere.
+
+**Model routers — honest null:** every maintained OSS router (RouteLLM, LiteLLM Auto Router
+v2, vLLM Semantic Router, LLMRouter, Morph, NotDiamond) routes **API calls at a proxy
+layer**. None can set the Agent-tool `model=` at spawn time without proxying via
+`ANTHROPIC_BASE_URL`, which the global CLAUDE.md forbids. A 30-line dependency-free
+heuristic is proposed in `docs/audits/2026-08-02/14-model-router.md`, NOT wired up. And it
+is second-order: at 51.9% of tokens the fleet's problem is launch COUNT, not launch price.
+
+**`irreversible-pause` false-positived a THIRD time today** — on `rm -f /tmp/chains/*/.attempts-*`,
+a temp sentinel cleanup. Mention/glob matching, not command matching. Now confirmed 3x. FIX IT.
+
+**NEXT (ranked, unchanged by ROI):** 1) subagent necessity ledger 2) 8-line return contract
+3) ASK-LEDGER hook 4) restate-and-hold gate 5) decide the 4 skill folds 6) fix
+irreversible-pause 7) CUT the repowise tier + 280 dead MCP tools 8) LAST: repowise MCP restart.
