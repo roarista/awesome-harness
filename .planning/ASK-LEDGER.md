@@ -22,3 +22,18 @@ Ro's message, decomposed. Nothing is reported as done that is not DONE or DEFERR
 - A measured before/after on tokens, not an argument. → met for hooks (−71.8%).
 - The PROCEDURE either verifiably runs or is cut. → measured; cut list produced, not yet applied.
 - Hook context cost measurably lower, or a written proof it cannot be. → met.
+
+## WAVE 3 — asks from 2026-08-02 (post-compact message)
+
+| # | ask (Ro, verbatim intent) | status | DONE_WHEN |
+|---|---|---|---|
+| W3-1 | **Retrieval router**: use the search-intent census to combine semgrep/graphify/repowise so the agent CLASSIFIES the search and knows how to query. *"esta ultima que yo te puse es la mas importante"* | IN PROGRESS | `tools/retrieve.sh` routes all 8 intents, each with a receipt; deny-sites ground truth 13/13 reproduced |
+| W3-2 | Main agent must not be able to write code via Bash | IN PROGRESS | PreToolUse:Bash guard exits 2 on main+source-write, 0 bytes on everything else, 4 smoke cases pass |
+| W3-3 | Fix codex immediately | IN PROGRESS | either a real synchronous codex builder agent exists, or the docs stop naming a forwarder as the default builder |
+| W3-4 | Subagent models: other providers + small model when task is easy; look at OSS model routers | IN PROGRESS (propose-only) | `docs/audits/2026-08-02/14-model-router.md` exists with real OSS findings + a <=40-line heuristic; NOT wired up |
+| W3-5 | Consolidate loose skills under their parent (e.g. browser harness) | IN PROGRESS | fold plan with per-skill usage counts from the real corpus |
+| W3-6 | Repo-scope skills (essay-writer only in escuela folders) | IN PROGRESS | skill moved, reversible backup, gitignore status of destination reported |
+| W3-7 | The previous six (ledger hook, restate-and-hold, 8-line contract, search rules into skill, cuts) | OPEN | unchanged from Wave 2 |
+
+**NOT-GOAL for this wave:** restarting the repowise MCP (kills the session — Ro's explicit ordering: last).
+**Standing:** ZERO mid-turn chat. One final summary.
