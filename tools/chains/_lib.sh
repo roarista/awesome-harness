@@ -25,8 +25,11 @@ export SEMGREP_SEND_METRICS=off SEMGREP_ENABLE_VERSION_CHECK=0
 # Shared exclusions. `.claude/worktrees` matters: stale agent worktrees contain full
 # copies of the tree and will make a dead dependency look alive (measured: `tenacity`
 # in virality-pipeline shows 3 imports, all inside abandoned worktrees, 0 in the live tree).
+# NOTE: .claude is deliberately NOT excluded — it holds CLAUDE.md, which is
+# load-bearing instruction content, not generated/vendor output. Excluding it
+# silently hid the repo's own instruction file from every search route.
 EXCL="--exclude-dir=node_modules --exclude-dir=.venv --exclude-dir=venv \
---exclude-dir=graphify-out --exclude-dir=.git --exclude-dir=.claude \
+--exclude-dir=graphify-out --exclude-dir=.git \
 --exclude-dir=.repowise --exclude-dir=dist --exclude-dir=build"
 
 # --- verdict buffer: nothing reaches stdout until the chain ends -------------

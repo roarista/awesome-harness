@@ -66,6 +66,11 @@ if [ "$N" -ge 4 ]; then
 fi
 say "ATTEMPT $N/3 · intent=$INTENT · scope=$(basename "$SCOPE")"
 
+# SKIPPED_DIRS derived from $EXCL (single source of truth in _lib.sh) — never
+# hardcode a second copy that can drift from what was actually excluded.
+SKIPPED_DIRS="$(printf '%s' "$EXCL" | grep -oE -- '--exclude-dir=[^ ]+' | sed 's/--exclude-dir=//' | tr '\n' ' ' | sed 's/ $//')"
+skipped_dirs_line() { say "SKIPPED-DIRS: $SKIPPED_DIRS"; }
+
 GRAPH="$REPO/graphify-out/graph.json"
 
 # vocab_dump <stem>  -> "id | label | file" lines, from the graph or a source fallback
@@ -101,7 +106,10 @@ name)
   BODY="$(printf '%s\n' "$V" | tail -n +2 | grep . || true)"
   NH="$(printf '%s\n' "$BODY" | grep -c . || true)"
   if [ -f "$GRAPH" ]; then say "PREFLIGHT ok: graph vocabulary present ($HDR)."
-  else say "PREFLIGHT: no graphify-out/graph.json — FALLBACK to a source-derived vocab dump ($HDR)."; fi
+  else
+    say "PREFLIGHT: no graphify-out/graph.json — FALLBACK to a source-derived vocab dump ($HDR)."
+    skipped_dirs_line
+  fi
   if [ "$NH" = 0 ]; then
     say "VOCAB: 0 identifiers contain '$QUERY'."
     say "FALLBACK: the concept is named something ELSE. WIDEN THE CONCEPT WORD, do not"
@@ -151,6 +159,7 @@ EOF
     # I1: --include is quoted. Unquoted, zsh glob-expands it and grep NEVER RUNS.
     GN="$(grep -rc --include='*.py' --include='*.sh' $EXCL -- "$QUERY" "$SCOPE" 2>/dev/null | awk -F: '{s+=$NF} END{print s+0}' || true)"
     say "FALLBACK: semgrep found 0 (python-only patterns). Literal grep cross-check: $GN line(s)."
+    skipped_dirs_line
     [ "$GN" -gt 0 ] && say "  -> the predicate is NOT python-structural here; use \`exists\` or a hand rule."
   fi
   ;;
@@ -165,6 +174,7 @@ exists)
   NF="$(grep -rl --include='*' $EXCL -- '' "$SCOPE" 2>/dev/null | wc -l | tr -d ' ')"
   say "PREFLIGHT ok: grep ran (exit captured), --include is QUOTED (I1: 137 measured searches"
   say "  never executed because zsh glob-expanded an unquoted --include=*.py)."
+  skipped_dirs_line
   if [ "$NH" = 0 ]; then
     say "ZERO — and here is the receipt, because a bare zero is not evidence of absence:"
     say "  scope     : $SCOPE"
@@ -227,6 +237,7 @@ slice)
 
 verify)
   say "PREFLIGHT ok: grep is the RIGHT tool here (77.1% — best tool/intent fit in the corpus)."
+  skipped_dirs_line
   H="$(grep -rn --include='*' $EXCL -- "$QUERY" "$SCOPE" 2>/dev/null || true)"
   printf '%s\n' "$H" >> "$FULL"
   NH="$(printf '%s\n' "$H" | grep -c . || true)"
