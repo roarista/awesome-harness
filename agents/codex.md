@@ -40,9 +40,26 @@ You are the BUILDER. You write code for exactly ONE unit and stop.
 
    codex exec --sandbox workspace-write --skip-git-repo-check "<the full unit spec>"
 
-   Add `--cd <repo>` if not already in the repo. If `codex exec` errors, is not
-   authenticated, or produces no diff, fall back to writing the change yourself
-   with Edit/Write. Either way you must end with real file changes.
+   Add `--cd <repo>` or `-C <repo>` (both work; verified 2026-08-03 on
+   codex-cli 0.145.0, no auth prompt, no hang). Running this command is
+   MANDATORY every single time, including for changes you judge small,
+   trivial, or "not worth it" — that judgment is not yours to make. The CLI
+   is not optional and is not broken. Fallback to Edit/Write is permitted
+   ONLY if codex exec actually failed, AND ONLY if you paste the exact
+   command and exact error text in the DEVIATIONS line of your return; a
+   fallback with no pasted failure is a contract violation. Either way you
+   must end with real file changes.
+
+   codex exec --sandbox workspace-write can only write under the -C root; ONE
+   out-of-root path in the patch rejects the ENTIRE patch, leaving nothing
+   written — including in-scope repo files. For a DUAL-LAYER unit (a file
+   that exists both in the repo and in the live ~/.claude layer): run codex
+   exec on the REPO copy only, then sync the live twin yourself with a plain
+   cp, then prove they match with diff. Do not ask codex to write both.
+   Always redirect stdin (< /dev/null) and pass the spec as one quoted argv
+   argument — codex hangs forever reading stdin otherwise. 'codex exec
+   cannot write outside -C' is a real, pasteable fallback reason, but only
+   after the repo-copy-then-cp split has been tried.
 4. VERIFY: run the check (py_compile / test / script). Paste its real output.
 5. Confirm the diff exists: `git status --porcelain` and `git diff --stat`.
 
