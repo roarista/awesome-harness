@@ -61,15 +61,18 @@ def tracked_files(root):
 
 
 def loc(path):
+    """Return line count, or None if the file could not be read."""
     try:
         with open(path, "r", errors="replace") as fh:
             return sum(1 for _ in fh)
     except OSError:
-        return 0
+        return None
 
 
 def py_symbols_ast(path):
-    """Fallback python symbol extraction via ast."""
+    """Fallback python symbol extraction via ast. Returns None (not []) if
+    the file could not be read or parsed, so callers can distinguish that
+    from a genuinely empty file."""
     syms = []
     try:
         with open(path, "r", errors="replace") as fh:
@@ -79,7 +82,7 @@ def py_symbols_ast(path):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
                 syms.append(node.name)
     except (SyntaxError, ValueError, OSError):
-        pass
+        return None
     return syms
 
 
@@ -191,6 +194,7 @@ def build_map(root, stdout_mode=False):
     hub_entries = build_hub_entries(files, root)
 
     file_syms = {}
+    unparseable = set()
     for f in files:
         if f.endswith(".md"):
             continue
@@ -199,6 +203,9 @@ def build_map(root, stdout_mode=False):
             syms = semgrep_data.get(f)
             if not syms:
                 syms = py_symbols_ast(full)
+                if syms is None:
+                    unparseable.add(f)
+                    syms = []
             file_syms[f] = syms
         elif f.endswith(".sh"):
             file_syms[f] = sh_symbols(full)
@@ -207,13 +214,25 @@ def build_map(root, stdout_mode=False):
 
     total_loc = 0
     file_lines = {}
+    unreadable = set()
     for f in files:
         if f.endswith(".md"):
             continue
         n = loc(os.path.join(root, f))
+        if n is None:
+            unreadable.add(f)
+            n = 0
         total_loc += n
         syms = file_syms.get(f, [])
         file_lines[f] = (n, syms)
+
+    failed_files = sorted(unparseable | unreadable)
+    if failed_files:
+        warns.append(
+            "#WARN {} file(s) unreadable/unparseable: {}".format(
+                len(failed_files), ",".join(failed_files)
+            )
+        )
 
     non_md = [f for f in files if not f.endswith(".md")]
     dirs = {}
@@ -237,6 +256,9 @@ def build_map(root, stdout_mode=False):
             for f in sorted(dirs[d]):
                 base = os.path.basename(f)
                 n, syms = file_lines[f]
+                if f in unparseable or f in unreadable:
+                    lines.append("{}|?|?PARSE-FAIL".format(base))
+                    continue
                 if truncate_syms and len(syms) > 8:
                     shown = syms[:8]
                     rest = len(syms) - 8

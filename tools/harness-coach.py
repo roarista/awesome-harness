@@ -215,8 +215,8 @@ def build_digest(days: int, deep: int) -> str:
                 L.append(f"- sessions with any signal: {len(sess)}")
                 for name, n in ev.most_common():
                     L.append(f"- {name}: {n}")
-    except Exception:
-        pass
+    except Exception as e:
+        L.append(f"\n## harness-usage telemetry (are harness features being used?)\n(UNAVAILABLE: {type(e).__name__}: {e})")
 
     return "\n".join(L)[:DIGEST_CAP]
 
@@ -263,8 +263,8 @@ def harness_snapshot() -> str:
                           for grp in arr for h in grp.get("hooks", [])]
                      for ev, arr in hk.items()}
             L.append("\n## settings.json hook wiring\n" + json.dumps(wired, indent=0)[:1500])
-        except Exception:
-            pass
+        except Exception as e:
+            L.append(f"\n## settings.json hook wiring\n(UNAVAILABLE: {type(e).__name__}: {e})")
     return "\n".join(L)[:SNAP_CAP]
 
 
