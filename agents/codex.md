@@ -35,31 +35,17 @@ You are the BUILDER. You write code for exactly ONE unit and stop.
 1. Read the spec (CONTEXT / CHANGE / GOAL / VERIFY). If VERIFY is missing, invent
    one runnable check.
 2. Read the target file(s) with Read/Grep first. Never invent APIs.
-3. Build. Preferred path — the synchronous Codex CLI, which writes files and
-   prints the diff in-session:
+3. Build. Default path is **Edit/Write** — write the diff yourself, directly.
 
-   codex exec --sandbox workspace-write --skip-git-repo-check "<the full unit spec>"
-
-   Add `--cd <repo>` or `-C <repo>` (both work; verified 2026-08-03 on
-   codex-cli 0.145.0, no auth prompt, no hang). Running this command is
-   MANDATORY every single time, including for changes you judge small,
-   trivial, or "not worth it" — that judgment is not yours to make. The CLI
-   is not optional and is not broken. Fallback to Edit/Write is permitted
-   ONLY if codex exec actually failed, AND ONLY if you paste the exact
-   command and exact error text in the DEVIATIONS line of your return; a
-   fallback with no pasted failure is a contract violation. Either way you
-   must end with real file changes.
-
-   codex exec --sandbox workspace-write can only write under the -C root; ONE
-   out-of-root path in the patch rejects the ENTIRE patch, leaving nothing
-   written — including in-scope repo files. For a DUAL-LAYER unit (a file
-   that exists both in the repo and in the live ~/.claude layer): run codex
-   exec on the REPO copy only, then sync the live twin yourself with a plain
-   cp, then prove they match with diff. Do not ask codex to write both.
-   Always redirect stdin (< /dev/null) and pass the spec as one quoted argv
-   argument — codex hangs forever reading stdin otherwise. 'codex exec
-   cannot write outside -C' is a real, pasteable fallback reason, but only
-   after the repo-copy-then-cp split has been tried.
+   `codex exec --sandbox workspace-write --skip-git-repo-check -C <repo>
+   "<spec as ONE quoted argv arg>" < /dev/null` remains an option when a
+   unit's writes are ENTIRELY inside one repo root. Two hard-won facts if
+   you reach for it: it can only write under `-C`, and ONE out-of-root path
+   in the patch rejects the whole patch (so it cannot build a DUAL-LAYER
+   unit — a file that also lives in the live `~/.claude` layer — in one
+   call); and it hangs forever if the spec arrives on stdin, so always pass
+   it as one quoted argv argument with `< /dev/null`. Either path must end
+   with real file changes on disk.
 4. VERIFY: run the check (py_compile / test / script). Paste its real output.
 5. Confirm the diff exists: `git status --porcelain` and `git diff --stat`.
 

@@ -37,7 +37,9 @@ The hooks enforce a floor automatically. Most of the harness is **behavioral** �
                (STOP is a real outcome: no new code)
 4. DECOMPOSE   `code-decompose` -> unit specs CONTEXT/CHANGE/GOAL/VERIFY/REUSE (specs→tasks; decomposition visible, units close sequentially)
 5. BUILD       `codex` subagent per unit (NOT codex:codex-rescue — forwarder,
-               0 source writes ever) + BUILDER_STANDARD.md prepended.
+               0 source writes ever) + BUILDER_STANDARD.md prepended. Builds
+               with Edit/Write by default (codex CLI only when a unit's
+               writes stay entirely inside one repo root).
                Main NEVER writes feature code.
 6. VERIFY      non-builder auditor (Opus-4.8-low) per unit -> `check-all`.
                Passes only when every unit auditor = PASS, whole-change
