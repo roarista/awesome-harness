@@ -136,6 +136,25 @@ enumerate)
     [ "$rc" != 0 ] && say "FALLBACK: c3-enumerate exited $rc — this is a CHAIN FAILURE, not a count of zero."
     exit 0
   fi
+  case "$QUERY" in
+    [A-Za-z_]*)
+      IS_IDENT=1
+      case "$QUERY" in *[!A-Za-z0-9_]*) IS_IDENT=0 ;; esac
+      ;;
+    *) IS_IDENT=0 ;;
+  esac
+  if [ "$IS_IDENT" != 1 ]; then
+    # Not a bare identifier: a callable-shaped semgrep pattern generated from
+    # this query would be syntactic garbage (R-0a correctly refuses it).
+    # Answer with the literal leg instead of pretending at structure.
+    GN="$(grep -rc --include='*.py' --include='*.sh' $EXCL -- "$QUERY" "$SCOPE" 2>/dev/null | awk -F: '{s+=$NF} END{print s+0}' || true)"
+    grep -rn --include='*.py' --include='*.sh' $EXCL -- "$QUERY" "$SCOPE" 2>/dev/null >> "$FULL" || true
+    say "COUNT: $GN literal line(s) for '$QUERY' (grep, NOT a structural set — multi-word queries"
+    say "  cannot be turned into a valid semgrep callable pattern, so no COMPLETE structural answer exists here)."
+    skipped_dirs_line
+    say "  -> for a structural/COMPLETE answer, use \`exists\` or write a hand rule in $RULES/."
+    exit 0
+  fi
   RULE="$OUTDIR/gen-$KEY.yaml"
   cat > "$RULE" <<EOF
 rules:
