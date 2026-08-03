@@ -2,8 +2,8 @@
 name: awesomeharness
 description: Boot the entire harness for this session in one command. Reads orientation, re-asserts the operating rules, and installs THE PROCEDURE — the standing pipeline every task follows (ORIENT -> RECALL -> UNDERSTAND -> GATE -> DECOMPOSE -> BUILD -> VERIFY -> PERSIST). Also the canonical map of every harness component and which ones compose. Run at session start, mid-session, or in an already-running session.
 ---
-
 <!-- MIRROR: copy of ~/.claude/skills/awesomeharness/SKILL.md (authoritative = the live ~/.claude copy). Re-sync: cp ~/.claude/skills/awesomeharness/SKILL.md skills/awesomeharness/SKILL.md -->
+
 # awesomeharness — one-command harness boot
 
 The hooks enforce a floor automatically. Most of the harness is **behavioral** — it only happens if the agent does it. `/awesomeharness` turns the whole thing on for this session **and every subagent it spawns**. Skills load from disk at invoke time, so this works in an already-running session (it can't add new *hooks* to a live process — it activates the behavioral layer + rituals).
@@ -19,8 +19,8 @@ The hooks enforce a floor automatically. Most of the harness is **behavioral** �
 3. **"All the places where X" is a semgrep question, never a grep question.** `~/.local/bin/semgrep` is the only tool measured to return a COMPLETE set; `tools/retrieve.sh enumerate` routes to it with a COUNT. Trap: a rule pattern containing `:` must be QUOTED in the YAML or the config is silently invalid — 0 results, 2 errors, no crash.
 4. **Main orchestrates and never writes feature code.** Code writes go to the `codex` subagent.
 5. **Every spawn carries a full unit spec; every return obeys the 8-line contract.** The contract lives IN the agent definitions (`~/.claude/agents/{codex,codex-audit,opus,gemini}.md`) — no need to retype it, unit spec is still the caller's job. Overflow -> `tools/finding.sh record`; return only the id + one-line summary.
-6. **A claim about repo state carries its receipt** — the exact command and its real output — or it does not enter a commit, handoff, or summary.
-7. **Every turn ends compaction-safe:** `.now.md` + STATE resume point updated, memory/mulch synced, final message names what was saved.
+6. **A claim about repo state carries its receipt** (exact command + real output) and **every turn ends compaction-safe** (`.now.md` + STATE updated, memory/mulch synced, final message names what was saved) — no receipt, no entry into a commit/handoff/summary.
+7. **`command grep`, not `grep -r`, for gitignored territory** (`.claude/`, `.findings/`, `.codemap`, `.scratch/`, `.mulch/`) — plain `grep -r` execs ugrep with `--ignore-files` and silently returns a false zero; `--no-ignore` doesn't fix it.
 
 ---
 
@@ -120,16 +120,19 @@ harness-coach (weekly transcript miner) · **`harness-intel`** (Mode A drift rep
 ## What to do when invoked
 1. Run the orientation contract (`.northstar.md` + `.now.md` + STATE resume point); route any write to a cheap (haiku) sub-agent.
 2. Run `orient` Part A for task-relevant memory. Verify anything recalled against the live tree.
-3. Report "harness up" as exactly these 6 lines, no more, no hook-name enumeration:
+3. Bootstrap this repo's `.findings/` (idempotent, safe outside git):
+   `git rev-parse --is-inside-work-tree >/dev/null 2>&1 && { mkdir -p .findings; command grep -qxF '.findings/' .gitignore 2>/dev/null || echo '.findings/' >> .gitignore; }`
+4. Report "harness up" as exactly these 7 lines, no more, no hook-name enumeration:
 ```
 NORTH STAR: …
 NOW: …
 RECALL: <=2 bullets
 PROCEDURE: armed (0-7)
 FLOOR: blocking hooks armed, understand-gate=warn
+FINDINGS: .findings/ ready (N prior)
 NEXT: <the task>
 ```
-4. From then on: **every code task walks THE PROCEDURE.** Announce the step only in the final summary, never mid-turn.
+5. From then on: **every code task walks THE PROCEDURE.** Announce the step only in the final summary, never mid-turn.
 
 ## Ponytail note
 This file is a **router**: announcement + procedure + map. It does not re-implement what hooks or skills already do — it invokes them. If a section starts duplicating a skill, delete it and point at the skill.

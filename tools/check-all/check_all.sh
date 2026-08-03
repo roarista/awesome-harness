@@ -242,8 +242,101 @@ run_semgrep() {
     --exclude node_modules --exclude .repowise --exclude venv --exclude .venv --exclude dist --exclude build --exclude .next \
     --exclude .scratch --exclude .mulch --exclude data --exclude "raw-*" --exclude jina-raw --exclude fetchtmp) >"$LOG_G" 2>&1
   local rc=$?
+  # Best-effort second pass: JSON output only, to surface parse-failed (unscanned) files.
+  # Never let this affect pass/fail — it only adds an honest count to the summary line.
+  local unscanned_note="unscanned-count unknown"
+  local LOG_G_JSON="$TMP_BASE/semgrep.json"
+  if (cd "$REPO_DIR" && _timeout_cmd 300 semgrep --config p/default --severity ERROR --metrics=off --quiet --json \
+      --exclude node_modules --exclude .repowise --exclude venv --exclude .venv --exclude dist --exclude build --exclude .next \
+      --exclude .scratch --exclude .mulch --exclude data --exclude "raw-*" --exclude jina-raw --exclude fetchtmp) >"$LOG_G_JSON" 2>/dev/null; then
+    :
+  fi
+  unscanned_note=$(python3 - "$LOG_G_JSON" <<'PYEOF' 2>/dev/null
+import json, sys
+try:
+    with open(sys.argv[1]) as f:
+        data = json.load(f)
+    errors = data.get("errors", [])
+    paths = []
+    for e in errors:
+        p = None
+        loc = e.get("location") or {}
+        p = loc.get("path") or e.get("path")
+        if p:
+            paths.append(p)
+    n = len(errors)
+    if n == 0:
+        print("0 file(s) UNSCANNED (parse error)")
+    else:
+        shown = paths[:2]
+        extra = n - len(shown)
+        suffix = f", +{extra}" if extra > 0 else ""
+        print(f"{n} file(s) UNSCANNED (parse error): {', '.join(shown)}{suffix}")
+except Exception:
+    print("unscanned-count unknown")
+PYEOF
+  )
+  [[ -z "$unscanned_note" ]] && unscanned_note="unscanned-count unknown"
+
+  # Second pass: this repo's OWN rulesets (tools/semgrep/*.yaml), purely ADVISORY.
+  # No-op when the directory doesn't exist (e.g. run from another repo). Never
+  # affects rc / pass-fail / OVERALL — only adds a compact per-rule tally and
+  # folds any parse errors into the shared unscanned count.
+  local repo_rules_note=""
+  local REPO_RULES_DIR="$REPO_DIR/tools/semgrep"
+  if [[ -d "$REPO_RULES_DIR" ]]; then
+    local LOG_G_REPO_JSON="$TMP_BASE/semgrep-repo-rules.json"
+    (cd "$REPO_DIR" && _timeout_cmd 300 semgrep --config "$REPO_RULES_DIR" --metrics=off --quiet --json \
+        --exclude node_modules --exclude .repowise --exclude venv --exclude .venv --exclude dist --exclude build --exclude .next \
+        --exclude .scratch --exclude .mulch --exclude data --exclude "raw-*" --exclude jina-raw --exclude fetchtmp) >"$LOG_G_REPO_JSON" 2>/dev/null
+    local repo_tally
+    repo_tally=$(python3 - "$LOG_G_REPO_JSON" <<'PYEOF' 2>/dev/null
+import json, sys
+try:
+    with open(sys.argv[1]) as f:
+        data = json.load(f)
+    results = data.get("results", [])
+    errors = data.get("errors", [])
+    from collections import Counter
+    counts = Counter()
+    for r in results:
+        rid = r.get("check_id", "unknown")
+        short = rid.rsplit(".", 1)[-1]
+        counts[short] += 1
+    total = sum(counts.values())
+    if total == 0:
+        print("EMPTY|" + str(len(errors)))
+    else:
+        top = counts.most_common(4)
+        shown = ", ".join(f"{name} {n}" for name, n in top)
+        rest = len(counts) - len(top)
+        extra_names = sum(n for name, n in counts.most_common()[4:])
+        suffix = f", +{extra_names}" if rest > 0 else ""
+        print(f"{total} ({shown}{suffix})|{len(errors)}")
+except Exception:
+    print("UNKNOWN|0")
+PYEOF
+    )
+    if [[ "$repo_tally" == UNKNOWN* ]]; then
+      repo_rules_note=""
+      unscanned_note="unscanned-count unknown"
+    else
+      local tally_part="${repo_tally%%|*}"
+      local repo_errs="${repo_tally##*|}"
+      [[ "$tally_part" != EMPTY* ]] && repo_rules_note="; repo-rules: $tally_part"
+      if [[ "$repo_errs" =~ ^[0-9]+$ && "$repo_errs" -gt 0 && "$unscanned_note" != "unscanned-count unknown" ]]; then
+        local base_count
+        base_count=$(printf '%s' "$unscanned_note" | grep -oE '^[0-9]+' || echo "")
+        if [[ "$base_count" =~ ^[0-9]+$ ]]; then
+          local combined=$((base_count + repo_errs))
+          unscanned_note="${combined} file(s) UNSCANNED (parse error, combined p/default + repo-rules)"
+        fi
+      fi
+    fi
+  fi
+
   if [[ $rc -eq 0 ]]; then
-    _record "semgrep" "pass" 0 "semgrep p/default (severity ERROR) clean"
+    _record "semgrep" "pass" 0 "semgrep p/default (severity ERROR) clean; $unscanned_note$repo_rules_note"
   else
     # rc!=0 → ERROR-severity findings. Advisory by default: SUGGEST, do NOT fail.
     # Opt in to blocking with SEMGREP_STRICT=1.
@@ -252,7 +345,7 @@ run_semgrep() {
       result="fail"
       OVERALL_FAIL=1
     fi
-    _record "semgrep" "$result" $rc "semgrep flagged ERROR-severity patterns — advisory, review & consider (not blocking)"
+    _record "semgrep" "$result" $rc "semgrep flagged ERROR-severity patterns — advisory, review & consider (not blocking); $unscanned_note$repo_rules_note"
     printf '\n[semgrep — consider these (advisory, ERROR-severity only; each line = a real bug/security pattern worth a look)]\n%s\n' "$(cat "$LOG_G")"
   fi
 }

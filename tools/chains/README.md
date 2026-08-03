@@ -37,6 +37,25 @@ delegated chain exits non-zero. `c1-blast` exiting 3 is reported as a **chain fa
 as "nothing depends on it". Verdicts are capped at 14 lines by `_lib.sh`; the last line is
 always `FULL: <path>`.
 
+## All seven chains — honest reachability
+
+Two chains are wired into the router; the other five have no caller anywhere in the
+harness (hooks, skills, tools) and are invoked by hand only.
+
+| chain | purpose | reached via |
+|---|---|---|
+| `c0-preflight.sh` | reports which chains are trustworthy in the current repo | manual only |
+| `c1-blast.sh` | blast-radius union (graphify affected ∪ semgrep importers) | `via tools/retrieve.sh blast` |
+| `c2-prior-art.sh` | prior-art / precedent search before building something new | manual only |
+| `c3-enumerate.sh` | complete-set enumeration via committed/generated semgrep rule | `via tools/retrieve.sh enumerate` |
+| `c5-dead.sh` | dead-code sweep | manual only |
+| `c6-vestigial.sh` | vestigial/leftover-artifact sweep | manual only |
+| `c7-preship.sh` | pre-ship checklist chain | manual only |
+
+`c0-preflight` / `c2-prior-art` / `c5-dead` / `c6-vestigial` / `c7-preship` are not
+documented anywhere else and not called by `tools/retrieve.sh` — run them directly
+(`bash tools/chains/<name>.sh …`) when you need them.
+
 ## Known gotchas
 
 - `graphify affected` on a **label** returns `No affected nodes found` — a false negative. The
