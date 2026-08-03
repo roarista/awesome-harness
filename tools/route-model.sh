@@ -33,7 +33,7 @@ lower="$(echo "$TASK" | tr '[:upper:]' '[:lower:]')"
 # tokens go to the subagent fleet; the fix is fewer launches, not cheaper ones.
 # ---------------------------------------------------------------------------
 is_judgment=0
-echo "$lower" | grep -qE '\b(audit|review|verify|red.?team|second opinion|architect the|decide (between|whether))\b' && is_judgment=1
+echo "$lower" | grep -qE '\b(audit|review|verify|red.?team|second opinion|architect the|decide (between|whether)|forensic|analys[a-z]*|investigat[a-z]*|inspect|read.?only|do not edit|don.t edit|no edits|survey|census|mine the transcripts)\b' && is_judgment=1
 
 if [[ -z "$OVERRIDE_MODEL" ]]; then
   if [[ "$FILES" -le 1 ]] && echo "$lower" | grep -qE '^(read|cat|show|print|what does|what is in|look at) '; then
