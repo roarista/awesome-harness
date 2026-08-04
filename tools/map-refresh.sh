@@ -47,6 +47,7 @@ if [ -f "$TOOLS/l0.py" ]; then
     # below: a healthy .codemap covering for it is a supported configuration,
     # not a defect.
     L0_MISSING=1
+    L0_MISSING_REASON="l0 reports: $(printf '%s' "$out" | grep 'DILUTED INDEX UNAVAILABLE' | head -1 | sed 's/^ *//')"
   elif [ $rc -ne 0 ]; then
     row L0 FAIL "exit $rc"
   elif [ "$bytes" -lt 300 ]; then
@@ -74,6 +75,7 @@ else
   # mean anything) — not a defect. Defer the row until we know whether the
   # codemap tier is healthy; see below.
   L0_MISSING=1
+  L0_MISSING_REASON="l0.py not found at $TOOLS/l0.py"
 fi
 
 # ---------- cached tier: .codemap -----------------------------------------
@@ -108,7 +110,7 @@ if [ "${L0_MISSING:-0}" = 1 ]; then
     n_src=$(git ls-files 2>/dev/null | grep -cE '\.(py|ts|tsx|js|jsx|sh|sql|go|rs)$')
     row L0 n/a "codemap serves this repo ($n_src source files, too few for hubs)"
   else
-    row L0 FAIL "l0.py not installed and no healthy .codemap to serve this repo"
+    row L0 FAIL "${L0_MISSING_REASON:-l0.py not found} and no healthy .codemap to serve this repo"
   fi
 fi
 
