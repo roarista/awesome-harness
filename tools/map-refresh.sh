@@ -91,6 +91,7 @@ if [ -f "$REPO/.codemap" ]; then
     row CODEMAP FAIL "stale: @$map_sha vs HEAD @$head_sha"
   elif [ -f "$TOOLS/codemap.py" ]; then
     if python3 "$TOOLS/codemap.py" >/dev/null 2>&1; then
+      map_sha="$head_sha"
       row CODEMAP ok "regenerated @$head_sha, $(wc -c < "$REPO/.codemap" | tr -d ' ') bytes"
     else
       row CODEMAP FAIL "regeneration failed, stale @$map_sha still on disk"
