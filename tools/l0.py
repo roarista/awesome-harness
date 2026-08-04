@@ -8,14 +8,52 @@ import re
 import subprocess
 import sys
 from collections import defaultdict
-
-HEADER = (
-    "DILUTED INDEX -- not the code. Names only, no signatures, no bodies.\n"
-    "Zoom in:   tools/l1.py <area>       (files+LOC+entrypoints for one area)\n"
-    "Exact API: tools/skeleton.py <file> (verbatim signatures)\n"
-)
+from pathlib import Path
 
 CAP = 1500
+
+
+def _sibling_ref(name, root):
+    """Resolve l0.py's sibling tool (l1.py / skeleton.py) relative to l0.py's
+    own location, not a hardcoded guess. Returns a string to print in a
+    header line, or None if the sibling doesn't exist anywhere."""
+    here = Path(__file__).resolve().parent
+    sib = here / name
+    if not sib.is_file():
+        return None
+    root_path = Path(root).resolve() if root else None
+    if root_path is not None:
+        try:
+            rel = sib.relative_to(root_path)
+            return str(rel)
+        except ValueError:
+            pass
+    home = str(Path.home())
+    sib_str = str(sib)
+    if sib_str.startswith(home):
+        return "~" + sib_str[len(home):]
+    return sib_str
+
+
+def build_header(root=None):
+    l1_ref = _sibling_ref("l1.py", root)
+    sk_ref = _sibling_ref("skeleton.py", root)
+    zoom_line = (
+        "Zoom in:   {} <area>       (files+LOC+entrypoints for one area)".format(l1_ref)
+        if l1_ref else "Zoom in:   (l1.py not installed)"
+    )
+    api_line = (
+        "Exact API: {} <file> (verbatim signatures)".format(sk_ref)
+        if sk_ref else "Exact API: (skeleton.py not installed)"
+    )
+    return (
+        "DILUTED INDEX -- not the code. Names only, no signatures, no bodies.\n"
+        "{}\n"
+        "{}\n"
+    ).format(zoom_line, api_line)
+
+
+HEADER = build_header()
 
 EXCLUDE_COMPONENTS = {
     "docs", "tests", "test", "__tests__", "_legacy", ".artifacts", ".scratch",
@@ -111,7 +149,9 @@ def fit_block(block_lines, budget):
 
 
 def main():
+    global HEADER
     root = get_root()
+    HEADER = build_header(root)
     root_name = os.path.basename(root.rstrip("/"))
 
     sha_out = subprocess.run(
