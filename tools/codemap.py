@@ -247,7 +247,7 @@ def build_map(root, stdout_mode=False):
         dir_loc[d] = sum(file_lines[f][0] for f in fs)
     dirs_by_size = sorted(dirs.keys(), key=lambda d: -dir_loc[d])
 
-    def render(truncate_syms, collapsed_dirs):
+    def render(truncate_syms, collapsed_dirs, bin_sample=None, doc_sample=None):
         lines = []
         sha = short_sha(root)
         reponame = os.path.basename(root)
@@ -286,9 +286,26 @@ def build_map(root, stdout_mode=False):
         else:
             lines.append("#HUB none")
         if bin_files:
-            lines.append("#BIN {} files: {}".format(len(bin_files), ",".join(bin_files)))
+            if bin_sample is not None and bin_sample < len(bin_files):
+                shown = bin_files[:bin_sample]
+                lines.append(
+                    "#BIN {} files: {} (+{} more)".format(
+                        len(bin_files), ",".join(shown), len(bin_files) - bin_sample
+                    )
+                )
+            else:
+                lines.append("#BIN {} files: {}".format(len(bin_files), ",".join(bin_files)))
         if md_files:
-            lines.append("#DOC " + ",".join(sorted(md_files)))
+            sorted_md = sorted(md_files)
+            if doc_sample is not None and doc_sample < len(md_files):
+                shown = sorted_md[:doc_sample]
+                lines.append(
+                    "#DOC {} files: {} (+{} more)".format(
+                        len(md_files), ",".join(shown), len(md_files) - doc_sample
+                    )
+                )
+            else:
+                lines.append("#DOC " + ",".join(sorted_md))
         return "\n".join(lines) + "\n"
 
     text = render(False, set())
@@ -302,8 +319,8 @@ def build_map(root, stdout_mode=False):
         dropped_syms = True
 
     # progressively collapse the largest directories, largest first, until
-    # under budget. Header/#WARN/#HUB/#BIN/#DOC lines always survive because
-    # render() never drops them.
+    # under budget. Only the header, #WARN and #TRUNCATED lines are
+    # unconditionally whole; #BIN/#DOC are shrunk below if still over budget.
     for d in dirs_by_size:
         if len(text.encode("utf-8")) <= MAX_BYTES:
             break
@@ -317,7 +334,23 @@ def build_map(root, stdout_mode=False):
         text = render(True, collapsed_dirs)
         nbytes = len(text.encode("utf-8"))
 
-    if dropped_syms or collapsed_dirs:
+    # #DOC and #BIN can each be huge on their own (one line listing every
+    # file); shrink them to a bounded sample if the map is still over budget.
+    bin_sample = None
+    doc_sample = None
+    if nbytes > MAX_BYTES:
+        for sample in (30, 15, 7, 3, 1, 0):
+            bin_sample = sample
+            doc_sample = sample
+            text = render(True, collapsed_dirs, bin_sample=bin_sample, doc_sample=doc_sample)
+            nbytes = len(text.encode("utf-8"))
+            if nbytes <= MAX_BYTES:
+                break
+
+    doc_truncated = doc_sample is not None and doc_sample < len(md_files)
+    bin_truncated = bin_sample is not None and bin_sample < len(bin_files)
+
+    if dropped_syms or collapsed_dirs or doc_truncated or bin_truncated:
         parts = []
         if dropped_syms:
             parts.append("symbol lists dropped (>8 per file)")
@@ -327,7 +360,22 @@ def build_map(root, stdout_mode=False):
                     len(collapsed_dirs), ",".join(sorted(d if d else "." for d in collapsed_dirs))
                 )
             )
+        if doc_truncated:
+            parts.append("#DOC truncated to {} of {} files".format(doc_sample, len(md_files)))
+        if bin_truncated:
+            parts.append("#BIN truncated to {} of {} files".format(bin_sample, len(bin_files)))
         text = text.rstrip("\n") + "\n#TRUNCATED " + "; ".join(parts) + "\n"
+
+    nbytes = len(text.encode("utf-8"))
+    if nbytes > MAX_BYTES:
+        # absolute last resort: drop the lowest-value remaining content
+        # (the full #BIN/#DOC lines already sampled to 0) — if still over,
+        # trim trailing content to hard-fit the ceiling. This should not be
+        # reachable in practice once dirs are collapsed and DOC/BIN are
+        # sampled to 0, but the ceiling must never be violated.
+        trimmed = text.encode("utf-8")[: MAX_BYTES - 1].decode("utf-8", errors="ignore")
+        text = trimmed.rstrip("\n") + "\n"
+        assert len(text.encode("utf-8")) <= MAX_BYTES
 
     return text
 

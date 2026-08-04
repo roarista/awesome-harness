@@ -67,7 +67,10 @@ def _codemap_py(root):
     local = os.path.join(root, "tools", "codemap.py")
     if os.path.isfile(local):
         return local
-    fallback = os.path.join(os.path.expanduser("~"), ".claude", "tools", "codemap.py")
+    fallback = os.environ.get(
+        "CODEMAP_GLOBAL_PY",
+        os.path.join(os.path.expanduser("~"), ".claude", "tools", "codemap.py"),
+    )
     if os.path.isfile(fallback):
         return fallback
     return None
@@ -188,21 +191,49 @@ def _selftest():
             elif os.path.isfile(codemap_path):
                 os.remove(codemap_path)
 
-    # --- Test 2: missing tools/codemap.py -> exit quietly, prints nothing
+    # --- Test 2: both repo copy and global copy missing -> print nothing, exit 0
     tmpdir = tempfile.mkdtemp()
     try:
         subprocess.run(["git", "init", "-q"], cwd=tmpdir, capture_output=True)
         this_script = os.path.abspath(__file__)
+        missing_global = os.path.join(tmpdir, "no-such-global-codemap.py")
+        env = dict(os.environ, CODEMAP_GLOBAL_PY=missing_global)
         out = subprocess.run(
-            ["python3", this_script], cwd=tmpdir, capture_output=True, text=True,
+            ["python3", this_script], cwd=tmpdir, capture_output=True, text=True, env=env,
         )
         if out.stdout.strip() != "" or out.returncode != 0:
-            print("FAIL: missing-file path printed something or exited non-zero")
+            print("FAIL: both-missing path printed something or exited non-zero")
             ok = False
         else:
-            print("PASS: missing-file path prints nothing")
+            print("PASS: both-missing path prints nothing")
     except Exception as e:
-        print("FAIL: missing-file path raised {}".format(e))
+        print("FAIL: both-missing path raised {}".format(e))
+        ok = False
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
+
+    # --- Test 3: repo copy missing, global copy present -> falls back and produces a map
+    tmpdir = tempfile.mkdtemp()
+    try:
+        subprocess.run(["git", "init", "-q"], cwd=tmpdir, capture_output=True)
+        subprocess.run(["git", "commit", "--allow-empty", "-q", "-m", "init"], cwd=tmpdir, capture_output=True)
+        this_script = os.path.abspath(__file__)
+        real_root = _repo_root()
+        global_codemap_py = os.path.join(real_root, "tools", "codemap.py") if real_root else None
+        if not global_codemap_py or not os.path.isfile(global_codemap_py):
+            print("PASS: fallback path skipped (no tools/codemap.py available to inject as global)")
+        else:
+            env = dict(os.environ, CODEMAP_GLOBAL_PY=global_codemap_py)
+            out = subprocess.run(
+                ["python3", this_script], cwd=tmpdir, capture_output=True, text=True, env=env,
+            )
+            if out.stdout.strip() == "" or out.returncode != 0:
+                print("FAIL: fallback path (repo missing, global present) produced no map")
+                ok = False
+            else:
+                print("PASS: fallback path (repo missing, global present) produces a map")
+    except Exception as e:
+        print("FAIL: fallback path raised {}".format(e))
         ok = False
     finally:
         shutil.rmtree(tmpdir, ignore_errors=True)

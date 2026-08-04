@@ -25,15 +25,19 @@ sess() {
       echo "finding.sh: invalid HARNESS_SESSION '$HARNESS_SESSION' (no empty, '/', '..', or >96 chars)" >&2; exit 2; }
     echo "$HARNESS_SESSION"; return
   fi
+  local today; today="$(date +%Y-%m-%d)"
   if [ -s "$D/.current" ]; then
     local c; c="$(head -1 "$D/.current")"
-    # a bad .current is ignored and recomputed below (self-healing)
-    if sess_ok "$c"; then echo "$c"; return; fi
+    # a bad .current is ignored and recomputed below (self-healing);
+    # a .current dated before today is also stale and recomputed (rotates daily)
+    if sess_ok "$c" && case "$c" in "$today"-*) true ;; *) false ;; esac; then
+      echo "$c"; return
+    fi
   fi
   # same tty+PID derivation as tools/git-sync.sh:40-41
   local t; t="$(tty 2>/dev/null || true)"
   case "$t" in /dev/*) T="$(basename "$t")-$$" ;; *) T="$(hostname -s 2>/dev/null || echo host)-$$" ;; esac
-  local s; s="$(date +%Y-%m-%d)-$T"
+  local s; s="$today-$T"
   mkdir -p "$D"; printf '%s\n' "$s" > "$D/.current"
   echo "$s"
 }
