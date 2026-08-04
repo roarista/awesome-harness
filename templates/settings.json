@@ -227,16 +227,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/contract-nudge.py\"",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "Task|Agent",
-        "hooks": [
-          {
-            "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/spawn-necessity.py\"",
             "timeout": 12
           }
@@ -413,7 +403,7 @@
         "--transport",
         "stdio"
       ],
-      "description": "repowise: codebase intelligence — docs, graph, git signals, dead code, decisions"
+      "description": "repowise: codebase intelligence \u2014 docs, graph, git signals, dead code, decisions"
     }
   }
 }
