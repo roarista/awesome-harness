@@ -68,10 +68,11 @@ need semgrep "optional deterministic SAST for check-all — install: pipx instal
 
 # ---- 2. copy harness files ------------------------------------------------
 echo "[2/3] copying hooks, skills, tools"
-run "mkdir -p '$DEST/hooks' '$DEST/skills' '$DEST/tools' '$DEST/scaffolds'"
+run "mkdir -p '$DEST/hooks' '$DEST/skills' '$DEST/tools' '$DEST/scaffolds' '$DEST/agents'"
 run "cp -R '$SRC/hooks/.' '$DEST/hooks/'"
 run "cp -R '$SRC/skills/.' '$DEST/skills/'"
 run "cp -R '$SRC/tools/.' '$DEST/tools/'"
+run "cp -R '$SRC/agents/.' '$DEST/agents/'"
 run "cp '$SRC/BUILDER_STANDARD.md' '$DEST/BUILDER_STANDARD.md'"
 run "cp '$SRC/MEMORY_STANDARD.md' '$DEST/MEMORY_STANDARD.md'"
 run "chmod +x '$DEST'/hooks/*.sh '$DEST'/hooks/*.py '$DEST'/tools/*.sh '$DEST'/tools/*.py '$DEST'/tools/check-all/*.sh 2>/dev/null || true"

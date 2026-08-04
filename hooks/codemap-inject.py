@@ -57,6 +57,44 @@ def _header_sha(text):
     return None
 
 
+STALE_CODEMAP_CAP = 30000
+
+
+def _l0_py(root):
+    """Same resolution pattern as _codemap_py: prefer repo-local tools/l0.py,
+    fall back to the global mirror at ~/.claude/tools/l0.py."""
+    local = os.path.join(root, "tools", "l0.py")
+    if os.path.isfile(local):
+        return local
+    fallback = os.environ.get(
+        "L0_GLOBAL_PY",
+        os.path.join(os.path.expanduser("~"), ".claude", "tools", "l0.py"),
+    )
+    if os.path.isfile(fallback):
+        return fallback
+    return None
+
+
+def _run_l0(root, l0_py):
+    try:
+        out = subprocess.run(
+            ["python3", l0_py],
+            cwd=root, capture_output=True, text=True, timeout=15,
+        )
+        if out.returncode != 0:
+            return None
+        text = out.stdout
+        if not text:
+            return None
+        if "DILUTED INDEX UNAVAILABLE" in text:
+            return None
+        if len(text.encode("utf-8", "ignore")) < 300:
+            return None
+        return text
+    except Exception:
+        return None
+
+
 def _codemap_py(root):
     """Return the path to codemap.py to run, or None if neither exists.
 
@@ -94,15 +132,8 @@ def _regenerate(root, codemap_py):
         return None
 
 
-def build_output():
-    """Return the text to print, or None to print nothing."""
-    if os.environ.get("CODEMAP_INJECT") == "off":
-        return None
-
-    root = _repo_root()
-    if not root:
-        return None
-
+def _codemap_fallback(root):
+    """Today's codemap path, unchanged, plus the stale-file byte cap guard."""
     codemap_py = _codemap_py(root)
     if not codemap_py:
         return None
@@ -111,7 +142,18 @@ def build_output():
     current_sha = _short_sha()
 
     existing = None
+    existing_size = 0
     if os.path.isfile(codemap_path):
+        try:
+            existing_size = os.path.getsize(codemap_path)
+        except Exception:
+            existing_size = 0
+        # Guard: never serve an on-disk .codemap larger than the cap, even
+        # if it's fresh — a huge file is the exact bug this fixes.
+        if existing_size > STALE_CODEMAP_CAP:
+            return "CODEMAP SKIPPED: .codemap is {} bytes (cap {}) — run: python3 ~/.claude/tools/codemap.py".format(
+                existing_size, STALE_CODEMAP_CAP
+            )
         try:
             with open(codemap_path, "r") as f:
                 existing = f.read()
@@ -126,6 +168,10 @@ def build_output():
     if existing is None or stale:
         regenerated = _regenerate(root, codemap_py)
         if regenerated is not None:
+            if len(regenerated.encode("utf-8", "ignore")) > STALE_CODEMAP_CAP:
+                return "CODEMAP SKIPPED: .codemap is {} bytes (cap {}) — run: python3 ~/.claude/tools/codemap.py".format(
+                    len(regenerated.encode("utf-8", "ignore")), STALE_CODEMAP_CAP
+                )
             body = regenerated
         elif existing is not None:
             built_sha = _header_sha(existing) or "unknown"
@@ -141,6 +187,29 @@ def build_output():
         return None
 
     return "{}\n{}\n{}".format(HEADER_1, HEADER_2, body)
+
+
+def build_output():
+    """Return the text to print, or None to print nothing.
+
+    Order: L0 (diluted index) first when it honestly produces a real named
+    index for this repo; otherwise fall back to the whole-repo codemap.
+    Each repo self-selects — no size threshold needed.
+    """
+    if os.environ.get("CODEMAP_INJECT") == "off":
+        return None
+
+    root = _repo_root()
+    if not root:
+        return None
+
+    l0_py = _l0_py(root)
+    if l0_py:
+        l0_text = _run_l0(root, l0_py)
+        if l0_text:
+            return l0_text
+
+    return _codemap_fallback(root)
 
 
 def main():
