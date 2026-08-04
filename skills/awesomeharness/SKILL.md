@@ -22,6 +22,8 @@ The hooks enforce a floor automatically. Most of the harness is **behavioral** �
 6. **A claim about repo state carries its receipt** (exact command + real output) and **every turn ends compaction-safe** (`.now.md` + STATE updated, memory/mulch synced, final message names what was saved) — no receipt, no entry into a commit/handoff/summary.
 7. **`command grep`, not `grep -r`, for gitignored territory** (`.claude/`, `.findings/`, `.codemap`, `.scratch/`, `.mulch/`) — plain `grep -r` execs ugrep with `--ignore-files` and silently returns a false zero; `--no-ignore` doesn't fix it.
 8. **3+ step objectives or fix lists → TaskCreate BEFORE work.** One per fix: DONE_WHEN/PROOF in description; mark `in_progress` at start, `completed` after PROOF. Abandoned tasks worse than none.
+9. **Main does not write files, including `.md`.** `.now.md`/STATE/memory/docs writes go to a **haiku** subagent — haiku is $1/$5 per M vs opus $5/$25, and it keeps main's context window clean. Exception (judgment call, not a loophole): a write so small a spawn's fixed cost would dominate it.
+10. **Spawn prompts are capped at ~200 words.** Required shape, one line each: REUSE/REJECT, CONTEXT (measured facts only), CHANGE, GOAL, VERIFY (exact commands), then the 8-line contract. Never restate anything already in the agent definition.
 
 ---
 

@@ -10,6 +10,7 @@ import tempfile
 
 EXCLUDE_DIRS = (".bak", "graphify-out/", "node_modules/", ".git/")
 BUDGET_BYTES = 12000
+MAX_BYTES = int(os.environ.get("CODEMAP_MAX_BYTES", "24000"))
 BIN_EXTS = (".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".pdf", ".woff", ".woff2", ".ttf")
 
 SEMGREP_RULE = """rules:
@@ -240,7 +241,13 @@ def build_map(root, stdout_mode=False):
         d = os.path.dirname(f)
         dirs.setdefault(d, []).append(f)
 
-    def render(truncate_syms):
+    # directories ranked largest-LOC-first, for progressive collapse
+    dir_loc = {}
+    for d, fs in dirs.items():
+        dir_loc[d] = sum(file_lines[f][0] for f in fs)
+    dirs_by_size = sorted(dirs.keys(), key=lambda d: -dir_loc[d])
+
+    def render(truncate_syms, collapsed_dirs):
         lines = []
         sha = short_sha(root)
         reponame = os.path.basename(root)
@@ -253,6 +260,10 @@ def build_map(root, stdout_mode=False):
             lines.append(w)
         for d in sorted(dirs.keys()):
             lines.append("[{}]".format(d if d else "."))
+            if d in collapsed_dirs:
+                fs = dirs[d]
+                lines.append("... {} files, {}L".format(len(fs), dir_loc[d]))
+                continue
             for f in sorted(dirs[d]):
                 base = os.path.basename(f)
                 n, syms = file_lines[f]
@@ -280,9 +291,44 @@ def build_map(root, stdout_mode=False):
             lines.append("#DOC " + ",".join(sorted(md_files)))
         return "\n".join(lines) + "\n"
 
-    text = render(False)
-    if len(text.encode("utf-8")) > BUDGET_BYTES:
-        text = render(True)
+    text = render(False, set())
+    if len(text.encode("utf-8")) <= BUDGET_BYTES and len(text.encode("utf-8")) <= MAX_BYTES:
+        return text
+
+    dropped_syms = False
+    collapsed_dirs = set()
+    text = render(True, collapsed_dirs)
+    if len(text.encode("utf-8")) > BUDGET_BYTES or len(text.encode("utf-8")) > MAX_BYTES:
+        dropped_syms = True
+
+    # progressively collapse the largest directories, largest first, until
+    # under budget. Header/#WARN/#HUB/#BIN/#DOC lines always survive because
+    # render() never drops them.
+    for d in dirs_by_size:
+        if len(text.encode("utf-8")) <= MAX_BYTES:
+            break
+        collapsed_dirs.add(d)
+        text = render(True, collapsed_dirs)
+
+    nbytes = len(text.encode("utf-8"))
+    if nbytes > MAX_BYTES:
+        # last resort: collapse every directory
+        collapsed_dirs = set(dirs.keys())
+        text = render(True, collapsed_dirs)
+        nbytes = len(text.encode("utf-8"))
+
+    if dropped_syms or collapsed_dirs:
+        parts = []
+        if dropped_syms:
+            parts.append("symbol lists dropped (>8 per file)")
+        if collapsed_dirs:
+            parts.append(
+                "{} dir(s) collapsed to file/LOC counts: {}".format(
+                    len(collapsed_dirs), ",".join(sorted(d if d else "." for d in collapsed_dirs))
+                )
+            )
+        text = text.rstrip("\n") + "\n#TRUNCATED " + "; ".join(parts) + "\n"
+
     return text
 
 

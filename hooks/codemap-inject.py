@@ -57,8 +57,23 @@ def _header_sha(text):
     return None
 
 
-def _regenerate(root):
-    codemap_py = os.path.join(root, "tools", "codemap.py")
+def _codemap_py(root):
+    """Return the path to codemap.py to run, or None if neither exists.
+
+    Prefer the copy inside this repo (root/tools/codemap.py); fall back to
+    the global mirror at ~/.claude/tools/codemap.py so repos that only have
+    the hook installed (not the full tools/ dir) still get a codemap.
+    """
+    local = os.path.join(root, "tools", "codemap.py")
+    if os.path.isfile(local):
+        return local
+    fallback = os.path.join(os.path.expanduser("~"), ".claude", "tools", "codemap.py")
+    if os.path.isfile(fallback):
+        return fallback
+    return None
+
+
+def _regenerate(root, codemap_py):
     try:
         out = subprocess.run(
             ["python3", codemap_py],
@@ -85,8 +100,8 @@ def build_output():
     if not root:
         return None
 
-    codemap_py = os.path.join(root, "tools", "codemap.py")
-    if not os.path.isfile(codemap_py):
+    codemap_py = _codemap_py(root)
+    if not codemap_py:
         return None
 
     codemap_path = os.path.join(root, ".codemap")
@@ -106,7 +121,7 @@ def build_output():
 
     body = None
     if existing is None or stale:
-        regenerated = _regenerate(root)
+        regenerated = _regenerate(root, codemap_py)
         if regenerated is not None:
             body = regenerated
         elif existing is not None:
