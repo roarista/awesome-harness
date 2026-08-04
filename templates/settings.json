@@ -52,17 +52,6 @@
             "timeout": 20
           }
         ]
-      },
-      {
-        "matcher": "startup|resume|clear",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "repowise-augment",
-            "timeout": 10,
-            "statusMessage": "Loading repowise context..."
-          }
-        ]
       }
     ],
     "PostToolUse": [
@@ -135,17 +124,6 @@
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/post-agent-guard.py\"",
             "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "Bash|PowerShell|Grep|Glob|Read|Edit|Write|mcp__.*[Rr]epowise.*__.*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "repowise-augment",
-            "timeout": 10,
-            "statusMessage": "Checking codebase context..."
           }
         ]
       }
@@ -394,16 +372,6 @@
         "obsidian-mcp",
         "/Users/rodrigoarista/Library/Mobile Documents/com~apple~CloudDocs/Obsidian/Brain"
       ]
-    },
-    "repowise": {
-      "command": "/Users/rodrigoarista/.local/pipx/venvs/repowise/bin/repowise",
-      "args": [
-        "mcp",
-        "/Users/rodrigoarista/Downloads/awesome-harness",
-        "--transport",
-        "stdio"
-      ],
-      "description": "repowise: codebase intelligence \u2014 docs, graph, git signals, dead code, decisions"
     }
   }
 }
