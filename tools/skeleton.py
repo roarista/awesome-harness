@@ -14,8 +14,10 @@ SKIP_DIRS = {
 }
 SKIP_PREFIXES = ("_archive",)
 TS_RE = re.compile(
-    r"^\s*(export\s+.*|function\s+\w.*|class\s+\w.*|const\s+\w+\s*=\s*\(.*|"
-    r"const\s+\w+\s*=\s*async\s*\(.*|interface\s+\w.*|type\s+\w+\s*=.*)$"
+    r"^(export\s+.*|function\s+\w.*|class\s+\w.*|const\s+\w+\s*=\s*\(.*|"
+    r"const\s+\w+\s*=\s*async\s*\(.*|const\s+\w+\s*=\s*<[^=>]*>\s*\(.*|"
+    r"const\s+\w+\s*:\s*[\w.]+(?:<[^=]*>)?\s*=\s*\(.*|"
+    r"interface\s+\w.*|type\s+\w+\s*=.*)$"
 )
 SH_RE = re.compile(r"^\s*(?:function\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*\(\)\s*\{")
 SQL_RE = re.compile(
@@ -24,6 +26,8 @@ SQL_RE = re.compile(
     re.IGNORECASE,
 )
 SUPPORTED_EXTS = (".py", ".ts", ".tsx", ".js", ".jsx", ".sh", ".sql")
+DEFAULT_MAX_BYTES = 16000
+MAX_SIG_LINE = 400
 
 def should_skip_dir(name):
     return name in SKIP_DIRS or any(name.startswith(p) for p in SKIP_PREFIXES)
@@ -111,6 +115,11 @@ def py_skeleton(src):
 def ts_skeleton(lines):
     sigs = []
     for i, line in enumerate(lines, 1):
+        if len(line) > MAX_SIG_LINE:
+            m = TS_RE.match(line[:MAX_SIG_LINE])
+            if m:
+                sigs.append((i, "#SIG-TOO-LONG ({} chars)".format(len(line.rstrip("\n")))))
+            continue
         m = TS_RE.match(line)
         if m:
             text = m.group(1).rstrip()
@@ -130,10 +139,11 @@ def sql_skeleton(lines):
     return sigs
 
 def process_file(path, relpath, out, totals, explicit):
+    """out is a list of (kind, text) tuples. kind is 'file' or 'sig'."""
     ext = os.path.splitext(path)[1]
     if ext not in SUPPORTED_EXTS:
         if path in explicit:
-            out.append("{}|UNSUPPORTED-EXT {}".format(relpath, ext))
+            out.append(("file", "{}|UNSUPPORTED-EXT {}".format(relpath, ext)))
             totals["unsupported"] += 1
         return
     try:
@@ -149,8 +159,8 @@ def process_file(path, relpath, out, totals, explicit):
     if ext == ".py":
         try:
             sigs = py_skeleton(src)
-        except SyntaxError:
-            out.append("{}|PARSE-FAILED".format(relpath))
+        except (SyntaxError, ValueError):
+            out.append(("file", "{}|PARSE-FAILED".format(relpath)))
             return
     elif ext == ".sh":
         sigs = sh_skeleton(src.splitlines())
@@ -159,19 +169,57 @@ def process_file(path, relpath, out, totals, explicit):
     else:
         sigs = ts_skeleton(src.splitlines())
 
-    out.append("{}|{}".format(relpath, total_lines))
-    out += ["{}:{}".format(lineno, sig) for lineno, sig in sigs]
+    out.append(("file", "{}|{}".format(relpath, total_lines)))
+    out += [("sig", "{}:{}".format(lineno, sig)) for lineno, sig in sigs]
+
+def parse_max_bytes(argv):
+    max_bytes = DEFAULT_MAX_BYTES
+    rest = []
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a == "--max-bytes":
+            if i + 1 < len(argv):
+                try:
+                    max_bytes = int(argv[i + 1])
+                except ValueError:
+                    pass
+                i += 2
+                continue
+            i += 1
+            continue
+        if a.startswith("--max-bytes="):
+            try:
+                max_bytes = int(a.split("=", 1)[1])
+            except ValueError:
+                pass
+            i += 1
+            continue
+        rest.append(a)
+        i += 1
+    return max_bytes, rest
 
 def main():
-    recursive = "-r" in sys.argv[1:] or "--recursive" in sys.argv[1:]
-    paths = [a for a in sys.argv[1:] if a not in ("-r", "--recursive")]
+    argv = sys.argv[1:]
+    max_bytes, argv = parse_max_bytes(argv)
+    recursive = "-r" in argv or "--recursive" in argv
+    paths = [a for a in argv if a not in ("-r", "--recursive")]
     if not paths:
+        print("skeleton.py: no path given. Usage: skeleton.py <path> [<path>...] [-r]", file=sys.stderr)
         sys.exit(1)
+
+    missing = [p for p in paths if not os.path.exists(p)]
+    if missing:
+        for p in missing:
+            print("skeleton.py: path does not exist (or is a dangling symlink): {}".format(p), file=sys.stderr)
+        if len(missing) == len(paths):
+            sys.exit(1)
 
     explicit = {os.path.abspath(p) for p in paths if os.path.isfile(p)}
 
     files = resolve_paths(paths, recursive)
     if not files:
+        print("skeleton.py: no files found under given path(s) (empty dir, or all excluded)", file=sys.stderr)
         sys.exit(1)
 
     out, totals, cwd = [], {"files": 0, "src_bytes": 0, "unsupported": 0}, os.getcwd()
@@ -182,10 +230,26 @@ def main():
             relpath = f
         process_file(f, relpath, out, totals, explicit)
 
-    for line in out:
+    total_files_out = sum(1 for kind, _ in out if kind == "file")
+    total_sigs_out = sum(1 for kind, _ in out if kind == "sig")
+
+    emitted, used, truncated = [], 0, False
+    reserve = 80
+    for kind, line in out:
+        line_bytes = len(line.encode("utf-8")) + 1
+        if used + line_bytes + reserve > max_bytes:
+            truncated = True
+            break
+        emitted.append((kind, line))
+        used += line_bytes
+
+    for _, line in emitted:
         print(line)
 
-    out_bytes = sum(len(l.encode("utf-8")) + 1 for l in out)
+    emitted_files = sum(1 for kind, _ in emitted if kind == "file")
+    emitted_sigs = sum(1 for kind, _ in emitted if kind == "sig")
+
+    out_bytes = sum(len(l.encode("utf-8")) + 1 for _, l in emitted)
     src_bytes = totals["src_bytes"]
     ratio = (src_bytes / out_bytes) if out_bytes else 0
     unsupported = totals["unsupported"]
@@ -194,6 +258,9 @@ def main():
     if unsupported:
         tail += " ({} unsupported)".format(unsupported)
     print(tail)
+    if truncated:
+        print("#TRUNCATED {} files, {} signatures (cap {} bytes, use --max-bytes to raise)".format(
+            total_files_out - emitted_files, total_sigs_out - emitted_sigs, max_bytes))
     if totals["files"] == 0 and unsupported > 0:
         sys.exit(1)
     sys.exit(0)

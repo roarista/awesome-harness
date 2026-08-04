@@ -119,7 +119,7 @@ def main():
 
     lines += kept_rows
     if dropped:
-        lines.append("#TRUNCATED {} more files, run: tools/skeleton.py {}".format(
+        lines.append("#TRUNCATED {} more files, run: tools/skeleton.py -r {}".format(
             dropped, requested))
 
     out = "\n".join(lines) + "\n"

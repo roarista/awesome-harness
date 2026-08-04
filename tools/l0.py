@@ -63,16 +63,22 @@ EXCLUDE_COMPONENTS = {
 SRC_EXTS = (".py", ".ts", ".tsx", ".js", ".jsx", ".sh", ".sql")
 
 PY_IMPORT_RE = re.compile(
-    r"^\s*(?:from\s+(\.*[\w.]*)\s+import\b|import\s+([\w.]+))", re.M
+    r"^\s*(?:from\s+(\.*[\w.]*)\s+import\s+([^\n#]+)|import\s+([\w.]+))", re.M
 )
-JS_IMPORT_RE = re.compile(r"""from\s+['"]([^'"]+)['"]""")
+# Static (`from '...'`) and dynamic (`import('...')` / `await import('...')`)
+# specifiers both count -- dynamic-import-only hubs (e.g. lib/ai.ts) were
+# invisible to the static-only regex.
+JS_IMPORT_RE = re.compile(
+    r"""from\s+['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]\s*\)"""
+)
+JS_EXPLICIT_EXT_RE = re.compile(r"\.(js|jsx|ts|tsx|mjs|cjs)$")
 PY_MAIN_RE = re.compile(r"""^\s*if\s+__name__\s*==\s*['"]__main__['"]\s*:""", re.M)
 
 
 def fail(root_name, msg):
     print(HEADER, end="")
     print("Repo {}: DILUTED INDEX UNAVAILABLE: {}".format(root_name, msg))
-    sys.exit(0)
+    sys.exit(1)
 
 
 def get_root():
@@ -88,8 +94,12 @@ def get_root():
 
 
 def is_excluded(relpath):
+    # Only the top-level path component is checked. Matching at any depth
+    # silently drops live code that happens to sit under a subdirectory
+    # named e.g. "research" (virality's src/originated/research/, 2058 LOC
+    # of live code, is not a docs/legacy dump).
     parts = relpath.split("/")[:-1]
-    return any(p in EXCLUDE_COMPONENTS for p in parts)
+    return bool(parts) and parts[0] in EXCLUDE_COMPONENTS
 
 
 def is_source(relpath):
@@ -130,22 +140,41 @@ def fit_block(block_lines, budget):
     """Fit a block (header + item lines) into budget bytes without ever
     cutting a line in half. Drops whole items from the bottom (lowest
     priority, since callers pre-sort descending) until it fits, or drops
-    the whole block if even the header line does not fit. Returns
-    (kept_lines, bytes_used)."""
+    the whole block if even the header line does not fit.
+
+    The "... and N more" disclosure line is reserved for and, when
+    n_dropped > 0, appended into the returned kept_lines itself -- its
+    bytes are counted BEFORE deciding how many items fit, so it can never
+    be the thing that pushes the block (and therefore the whole index)
+    over budget. Returns (kept_lines, bytes_used, n_dropped)."""
     if not block_lines:
-        return [], 0
+        return [], 0, 0
     header, items = block_lines[0], block_lines[1:]
     header_bytes = len(header.encode("utf-8")) + 1
     if header_bytes > budget:
-        return [], 0
-    kept, used = [header], header_bytes
-    for item in items:
-        item_bytes = len(item.encode("utf-8")) + 1
-        if used + item_bytes > budget:
-            break
-        kept.append(item)
-        used += item_bytes
-    return kept, used
+        return [], 0, len(block_lines)
+    item_bytes = [len(item.encode("utf-8")) + 1 for item in items]
+    n = len(items)
+    # Search from "keep everything" down to "keep nothing" for the largest
+    # k whose kept items plus header plus (if any dropped) the note line
+    # all fit in budget. The note's byte length depends on n-k (digit
+    # count), so it must be recomputed per candidate k, not assumed fixed.
+    for k in range(n, -1, -1):
+        used = header_bytes + sum(item_bytes[:k])
+        dropped = n - k
+        note_bytes = 0
+        if dropped:
+            note = "  ... and {} more".format(dropped)
+            note_bytes = len(note.encode("utf-8")) + 1
+        if used + note_bytes <= budget:
+            kept = [header] + items[:k]
+            if dropped:
+                kept.append(note)
+            return kept, used + note_bytes, dropped
+    # Even the header alone plus a "... and N more" for everything doesn't
+    # fit (header_bytes <= budget already checked above, so this is only
+    # reachable if the note itself can't fit alongside the header).
+    return [header], header_bytes, n
 
 
 def main():
@@ -196,6 +225,8 @@ def main():
         "{} {:.0f}% ({}f)".format(ext, lang_pct[ext], n) for ext, n in top_langs
     )
 
+    dropped_blocks = []
+
     lines = []
     lines.append(HEADER.rstrip("\n"))
     lines.append(
@@ -212,6 +243,17 @@ def main():
 
     budget = CAP - sum(len(l.encode("utf-8")) + 1 for l in lines)
 
+    # Reserve worst-case bytes for the "#DROPPED (budget): ..." disclosure
+    # line up front, before any block consumes budget, so the disclosure
+    # itself can never be the thing that gets silently dropped. Unused
+    # reservation (fewer blocks actually dropped, or none) is returned to
+    # budget right before that line is emitted, below.
+    ALL_BLOCK_NAMES = ["source_roots", "areas", "most_imported", "entrypoints"]
+    dropped_reserve = len(
+        ("#DROPPED (budget): " + ", ".join(ALL_BLOCK_NAMES)).encode("utf-8")
+    ) + 1
+    budget -= dropped_reserve
+
     # SOURCE ROOTS block: top-level dirs holding source, files/LOC.
     root_stats = defaultdict(lambda: [0, 0])  # [files, loc]
     for f in src_files:
@@ -222,10 +264,18 @@ def main():
     for top, (nf, nl) in sorted(root_stats.items(), key=lambda kv: -kv[1][0])[:8]:
         root_lines.append("  {}: {} files, {}k LOC".format(top, nf, round(nl / 1000.0, 1)))
 
-    kept, used = fit_block(root_lines, budget)
+    kept, used, dropped = fit_block(root_lines, budget)
     if kept:
         lines += kept
         budget -= used
+    elif root_lines:
+        fb_kept, fb_used, _ = fit_block(
+            ["SOURCE ROOTS: dropped entirely (no byte budget remaining)"], budget)
+        if fb_kept:
+            lines += fb_kept
+            budget -= fb_used
+        else:
+            dropped_blocks.append("source_roots")
 
     # AREAS block: 2nd-level dirs, descending by file count.
     area_stats = defaultdict(int)
@@ -243,10 +293,18 @@ def main():
     for area, n in area_items:
         area_lines.append("  {}: {}".format(area, n))
 
-    kept, used = fit_block(area_lines, budget)
+    kept, used, dropped = fit_block(area_lines, budget)
     if kept:
         lines += kept
         budget -= used
+    elif area_lines:
+        fb_kept, fb_used, _ = fit_block(
+            ["AREAS: dropped entirely (no byte budget remaining)"], budget)
+        if fb_kept:
+            lines += fb_kept
+            budget -= fb_used
+        else:
+            dropped_blocks.append("areas")
 
     # MOST-IMPORTED block.
     py_files = {f for f in src_files if f.endswith(".py")}
@@ -272,8 +330,9 @@ def main():
             seen_targets = set()
             fdir_parts = f.split("/")[:-1]
             for m in PY_IMPORT_RE.finditer(text):
-                from_mod, plain_mod = m.group(1), m.group(2)
+                from_mod, import_list, plain_mod = m.group(1), m.group(2), m.group(3)
                 mod = None
+                names = []
                 if from_mod is not None:
                     ndots = len(from_mod) - len(from_mod.lstrip("."))
                     remainder = from_mod[ndots:]
@@ -285,9 +344,33 @@ def main():
                         mod = ".".join(base + remainder_parts)
                     else:
                         mod = from_mod
+                    if import_list:
+                        # `from PKG import NAME` -- NAME may be a submodule
+                        # (PKG/NAME.py), not just an attribute of PKG's
+                        # __init__.py. Resolving only against PKG collapses
+                        # every submodule import onto the package marker,
+                        # which is then dropped as noise below -- undercounting
+                        # real hub files (e.g. `from storage import db`).
+                        cleaned = import_list.replace("(", " ").replace(")", " ").replace("\\", " ")
+                        for part in cleaned.split(","):
+                            part = part.strip()
+                            if not part:
+                                continue
+                            first = part.split(" as ")[0].strip()
+                            name = first.split()[0] if first else ""
+                            if name and name != "*":
+                                names.append(name)
                 elif plain_mod is not None:
                     mod = plain_mod
                 if not mod:
+                    continue
+                submodule_hit = False
+                for name in names:
+                    cand_full = mod + "." + name if mod else name
+                    if cand_full in py_modmap and py_modmap[cand_full] != f:
+                        seen_targets.add(py_modmap[cand_full])
+                        submodule_hit = True
+                if submodule_hit:
                     continue
                 match = None
                 for cand in py_mod_by_prefix_len:
@@ -302,14 +385,19 @@ def main():
             seen_targets = set()
             fdir = os.path.dirname(f)
             for m in JS_IMPORT_RE.finditer(text):
-                spec = m.group(1)
+                spec = m.group(1) or m.group(2)
+                if not spec:
+                    continue
                 if not (spec.startswith(".") or spec.startswith("@/")):
                     continue
-                if spec.startswith("@/"):
-                    rel = spec[2:]
+                # explicit extensions (import "./foo.js") must be stripped
+                # before matching against the extension-less lookup table.
+                spec_noext = JS_EXPLICIT_EXT_RE.sub("", spec)
+                if spec_noext.startswith("@/"):
+                    rel = spec_noext[2:]
                     candidates = [rel, rel + "/index"]
                 else:
-                    joined = os.path.normpath(os.path.join(fdir, spec))
+                    joined = os.path.normpath(os.path.join(fdir, spec_noext))
                     candidates = [joined, joined + "/index"]
                 resolved = None
                 for c in candidates:
@@ -323,9 +411,10 @@ def main():
                 import_counts[t] += 1
 
     # A count of 1 is noise, not a hub -- never list it. Package markers
-    # (__init__.py) are not real hubs either; imports routed through them
-    # already accrued to the resolved target module above, so dropping the
-    # marker here does not lose signal, only the noisy dupe entry.
+    # (__init__.py) are still dropped here since they represent the
+    # package-attribute-import case, not a real hub file; genuine submodule
+    # imports (`from PKG import submodule`) are resolved directly onto the
+    # submodule file above and are unaffected by this filter.
     import_counts = {
         f: n for f, n in import_counts.items()
         if n >= 2 and os.path.basename(f) != "__init__.py"
@@ -368,29 +457,34 @@ def main():
         lines.append("MOST-IMPORTED UNAVAILABLE: " + "; ".join(reasons))
     elif top_imports and top_imports[0][1] > 5:
         header = ("MOST-IMPORTED (distinct importing files; python `from|import` "
-                   "longest-prefix + TS/JS relative/@ resolution, static regex, not AST-exact):")
+                   "longest-prefix + TS/JS relative/@ resolution, static regex, not AST-exact; "
+                   "counted over {} non-test source files of {} tracked):".format(n_src, n_tracked))
         if dominant_lang:
             mi_lines = [header]
             for f, n in by_lang.get(dominant_lang, [])[:10]:
                 mi_lines.append("  {} <- {}".format(f, n))
         else:
+            # Rank globally across eligible languages instead of a flat
+            # per-language top-5 -- a flat allocation drops a genuinely
+            # bigger hub (e.g. intrn's #6 lib/cache.ts, 36 importers) in
+            # favor of low-importer rows from a language with fewer hubs.
+            eligible_exts = {ext for ext, pct in lang_pct.items() if pct >= 15.0}
+            global_items = [
+                (f, n, os.path.splitext(f)[1].lstrip("."))
+                for f, n in import_counts.items()
+                if os.path.splitext(f)[1].lstrip(".") in eligible_exts
+            ]
+            global_items.sort(key=lambda t: -t[1])
             mi_lines = [header]
-            eligible = sorted(
-                (ext for ext, pct in lang_pct.items() if pct >= 15.0),
-                key=lambda e: -lang_pct[e],
-            )
-            for ext in eligible:
-                items = by_lang.get(ext, [])[:5]
-                if not items:
-                    continue
-                mi_lines.append("  [{}]".format(ext))
-                for f, n in items:
-                    mi_lines.append("    {} <- {}".format(f, n))
-        kept, used = fit_block(mi_lines, budget)
+            for f, n, ext in global_items[:10]:
+                mi_lines.append("  [{}] {} <- {}".format(ext, f, n))
+        kept, used, dropped = fit_block(mi_lines, budget)
         named_via_imports = sum(1 for l in kept if " <- " in l)
         if kept:
             lines += kept
             budget -= used
+        else:
+            dropped_blocks.append("most_imported")
     else:
         top_n = top_imports[0][1] if top_imports else 0
         lines.append(
@@ -415,13 +509,30 @@ def main():
         except (OSError, ValueError):
             pkg_scripts = []
 
-    ep_lines = ["ENTRY POINTS: {} `__main__` guard(s)".format(main_guard_count)]
-    if pkg_scripts:
-        ep_lines.append("  package.json scripts: " + ", ".join(sorted(pkg_scripts)))
-    kept, used = fit_block(ep_lines, budget)
+    # In a repo that is mostly not python (e.g. Next.js with two throwaway
+    # __main__-guarded scripts), the package.json scripts are the real
+    # entry points -- lead with those instead of burying them after a
+    # near-meaningless guard count.
+    if py_pct < 15.0 and pkg_scripts:
+        ep_lines = ["ENTRY POINTS: package.json scripts: " + ", ".join(sorted(pkg_scripts))]
+        if main_guard_count:
+            ep_lines.append("  ({} `__main__` guard(s) also present)".format(main_guard_count))
+    else:
+        ep_lines = ["ENTRY POINTS: {} `__main__` guard(s)".format(main_guard_count)]
+        if pkg_scripts:
+            ep_lines.append("  package.json scripts: " + ", ".join(sorted(pkg_scripts)))
+    kept, used, dropped = fit_block(ep_lines, budget)
     if kept:
         lines += kept
         budget -= used
+    elif ep_lines:
+        fb_kept, fb_used, _ = fit_block(
+            ["ENTRY POINTS: dropped entirely (no byte budget remaining)"], budget)
+        if fb_kept:
+            lines += fb_kept
+            budget -= fb_used
+        else:
+            dropped_blocks.append("entrypoints")
 
     # G4: excluded-vs-tracked ratio warning.
     total_source_like = len(src_files) + len(excluded_files)
@@ -434,10 +545,18 @@ def main():
             biggest = max(exc_dirs.items(), key=lambda kv: kv[1])
             warn = "WARNING: excluded files are >92% of tracked; largest excluded dir: {} ({} files)".format(
                 biggest[0], biggest[1])
-            kept, used = fit_block([warn], budget)
+            kept, used, _dropped = fit_block([warn], budget)
             if kept:
                 lines += kept
                 budget -= used
+
+    budget += dropped_reserve  # return the reservation; actual line is <= it
+    if dropped_blocks:
+        drop_line = "#DROPPED (budget): " + ", ".join(dropped_blocks)
+        kept, used, _ = fit_block([drop_line], budget)
+        if kept:
+            lines += kept
+            budget -= used
 
     out = "\n".join(lines) + "\n"
     out_bytes = out.encode("utf-8")
@@ -464,7 +583,7 @@ def main():
         out = HEADER + "Repo {} @{} {}: DILUTED INDEX UNAVAILABLE: output exceeded {} byte cap.\n".format(
             root_name, short_sha, date, CAP)
         print(out, end="")
-        sys.exit(0)
+        sys.exit(1)
 
     print(out, end="")
     sys.exit(0)
