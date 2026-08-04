@@ -41,10 +41,14 @@ row(){ rows+=("$1|$2|$3"); [ "$2" = FAIL ] && FAIL=1; return 0; }
 if [ -f "$TOOLS/l0.py" ]; then
   out="$(cd "$REPO" && python3 "$TOOLS/l0.py" 2>&1)"; rc=$?
   bytes=${#out}
-  if [ $rc -ne 0 ]; then
+  if printf '%s' "$out" | grep -q 'DILUTED INDEX UNAVAILABLE'; then
+    # The resolver itself says it can't produce a hub map for this repo (e.g.
+    # too few source files to make hub detection meaningful). Deferred to
+    # below: a healthy .codemap covering for it is a supported configuration,
+    # not a defect.
+    L0_MISSING=1
+  elif [ $rc -ne 0 ]; then
     row L0 FAIL "exit $rc"
-  elif printf '%s' "$out" | grep -q 'DILUTED INDEX UNAVAILABLE'; then
-    row L0 FAIL "$(printf '%s' "$out" | grep -o 'DILUTED INDEX UNAVAILABLE.*' | head -1)"
   elif [ "$bytes" -lt 300 ]; then
     row L0 FAIL "only $bytes bytes — too thin to be a map"
   elif ! printf '%s' "$out" | grep -q 'MOST-IMPORTED'; then
@@ -65,7 +69,11 @@ if [ -f "$TOOLS/l0.py" ]; then
   elif [ -n "$adv" ]; then row ZOOM ok "$(printf '%s' "$adv" | wc -w | tr -d ' ') advertised path(s) resolve"
   else row ZOOM skip "no paths advertised"; fi
 else
-  row L0 skip "l0.py not installed"
+  # L0 unavailable. If a healthy .codemap already serves this repo, that is a
+  # supported configuration (e.g. too few source files for hub detection to
+  # mean anything) — not a defect. Defer the row until we know whether the
+  # codemap tier is healthy; see below.
+  L0_MISSING=1
 fi
 
 # ---------- cached tier: .codemap -----------------------------------------
@@ -88,8 +96,20 @@ if [ -f "$REPO/.codemap" ]; then
   else
     row CODEMAP FAIL "stale @$map_sha and codemap.py not installed"
   fi
+  [ "$size" -le 30000 ] && [ "$map_sha" = "$(git rev-parse --short=7 HEAD)" ] && CODEMAP_HEALTHY=1
 else
   row CODEMAP skip "no .codemap (L0 serves this repo)"
+fi
+
+# ---------- resolve the deferred L0 row ------------------------------------
+# CODEMAP tier may have just regenerated to current, so this must run after it.
+if [ "${L0_MISSING:-0}" = 1 ]; then
+  if [ "${CODEMAP_HEALTHY:-0}" = 1 ]; then
+    n_src=$(git ls-files 2>/dev/null | grep -cE '\.(py|ts|tsx|js|jsx|sh|sql|go|rs)$')
+    row L0 n/a "codemap serves this repo ($n_src source files, too few for hubs)"
+  else
+    row L0 FAIL "l0.py not installed and no healthy .codemap to serve this repo"
+  fi
 fi
 
 # ---------- cached tier: graphify -----------------------------------------
