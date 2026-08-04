@@ -92,7 +92,7 @@ Six systems; pieces within each row already wired together — **use the system,
 **One loop:** `prime -> recall -> decide -> record -> handoff -> recall`. `tools/git-sync.sh` is the step-7 push: commit, integrate, push, never force/reset; untracked/conflicts = hard STOP. **Steps 1 and 7.**
 
 ### 3. UNDERSTAND-BEFORE-YOU-CODE
-**`orient` Part B** owns this layer — front door, both code maps, reuse ladder, blast radius, STOP/PLAN/BUILD gate. Inside it: **graphify** (`update` then `query`/`explain`/`path` + `graphify-blast.sh`; `graph.json` has almost no import graph — `imports_from=1` vs `contains=498`/`calls=303`/`references=62` — never ask it "what is a hub"; edge key `links` not `edges`) **AND repowise** (per-repo, needs `.mcp.json` + index; else fall back to graphify) **AND semgrep** (complete-set enumeration). Use together: repowise locates/risk, graphify confirms structure/blast, semgrep answers "all the places."
+**`orient` Part B** owns this layer — front door, both code maps, reuse ladder, blast radius, STOP/PLAN/BUILD gate. Inside it: **graphify** (`update` then `query`/`explain`/`path` + `graphify-blast.sh`; the import graph is REAL in the big repos — measured 2026-08-04, `relation` counts: Vividlist imports 8,070 · virality 5,433 · intrn 6,963 · forclosurehomes 4,055. Only awesome-harness itself is degenerate (imports=1), which is where the old "graphify has no import graph" rule came from — a sample of one, now retired. Edge key is `links`, and the relation field is `relation` not `type`) **AND repowise** (per-repo, needs `.mcp.json` + index; else fall back to graphify) **AND semgrep** (complete-set enumeration). Use together: repowise locates/risk, graphify confirms structure/blast, semgrep answers "all the places."
 **Enforced by:** understand-gate, graphify-gate (BLOCK), graphify-blindspot, reread-guard (BLOCK), token-discipline. **Steps 1-3.**
 
 ### 4. BUILD
@@ -118,7 +118,9 @@ harness-coach (weekly transcript miner) · **`harness-intel`** (Mode A drift rep
 - **GLM / `glm` subagent + CLI** — retired (out of credits). Never auditor/council; use Opus-4.8-low.
 - **`cc-gemini-plugin` (`gemini-agent`)** — dead (missing binary). Real non-Claude voice is `gemini` subagent / `tools/gemini-opencode.sh`.
 - **zai / z.ai coding plugin** — dead provider.
-- **graphify for "what is a hub" / import-graph questions** — see system 3; use repowise or semgrep.
+- ~~graphify for import-graph questions~~ — RETIRED 2026-08-04. That ban was measured only in
+  awesome-harness (imports=1) and is false in every real repo. Graphify is the most-used tool in
+  the harness (288 calls/30d, 6 repos, 76% real output). Use it.
 
 ## Live skill roster (exactly these 10 — anything else is stale)
 `awesomeharness` `check-all` `code-decompose` `compact-prep` `goal` `harness-intel` `notes-inbox` `orient` `ui-console-debug` `youtube-research`. `codebase-first`/`recall`/`state-trim`/`harness-audit`/`harness-scout` are NOT skills — folded into `orient`, `compact-prep`, `harness-intel`.
