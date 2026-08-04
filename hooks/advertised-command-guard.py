@@ -10,18 +10,18 @@ instruction to reach it was dead. Testing "does l1.py work" never touches that.
 
 So this hook keeps a per-session ledger of two sets and compares them at Stop:
 
-  ADVERTISED — script commands appearing in content the session WROTE
-               (Write/Edit), i.e. instructions a human or agent will copy-paste
-  RAN        — script commands the session actually EXECUTED via Bash
+  ADVERTISED — commands appearing in content the session WROTE (Write/Edit),
+               i.e. instructions a human or agent will copy-paste
+  RAN        — commands the session actually EXECUTED via Bash
 
 Anything advertised but never run is reported at Stop. Advisory (exit 0): a
 blocking Stop hook can wedge a session, and the cost of the miss is a stale
 pointer, not data loss. The message names the exact command to paste.
 
 Wire (all three, same script):
-  PreToolUse  Bash              -> record RAN
+  PreToolUse  Bash                 -> record RAN
   PostToolUse Write|Edit|MultiEdit -> record ADVERTISED
-  Stop                          -> report
+  Stop                             -> report
 
 Kill switch: ADVERTISED_COMMAND_GUARD=off. Fail-open on any error.
 """
@@ -36,15 +36,29 @@ STATE = Path(os.path.expanduser("~/.claude/hooks/state/advcmd"))
 # A script we could be told to run. Basename only — `tools/l1.py` and
 # `~/.claude/tools/l1.py` are the same build, and it is the PATH that varies
 # (that is the whole bug), so the path must not be part of the identity.
-SCRIPT = re.compile(r"([\w.\-/]+\.(?:py|sh))\b")
+SCRIPT = re.compile(r"([\w.\-/]+\.(?:py|sh|bash|js|mjs|cjs|ts))\b")
+# The JS/TS world advertises task names, not paths. Without these the guard is
+# blind in a TypeScript repo — measured: it fired on 0 of 4 node-ecosystem
+# invocation forms before this was added.
+NPM = re.compile(r"\b(?:npm|pnpm|yarn|bun)\s+run\s+([\w:.\-]+)")
+MAKE = re.compile(r"\bmake\s+([\w.\-]+)")
 
 # A line only ADVERTISES a command if it also looks like an invocation. Without
-# this, every `import foo.py` mention and every path in prose becomes a finding
-# and the hook cries wolf until it is turned off.
-RUN_MARKERS = ("python3", "python ", "bash ", "sh ", "./", "$ ", "run:", "Run:")
+# this, every path in prose becomes a finding and the hook cries wolf until it
+# is turned off.
+RUN_MARKERS = (
+    "python3", "python ", "bash ", "sh ", "./", "$ ", "run:", "Run:",
+    "node ", "npx ", "tsx ", "npm ", "pnpm ", "yarn ", "bun ", "make ",
+)
+
+# ...but an ES import also contains `./`, so invocation-shaped lines that are
+# really module resolution have to be excluded explicitly.
+IMPORT_LINE = re.compile(
+    r"^\s*(?:import\b|export\b.*\bfrom\b|from\s+[\w.]+\s+import\b)|require\s*\(|\bfrom\s+['\"]"
+)
 
 # Files whose text is not instructions to anyone: lockfiles, data, the ledger.
-SKIP_SUFFIX = (".json", ".lock", ".jsonl", ".csv", ".svg", ".png")
+SKIP_SUFFIX = (".json", ".lock", ".jsonl", ".csv", ".svg", ".png", ".map")
 
 
 def sid(data: dict) -> str:
@@ -68,24 +82,31 @@ def save(s: str, d: dict) -> None:
     _f(s).write_text(json.dumps(d))
 
 
-def scripts(text: str, require_marker: bool) -> set:
+def _ids(line: str) -> set:
+    """Every runnable identity named on one line."""
+    out = {os.path.basename(m.group(1)) for m in SCRIPT.finditer(line)}
+    out |= {"npm:" + m.group(1) for m in NPM.finditer(line)}
+    out |= {"make:" + m.group(1) for m in MAKE.finditer(line)}
+    return out
+
+
+def ran_ids(text: str) -> set:
     out = set()
     for line in (text or "").splitlines():
-        if require_marker and not any(m in line for m in RUN_MARKERS):
-            continue
-        for m in SCRIPT.finditer(line):
-            out.add(os.path.basename(m.group(1)))
+        out |= _ids(line)
     return out
 
 
 def advertised_lines(text: str) -> dict:
-    """basename -> the first line advertising it, so the report can quote it."""
+    """identity -> the first line advertising it, so the report can quote it."""
     out = {}
     for line in (text or "").splitlines():
         if not any(m in line for m in RUN_MARKERS):
             continue
-        for m in SCRIPT.finditer(line):
-            out.setdefault(os.path.basename(m.group(1)), line.strip()[:160])
+        if IMPORT_LINE.search(line):
+            continue
+        for k in _ids(line):
+            out.setdefault(k, line.strip()[:160])
     return out
 
 
@@ -103,7 +124,7 @@ def main() -> None:
     adv = dict(led.get("adv", {}))
 
     if event == "PreToolUse" and tool == "Bash":
-        ran |= scripts(str(ti.get("command", "")), require_marker=False)
+        ran |= ran_ids(str(ti.get("command", "")))
         save(s, {"ran": sorted(ran), "adv": adv})
 
     elif event == "PostToolUse" and tool in ("Write", "Edit", "MultiEdit"):
@@ -115,11 +136,10 @@ def main() -> None:
             text = "\n".join(
                 str(e.get("new_string", "")) for e in (ti.get("edits") or [])
             )
-        found = advertised_lines(text)
         # A script never advertises ITSELF into existence — skip self-reference,
         # which is just the file's own shebang or docstring naming its own path.
         me = os.path.basename(path)
-        for k, v in found.items():
+        for k, v in advertised_lines(text).items():
             if k != me:
                 adv.setdefault(k, v)
         save(s, {"ran": sorted(ran), "adv": adv})
@@ -134,6 +154,8 @@ def main() -> None:
         ]
         for k, v in sorted(missing.items())[:8]:
             lines.append(f"  {k}   advertised as: {v}")
+        if len(missing) > 8:
+            lines.append(f"  … and {len(missing) - 8} more")
         lines.append(
             "A build is not verified until the exact command string it tells a "
             "user to run has been executed, copy-pasted verbatim, from the "
@@ -148,16 +170,25 @@ def selftest() -> None:
     cases = [
         ("advertises a run line", "Zoom in: python3 tools/l1.py <area>", {"l1.py"}),
         ("ignores prose mention", "see tools/l1.py for details", set()),
-        ("ignores an import", "from tools.l1 import x", set()),
+        ("ignores a python import", "from tools.l1 import x", set()),
+        ("ignores an ES import", "import { db } from './lib/db.js'", set()),
         ("catches ./ form", "  ./scripts/deploy.sh --now", {"deploy.sh"}),
+        ("catches node", "    node scripts/build.js", {"build.js"}),
+        ("catches npm run", "Run:\n    npm run typecheck", {"npm:typecheck"}),
+        ("catches make", "    make test", {"make:test"}),
+        ("catches tsx", "    tsx scripts/seed.ts", {"seed.ts"}),
     ]
     for label, text, want in cases:
         got = set(advertised_lines(text))
         ok &= got == want
         print(("PASS " if got == want else f"FAIL {got!r} != {want!r} ") + label)
-    got = scripts("python3 ~/.claude/tools/l1.py services/sketch", False)
+    got = ran_ids("python3 ~/.claude/tools/l1.py services/sketch")
     ok &= "l1.py" in got
     print(("PASS " if "l1.py" in got else "FAIL ") + "ran set is path-insensitive")
+    got = ran_ids("pnpm run typecheck && make build")
+    want = {"npm:typecheck", "make:build"}
+    ok &= want <= got
+    print(("PASS " if want <= got else f"FAIL {got!r} ") + "ran set covers task names")
     print("OVERALL", "PASS" if ok else "FAIL")
     sys.exit(0 if ok else 1)
 
