@@ -144,6 +144,18 @@ def main():
         total_loc += loc
     loc_k = total_loc / 1000.0
 
+    lang_counts = defaultdict(int)
+    for f in src_files:
+        lang_counts[os.path.splitext(f)[1].lstrip(".")] += 1
+    lang_pct = {
+        ext: (n / n_src * 100.0) if n_src else 0.0
+        for ext, n in lang_counts.items()
+    }
+    top_langs = sorted(lang_counts.items(), key=lambda kv: -kv[1])[:3]
+    langs_line = "LANGS: " + ", ".join(
+        "{} {:.0f}% ({}f)".format(ext, lang_pct[ext], n) for ext, n in top_langs
+    )
+
     lines = []
     lines.append(HEADER.rstrip("\n"))
     lines.append(
@@ -151,6 +163,7 @@ def main():
             root_name, short_sha, date, n_tracked, n_src, loc_k
         )
     )
+    lines.append(langs_line)
 
     # G1 minimum-signal check pieces computed up front.
     if n_src < 10:
@@ -269,8 +282,14 @@ def main():
             for t in seen_targets:
                 import_counts[t] += 1
 
-    # A count of 1 is noise, not a hub -- never list it.
-    import_counts = {f: n for f, n in import_counts.items() if n >= 2}
+    # A count of 1 is noise, not a hub -- never list it. Package markers
+    # (__init__.py) are not real hubs either; imports routed through them
+    # already accrued to the resolved target module above, so dropping the
+    # marker here does not lose signal, only the noisy dupe entry.
+    import_counts = {
+        f: n for f, n in import_counts.items()
+        if n >= 2 and os.path.basename(f) != "__init__.py"
+    }
 
     # Resolver-dead check: if a language has enough source files to expect
     # signal but produced none, do not silently fall back to whichever
@@ -279,12 +298,24 @@ def main():
     best_py = max((n for f, n in import_counts.items() if f.endswith(".py")), default=0)
     best_ts = max((n for f, n in import_counts.items()
                     if os.path.splitext(f)[1] in (".ts", ".tsx", ".js", ".jsx")), default=0)
-    py_dead = len(py_files) >= 50 and best_py < 5
-    ts_dead = len(jsts_files) >= 50 and best_ts < 5
+    py_pct = (len(py_files) / n_src * 100.0) if n_src else 0.0
+    ts_pct = (len(jsts_files) / n_src * 100.0) if n_src else 0.0
+    py_dead = py_pct >= 15.0 and best_py < 5
+    ts_dead = ts_pct >= 15.0 and best_ts < 5
 
     top_imports = sorted(import_counts.items(), key=lambda kv: -kv[1])[:10]
     real_named.update(f for f, _ in top_imports)
     named_via_imports = 0
+
+    # 3(c): dominant-language repos spend the whole budget on that language;
+    # mixed repos (no single language >= 80%) show labelled top hubs per
+    # language that clears the 15% signal floor.
+    dominant_lang = next((ext for ext, pct in lang_pct.items() if pct >= 80.0), None)
+    by_lang = defaultdict(list)
+    for f, n in import_counts.items():
+        by_lang[os.path.splitext(f)[1].lstrip(".")].append((f, n))
+    for ext in by_lang:
+        by_lang[ext].sort(key=lambda kv: -kv[1])
 
     if py_dead or ts_dead:
         reasons = []
@@ -296,12 +327,27 @@ def main():
                             "top count {})".format(len(jsts_files), best_ts))
         lines.append("MOST-IMPORTED UNAVAILABLE: " + "; ".join(reasons))
     elif top_imports and top_imports[0][1] > 5:
-        mi_lines = ["MOST-IMPORTED (distinct importing files; python `from|import` "
-                     "longest-prefix + TS/JS relative/@ resolution, static regex, not AST-exact):"]
-        for f, n in top_imports:
-            mi_lines.append("  {} <- {}".format(f, n))
+        header = ("MOST-IMPORTED (distinct importing files; python `from|import` "
+                   "longest-prefix + TS/JS relative/@ resolution, static regex, not AST-exact):")
+        if dominant_lang:
+            mi_lines = [header]
+            for f, n in by_lang.get(dominant_lang, [])[:10]:
+                mi_lines.append("  {} <- {}".format(f, n))
+        else:
+            mi_lines = [header]
+            eligible = sorted(
+                (ext for ext, pct in lang_pct.items() if pct >= 15.0),
+                key=lambda e: -lang_pct[e],
+            )
+            for ext in eligible:
+                items = by_lang.get(ext, [])[:5]
+                if not items:
+                    continue
+                mi_lines.append("  [{}]".format(ext))
+                for f, n in items:
+                    mi_lines.append("    {} <- {}".format(f, n))
         kept, used = fit_block(mi_lines, budget)
-        named_via_imports = max(len(kept) - 1, 0)
+        named_via_imports = sum(1 for l in kept if " <- " in l)
         if kept:
             lines += kept
             budget -= used

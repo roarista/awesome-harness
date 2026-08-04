@@ -18,6 +18,12 @@ TS_RE = re.compile(
     r"const\s+\w+\s*=\s*async\s*\(.*|interface\s+\w.*|type\s+\w+\s*=.*)$"
 )
 SH_RE = re.compile(r"^\s*(?:function\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*\(\)\s*\{")
+SQL_RE = re.compile(
+    r"^\s*(CREATE\s+(?:OR\s+REPLACE\s+)?(?:TABLE|INDEX|UNIQUE\s+INDEX|FUNCTION|VIEW|"
+    r"POLICY|TRIGGER)\b.*|ALTER\s+TABLE\b.*)$",
+    re.IGNORECASE,
+)
+SUPPORTED_EXTS = (".py", ".ts", ".tsx", ".js", ".jsx", ".sh", ".sql")
 
 def should_skip_dir(name):
     return name in SKIP_DIRS or any(name.startswith(p) for p in SKIP_PREFIXES)
@@ -114,9 +120,21 @@ def ts_skeleton(lines):
 def sh_skeleton(lines):
     return [(i, l.rstrip()) for i, l in enumerate(lines, 1) if SH_RE.match(l)]
 
-def process_file(path, relpath, out, totals):
+def sql_skeleton(lines):
+    sigs = []
+    for i, line in enumerate(lines, 1):
+        m = SQL_RE.match(line)
+        if m:
+            text = m.group(1).rstrip()
+            sigs.append((i, text[:-1].rstrip() if text.endswith("(") else text))
+    return sigs
+
+def process_file(path, relpath, out, totals, explicit):
     ext = os.path.splitext(path)[1]
-    if ext not in (".py", ".ts", ".tsx", ".js", ".jsx", ".sh"):
+    if ext not in SUPPORTED_EXTS:
+        if path in explicit:
+            out.append("{}|UNSUPPORTED-EXT {}".format(relpath, ext))
+            totals["unsupported"] += 1
         return
     try:
         with open(path, "r", errors="replace") as fh:
@@ -136,6 +154,8 @@ def process_file(path, relpath, out, totals):
             return
     elif ext == ".sh":
         sigs = sh_skeleton(src.splitlines())
+    elif ext == ".sql":
+        sigs = sql_skeleton(src.splitlines())
     else:
         sigs = ts_skeleton(src.splitlines())
 
@@ -148,17 +168,19 @@ def main():
     if not paths:
         sys.exit(1)
 
+    explicit = {os.path.abspath(p) for p in paths if os.path.isfile(p)}
+
     files = resolve_paths(paths, recursive)
     if not files:
         sys.exit(1)
 
-    out, totals, cwd = [], {"files": 0, "src_bytes": 0}, os.getcwd()
+    out, totals, cwd = [], {"files": 0, "src_bytes": 0, "unsupported": 0}, os.getcwd()
     for f in sorted(set(files)):
         try:
             relpath = os.path.relpath(f, cwd)
         except ValueError:
             relpath = f
-        process_file(f, relpath, out, totals)
+        process_file(f, relpath, out, totals, explicit)
 
     for line in out:
         print(line)
@@ -166,8 +188,14 @@ def main():
     out_bytes = sum(len(l.encode("utf-8")) + 1 for l in out)
     src_bytes = totals["src_bytes"]
     ratio = (src_bytes / out_bytes) if out_bytes else 0
-    print("#SKELETON {} files, {} bytes, {:.1f}:1 vs {} source bytes".format(
-        totals["files"], out_bytes, ratio, src_bytes))
+    unsupported = totals["unsupported"]
+    tail = "#SKELETON {} files, {} bytes, {:.1f}:1 vs {} source bytes".format(
+        totals["files"], out_bytes, ratio, src_bytes)
+    if unsupported:
+        tail += " ({} unsupported)".format(unsupported)
+    print(tail)
+    if totals["files"] == 0 and unsupported > 0:
+        sys.exit(1)
     sys.exit(0)
 
 if __name__ == "__main__":
