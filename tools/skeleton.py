@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """Verbatim per-file signature skeletons, stdlib only, zero fabrication.
-Usage: python3 tools/skeleton.py <path> [<path>...] [-r|--recursive]
+Usage: <this file's path> <path> [<path>...] [-r|--recursive] -- run with
+no arguments for the exact path (repo-relative when inside the repo root).
 """
 import ast
 import os
 import re
 import subprocess
 import sys
+from pathlib import Path
 
 SKIP_DIRS = {
     "node_modules", ".venv", "dist", "build", "__pycache__", ".git",
@@ -17,12 +19,20 @@ TS_RE = re.compile(
     r"^(export\s+.*|function\s+\w.*|class\s+\w.*|const\s+\w+\s*=\s*\(.*|"
     r"const\s+\w+\s*=\s*async\s*\(.*|const\s+\w+\s*=\s*<[^=>]*>\s*\(.*|"
     r"const\s+\w+\s*:\s*[\w.]+(?:<[^=]*>)?\s*=\s*\(.*|"
-    r"interface\s+\w.*|type\s+\w+\s*=.*)$"
+    r"interface\s+\w.*|type\s+\w+(?:<[^=]*>)?\s*=.*)$"
 )
+# Multi-line inline-prop-object React.FC form:
+#   const Foo: React.FC<{
+#     prop: string;
+#   }> = ({ prop }) => { ... }
+# The single-line TS_RE never matches because the generic doesn't close on
+# the same line as `const Foo`. These two patterns bracket that form.
+TS_OPEN_GENERIC_RE = re.compile(r"^\s*(?:export\s+)?const\s+\w+\s*:\s*[\w.]*FC<\{\s*$")
+TS_CLOSE_GENERIC_RE = re.compile(r"\}>\s*=")
 SH_RE = re.compile(r"^\s*(?:function\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*\(\)\s*\{")
 SQL_RE = re.compile(
-    r"^\s*(CREATE\s+(?:OR\s+REPLACE\s+)?(?:TABLE|INDEX|UNIQUE\s+INDEX|FUNCTION|VIEW|"
-    r"POLICY|TRIGGER)\b.*|ALTER\s+TABLE\b.*)$",
+    r"^\s*(CREATE\s+(?:OR\s+REPLACE\s+)?(?:UNLOGGED\s+)?(?:TABLE|INDEX|UNIQUE\s+INDEX|"
+    r"FUNCTION|VIEW|MATERIALIZED\s+VIEW|POLICY|TRIGGER|EXTENSION)\b.*|ALTER\s+TABLE\b.*)$",
     re.IGNORECASE,
 )
 SUPPORTED_EXTS = (".py", ".ts", ".tsx", ".js", ".jsx", ".sh", ".sql")
@@ -114,16 +124,35 @@ def py_skeleton(src):
 
 def ts_skeleton(lines):
     sigs = []
-    for i, line in enumerate(lines, 1):
+    n = len(lines)
+    i = 0
+    while i < n:
+        line = lines[i]
         if len(line) > MAX_SIG_LINE:
             m = TS_RE.match(line[:MAX_SIG_LINE])
             if m:
-                sigs.append((i, "#SIG-TOO-LONG ({} chars)".format(len(line.rstrip("\n")))))
+                sigs.append((i + 1, "#SIG-TOO-LONG ({} chars)".format(len(line.rstrip("\n")))))
+            i += 1
             continue
         m = TS_RE.match(line)
         if m:
             text = m.group(1).rstrip()
-            sigs.append((i, text[:-1].rstrip() if text.endswith("{") else text))
+            sigs.append((i + 1, text[:-1].rstrip() if text.endswith("{") else text))
+            i += 1
+            continue
+        if TS_OPEN_GENERIC_RE.match(line):
+            j = i + 1
+            closed = False
+            while j < n and j < i + 200:
+                if TS_CLOSE_GENERIC_RE.search(lines[j]):
+                    closed = True
+                    break
+                j += 1
+            if closed:
+                sigs.append((i + 1, line.rstrip()))
+                i = j + 1
+                continue
+        i += 1
     return sigs
 
 def sh_skeleton(lines):
@@ -205,7 +234,16 @@ def main():
     recursive = "-r" in argv or "--recursive" in argv
     paths = [a for a in argv if a not in ("-r", "--recursive")]
     if not paths:
-        print("skeleton.py: no path given. Usage: skeleton.py <path> [<path>...] [-r]", file=sys.stderr)
+        here = Path(__file__).resolve()
+        root_out = subprocess.run(
+            ["git", "-C", str(here.parent), "rev-parse", "--show-toplevel"],
+            capture_output=True, text=True).stdout.strip()
+        try:
+            self_ref = str(here.relative_to(root_out)) if root_out else str(here)
+        except ValueError:
+            self_ref = str(here)
+        print("skeleton.py: no path given. Usage: {} <path> [<path>...] [-r]".format(self_ref),
+              file=sys.stderr)
         sys.exit(1)
 
     missing = [p for p in paths if not os.path.exists(p)]
@@ -243,24 +281,43 @@ def main():
         emitted.append((kind, line))
         used += line_bytes
 
+    # The #SKELETON (and, if truncated, #TRUNCATED) trailer lines print
+    # AFTER the body, but their bytes were only guarded by the flat 80-byte
+    # `reserve` above -- not their own actual size -- so the tool could
+    # overshoot its own --max-bytes cap. Build the real trailers, then trim
+    # already-emitted body lines from the end (raising `truncated`/counts as
+    # needed) until body + trailers actually fits.
+    def build_trailers(emitted_list, was_truncated):
+        ef = sum(1 for kind, _ in emitted_list if kind == "file")
+        es = sum(1 for kind, _ in emitted_list if kind == "sig")
+        ob = sum(len(l.encode("utf-8")) + 1 for _, l in emitted_list)
+        sb = totals["src_bytes"]
+        r = (sb / ob) if ob else 0
+        u = totals["unsupported"]
+        t = "#SKELETON {} files, {} bytes, {:.1f}:1 vs {} source bytes".format(
+            totals["files"], ob, r, sb)
+        if u:
+            t += " ({} unsupported)".format(u)
+        lines_out = [t]
+        if was_truncated:
+            lines_out.append(
+                "#TRUNCATED {} files, {} signatures (cap {} bytes, use --max-bytes to raise)".format(
+                    total_files_out - ef, total_sigs_out - es, max_bytes))
+        return lines_out
+
+    while True:
+        trailers = build_trailers(emitted, truncated)
+        body_bytes = sum(len(l.encode("utf-8")) + 1 for _, l in emitted)
+        trailer_bytes = sum(len(l.encode("utf-8")) + 1 for l in trailers)
+        if body_bytes + trailer_bytes <= max_bytes or not emitted:
+            break
+        emitted.pop()
+        truncated = True
+
     for _, line in emitted:
         print(line)
-
-    emitted_files = sum(1 for kind, _ in emitted if kind == "file")
-    emitted_sigs = sum(1 for kind, _ in emitted if kind == "sig")
-
-    out_bytes = sum(len(l.encode("utf-8")) + 1 for _, l in emitted)
-    src_bytes = totals["src_bytes"]
-    ratio = (src_bytes / out_bytes) if out_bytes else 0
-    unsupported = totals["unsupported"]
-    tail = "#SKELETON {} files, {} bytes, {:.1f}:1 vs {} source bytes".format(
-        totals["files"], out_bytes, ratio, src_bytes)
-    if unsupported:
-        tail += " ({} unsupported)".format(unsupported)
-    print(tail)
-    if truncated:
-        print("#TRUNCATED {} files, {} signatures (cap {} bytes, use --max-bytes to raise)".format(
-            total_files_out - emitted_files, total_sigs_out - emitted_sigs, max_bytes))
+    for line in build_trailers(emitted, truncated):
+        print(line)
     if totals["files"] == 0 and unsupported > 0:
         sys.exit(1)
     sys.exit(0)

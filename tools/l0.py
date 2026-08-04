@@ -10,6 +10,9 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from exclude import is_excluded  # noqa: E402
+
 CAP = 1500
 
 
@@ -55,15 +58,14 @@ def build_header(root=None):
 
 HEADER = build_header()
 
-EXCLUDE_COMPONENTS = {
-    "docs", "tests", "test", "__tests__", "_legacy", ".artifacts", ".scratch",
-    ".planning", ".claude", ".mulch", "node_modules", ".github", ".agents",
-    "assets", "public", "research", "knowledge", "evals", "legacy",
-}
 SRC_EXTS = (".py", ".ts", ".tsx", ".js", ".jsx", ".sh", ".sql")
 
+# The from-import name list accepts either a parenthesized (possibly
+# multi-line -- `[^)]*` matches newlines too) group or a single-line list;
+# without the parenthesized alternative, `from X import (\n  a,\n  b,\n)`
+# only ever contributed its first (empty) line, undercounting importers.
 PY_IMPORT_RE = re.compile(
-    r"^\s*(?:from\s+(\.*[\w.]*)\s+import\s+([^\n#]+)|import\s+([\w.]+))", re.M
+    r"^\s*(?:from\s+(\.*[\w.]*)\s+import\s+(\([^)]*\)|[^\n#]+)|import\s+([\w.]+))", re.M
 )
 # Static (`from '...'`) and dynamic (`import('...')` / `await import('...')`)
 # specifiers both count -- dynamic-import-only hubs (e.g. lib/ai.ts) were
@@ -82,6 +84,11 @@ def fail(root_name, msg):
 
 
 def get_root():
+    if len(sys.argv) > 1:
+        print("Usage: python3 tools/l0.py (no arguments -- always the current "
+              "repo, computed live from `git rev-parse --show-toplevel`; "
+              "got: {})".format(" ".join(sys.argv[1:])))
+        sys.exit(1)
     out = subprocess.run(
         ["git", "rev-parse", "--show-toplevel"],
         capture_output=True, text=True,
@@ -91,15 +98,6 @@ def get_root():
               "`git rev-parse --show-toplevel` failed.")
         sys.exit(1)
     return out.stdout.strip()
-
-
-def is_excluded(relpath):
-    # Only the top-level path component is checked. Matching at any depth
-    # silently drops live code that happens to sit under a subdirectory
-    # named e.g. "research" (virality's src/originated/research/, 2058 LOC
-    # of live code, is not a docs/legacy dump).
-    parts = relpath.split("/")[:-1]
-    return bool(parts) and parts[0] in EXCLUDE_COMPONENTS
 
 
 def is_source(relpath):
@@ -254,6 +252,11 @@ def main():
     ) + 1
     budget -= dropped_reserve
 
+    # Block content is generated here but NOT fit into budget yet -- fitting
+    # happens below in priority order (MOST-IMPORTED first: it is the only
+    # block that names files an agent should open, so AREAS/SOURCE ROOTS
+    # must never be allowed to starve it to zero by consuming budget first).
+
     # SOURCE ROOTS block: top-level dirs holding source, files/LOC.
     root_stats = defaultdict(lambda: [0, 0])  # [files, loc]
     for f in src_files:
@@ -261,21 +264,8 @@ def main():
         root_stats[top][0] += 1
         root_stats[top][1] += per_file_loc[f]
     root_lines = ["SOURCE ROOTS (files/LOC):"]
-    for top, (nf, nl) in sorted(root_stats.items(), key=lambda kv: -kv[1][0])[:8]:
+    for top, (nf, nl) in sorted(root_stats.items(), key=lambda kv: -kv[1][0]):
         root_lines.append("  {}: {} files, {}k LOC".format(top, nf, round(nl / 1000.0, 1)))
-
-    kept, used, dropped = fit_block(root_lines, budget)
-    if kept:
-        lines += kept
-        budget -= used
-    elif root_lines:
-        fb_kept, fb_used, _ = fit_block(
-            ["SOURCE ROOTS: dropped entirely (no byte budget remaining)"], budget)
-        if fb_kept:
-            lines += fb_kept
-            budget -= fb_used
-        else:
-            dropped_blocks.append("source_roots")
 
     # AREAS block: 2nd-level dirs, descending by file count.
     area_stats = defaultdict(int)
@@ -288,23 +278,10 @@ def main():
         else:
             area = "."
         area_stats[area] += 1
-    area_items = sorted(area_stats.items(), key=lambda kv: -kv[1])[:12]
+    area_items = sorted(area_stats.items(), key=lambda kv: -kv[1])
     area_lines = ["AREAS (source files):"]
     for area, n in area_items:
         area_lines.append("  {}: {}".format(area, n))
-
-    kept, used, dropped = fit_block(area_lines, budget)
-    if kept:
-        lines += kept
-        budget -= used
-    elif area_lines:
-        fb_kept, fb_used, _ = fit_block(
-            ["AREAS: dropped entirely (no byte budget remaining)"], budget)
-        if fb_kept:
-            lines += fb_kept
-            budget -= fb_used
-        else:
-            dropped_blocks.append("areas")
 
     # MOST-IMPORTED block.
     py_files = {f for f in src_files if f.endswith(".py")}
@@ -446,6 +423,8 @@ def main():
     for ext in by_lang:
         by_lang[ext].sort(key=lambda kv: -kv[1])
 
+    mi_kept = []  # filled below, appended to `lines` after priority fitting
+
     if py_dead or ts_dead:
         reasons = []
         if py_dead:
@@ -454,11 +433,16 @@ def main():
         if ts_dead:
             reasons.append("TS/JS resolver matched nothing ({} source files, "
                             "top count {})".format(len(jsts_files), best_ts))
-        lines.append("MOST-IMPORTED UNAVAILABLE: " + "; ".join(reasons))
+        mi_kept, used, _ = fit_block(
+            ["MOST-IMPORTED UNAVAILABLE: " + "; ".join(reasons)], budget)
+        budget -= used
     elif top_imports and top_imports[0][1] > 5:
-        header = ("MOST-IMPORTED (distinct importing files; python `from|import` "
-                   "longest-prefix + TS/JS relative/@ resolution, static regex, not AST-exact; "
-                   "counted over {} non-test source files of {} tracked):".format(n_src, n_tracked))
+        header = ("MOST-IMPORTED (distinct importing files, excluding __init__.py "
+                   "package markers -- so this is the top of non-package modules, "
+                   "NOT necessarily the single most-imported file overall; python "
+                   "`from|import` longest-prefix + TS/JS relative/@ resolution, "
+                   "static regex, not AST-exact; counted over {} non-test source "
+                   "files of {} tracked):".format(n_src, n_tracked))
         if dominant_lang:
             mi_lines = [header]
             for f, n in by_lang.get(dominant_lang, [])[:10]:
@@ -481,18 +465,47 @@ def main():
         kept, used, dropped = fit_block(mi_lines, budget)
         named_via_imports = sum(1 for l in kept if " <- " in l)
         if kept:
-            lines += kept
+            mi_kept = kept
             budget -= used
         else:
             dropped_blocks.append("most_imported")
     else:
         top_n = top_imports[0][1] if top_imports else 0
-        lines.append(
-            "MOST-IMPORTED: suppressed -- top count is {} (<=5); import regex "
-            "likely not matching this repo's style.".format(top_n)
-        )
+        mi_kept, used, _ = fit_block(
+            ["MOST-IMPORTED: suppressed -- top count is {} (<=5); import regex "
+             "likely not matching this repo's style.".format(top_n)], budget)
+        budget -= used
 
-    # ENTRY POINTS block.
+    # AREAS and SOURCE ROOTS fit AFTER most-imported has taken its share --
+    # they are directory rollups, lower priority than a block that names
+    # actual files. Each still gets "... and N more" if it doesn't fully fit.
+    area_kept, used, dropped = fit_block(area_lines, budget)
+    if area_kept:
+        budget -= used
+    elif area_lines:
+        fb_kept, fb_used, _ = fit_block(
+            ["AREAS: dropped entirely (no byte budget remaining)"], budget)
+        if fb_kept:
+            area_kept = fb_kept
+            budget -= fb_used
+        else:
+            dropped_blocks.append("areas")
+
+    root_kept, used, dropped = fit_block(root_lines, budget)
+    if root_kept:
+        budget -= used
+    elif root_lines:
+        fb_kept, fb_used, _ = fit_block(
+            ["SOURCE ROOTS: dropped entirely (no byte budget remaining)"], budget)
+        if fb_kept:
+            root_kept = fb_kept
+            budget -= fb_used
+        else:
+            dropped_blocks.append("source_roots")
+
+    # ENTRY POINTS block -- itemized (one script per line) so a repo with
+    # many package.json scripts degrades gracefully via "... and N more"
+    # instead of being dropped whole as a single atomic line.
     main_guard_count = 0
     for f in py_files:
         if has_entrypoint(os.path.join(root, f), ".py"):
@@ -514,25 +527,34 @@ def main():
     # entry points -- lead with those instead of burying them after a
     # near-meaningless guard count.
     if py_pct < 15.0 and pkg_scripts:
-        ep_lines = ["ENTRY POINTS: package.json scripts: " + ", ".join(sorted(pkg_scripts))]
+        ep_lines = ["ENTRY POINTS: package.json scripts ({} total):".format(len(pkg_scripts))]
+        ep_lines += ["  {}".format(s) for s in sorted(pkg_scripts)]
         if main_guard_count:
             ep_lines.append("  ({} `__main__` guard(s) also present)".format(main_guard_count))
     else:
         ep_lines = ["ENTRY POINTS: {} `__main__` guard(s)".format(main_guard_count)]
         if pkg_scripts:
-            ep_lines.append("  package.json scripts: " + ", ".join(sorted(pkg_scripts)))
-    kept, used, dropped = fit_block(ep_lines, budget)
-    if kept:
-        lines += kept
+            ep_lines.append("  package.json scripts ({} total):".format(len(pkg_scripts)))
+            ep_lines += ["    {}".format(s) for s in sorted(pkg_scripts)]
+    ep_kept, used, dropped = fit_block(ep_lines, budget)
+    if ep_kept:
         budget -= used
     elif ep_lines:
         fb_kept, fb_used, _ = fit_block(
             ["ENTRY POINTS: dropped entirely (no byte budget remaining)"], budget)
         if fb_kept:
-            lines += fb_kept
+            ep_kept = fb_kept
             budget -= fb_used
         else:
             dropped_blocks.append("entrypoints")
+
+    # Assemble in the original display order: source roots, areas,
+    # most-imported, entry points. Priority above only controlled the ORDER
+    # budget was consumed in, not the order printed.
+    lines += root_kept
+    lines += area_kept
+    lines += mi_kept
+    lines += ep_kept
 
     # G4: excluded-vs-tracked ratio warning.
     total_source_like = len(src_files) + len(excluded_files)

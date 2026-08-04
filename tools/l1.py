@@ -1,20 +1,41 @@
 #!/usr/bin/env python3
 """One area, on demand: file list + LOC + [entry] markers. HARD CAP 8,000 bytes.
-Usage: python3 tools/l1.py <area>
+Usage: <this file's path> <area> -- run with no args for the exact path.
 """
 import os
 import re
 import subprocess
 import sys
 from collections import defaultdict
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from exclude import is_excluded  # noqa: E402
 
 CAP = 8000
 
-EXCLUDE_COMPONENTS = {
-    "docs", "tests", "test", "__tests__", "_legacy", ".artifacts", ".scratch",
-    ".planning", ".claude", ".mulch", "node_modules", ".github", ".agents",
-    "assets", "public", "research", "knowledge", "evals", "legacy",
-}
+
+def _sibling_ref(name, root):
+    """Resolve l1.py's sibling tool (skeleton.py) relative to l1.py's own
+    location, not a hardcoded guess. Returns a string to print, or a
+    stdlib-only fallback path if the sibling can't be found on disk."""
+    here = Path(__file__).resolve().parent
+    sib = here / name
+    if not sib.is_file():
+        return "tools/{} (not installed)".format(name)
+    root_path = Path(root).resolve() if root else None
+    if root_path is not None:
+        try:
+            rel = sib.relative_to(root_path)
+            return str(rel)
+        except ValueError:
+            pass
+    home = str(Path.home())
+    sib_str = str(sib)
+    if sib_str.startswith(home):
+        return "~" + sib_str[len(home):]
+    return sib_str
+
 SRC_EXTS = (".py", ".ts", ".tsx", ".js", ".jsx", ".sh", ".sql")
 PY_MAIN_RE = re.compile(r"""^\s*if\s+__name__\s*==\s*['"]__main__['"]\s*:""", re.M)
 
@@ -28,11 +49,6 @@ def get_root():
         print("Not inside a git repo.")
         sys.exit(1)
     return out.stdout.strip()
-
-
-def is_excluded(relpath):
-    parts = relpath.split("/")[:-1]
-    return any(p in EXCLUDE_COMPONENTS for p in parts)
 
 
 def is_source(relpath):
@@ -67,12 +83,14 @@ def is_entry(full, ext, pkg_scripts_dirs):
 
 
 def main():
+    root = get_root()
+
     if len(sys.argv) != 2:
-        print("Usage: python3 tools/l1.py <area>")
+        here_ref = _sibling_ref("l1.py", root)
+        print("Usage: {} <area>".format(here_ref))
         sys.exit(1)
     requested = sys.argv[1]
 
-    root = get_root()
     ls = subprocess.run(["git", "-C", root, "ls-files"], capture_output=True, text=True)
     tracked = [l for l in ls.stdout.splitlines() if l]
     src_files = [f for f in tracked if is_source(f) and not is_excluded(f)]
@@ -84,9 +102,11 @@ def main():
     if requested not in by_area:
         valid = sorted(by_area.keys(), key=lambda a: -len(by_area[a]))
         print("Unknown area: {}".format(requested))
-        print("Valid areas:")
-        for a in valid:
+        print("Valid areas ({} total, showing top 15):".format(len(valid)))
+        for a in valid[:15]:
             print("  {} ({} files)".format(a, len(by_area[a])))
+        if len(valid) > 15:
+            print("  ... and {} more".format(len(valid) - 15))
         sys.exit(1)
 
     files = sorted(by_area[requested])
@@ -119,8 +139,9 @@ def main():
 
     lines += kept_rows
     if dropped:
-        lines.append("#TRUNCATED {} more files, run: tools/skeleton.py -r {}".format(
-            dropped, requested))
+        sk_ref = _sibling_ref("skeleton.py", root)
+        lines.append("#TRUNCATED {} more files, run: {} -r {}".format(
+            dropped, sk_ref, requested))
 
     out = "\n".join(lines) + "\n"
     print(out, end="")
