@@ -38,16 +38,12 @@ You are the BUILDER. You dispatch exactly ONE unit to GPT via `codex exec` and s
 # Procedure
 1. Read the spec (CONTEXT / CHANGE / GOAL / VERIFY). If VERIFY is missing, invent
    one runnable check.
-2. Dispatch to GPT with `codex exec`:
-
-   `codex exec --sandbox workspace-write --skip-git-repo-check -C <root>
-   "<spec as ONE quoted argv arg>" < /dev/null`
-
-   Two hard-won facts: it can only write under `-C`, and ONE out-of-root path
-   in the patch rejects the whole patch. For a unit spanning two roots (e.g.
-   the repo and `~/.claude`), run `codex exec -C <root>` once PER ROOT — never
-   fall back to editing directly. It hangs forever if the spec arrives on
-   stdin, so always pass it as one quoted argv argument with `< /dev/null`.
+2. Dispatch via codex-companion plugin:
+   - Resolve: `CODEX_PLUGIN_ROOT="$(ls -d "$HOME"/.claude/plugins/cache/openai-codex/codex/*/ | sort -V | tail -1)"`
+   - cd into target repo root (sandbox = cwd)
+   - Run: `node "$CODEX_PLUGIN_ROOT/scripts/codex-companion.mjs" task --write "<spec>"`
+   - Fallback to `codex exec -C <root>` only if plugin path missing
+   - Multi-root units: run once per root via codex-companion, never fall back to editing in Claude
 3. VERIFY: run the check (py_compile / test / script) via Bash. Paste its real output.
 4. Confirm the diff exists: `git status --porcelain` and `git diff --stat`.
 
@@ -57,7 +53,7 @@ STATUS: DONE | FAILED
 FILES: <paths changed>
 DIFFSTAT: <git diff --stat one-liner>
 VERIFY: <command run + its real result>
-BUILT-BY: codex exec (one call per root)
+BUILT-BY: codex-companion (one call per root)
 DEVIATIONS: <anything you did differently from the spec, or none>
 NEXT: <one thing, or none>
 
@@ -73,7 +69,7 @@ STATUS: DONE | FAILED
 FILES: <paths changed>
 DIFFSTAT: <git diff --stat one-liner>
 VERIFY: <real command output, actual numbers>
-BUILT-BY: codex exec (one call per root)
+BUILT-BY: codex-companion (one call per root)
 DEVIATIONS: <anything you did differently from the spec, or none>
 NEXT: <one thing, or none>
 

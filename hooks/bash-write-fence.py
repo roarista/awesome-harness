@@ -8,7 +8,8 @@ went through Bash (heredoc, `sed -i`, `cat >`, `python3 - <<PY`, `git apply`,
 Write|Edit|MultiEdit only and by design sees none of it.
 
 Detection of MAIN vs SUB-AGENT is COPIED from main-edit-guard.py — a sub-agent's
-hook payload carries `agent_id`; main's does not. Do not invent a second one.
+hook payload carries `agent_id`; main's does not. Redirect writes are fenced for
+both; only Codex tool invocations are exempt.
 
 FALSE-POSITIVE DISCIPLINE (the `irreversible-pause.py` lesson): we do NOT
 substring-match. Heredoc BODIES are stripped before the command line is scanned,
@@ -23,6 +24,7 @@ Fail-OPEN on any internal error.
 import json
 import os
 import re
+import subprocess
 import sys
 
 BLOCK_EXT = {".py", ".ts", ".tsx", ".js", ".jsx", ".sh", ".go", ".rs", ".rb",
@@ -32,6 +34,7 @@ ALLOW_FRAG = ("/.planning/", "/docs/", "/.mulch/", "/memory/", "/.scratch/",
               "/tmp/", "/.claude/hooks/state/")
 ALLOW_BASE = {".now.md", ".northstar.md", ".northstar.done", "MEMORY.md",
               "STATE", "STATE.md", "STATE-ARCHIVE.md"}
+CODEX_TOOLS = ("codex-companion.mjs", "codex exec")
 
 HEREDOC = re.compile(r"<<-?\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\1")
 INTERP = re.compile(r"\b(python3?|node|ruby|perl|php|bash|sh|zsh)\b")
@@ -151,7 +154,7 @@ def norm(path, cwd):
 
 
 def blocked(path, cwd):
-    """True iff writing `path` from MAIN should be denied."""
+    """True iff writing `path` through fenced Bash should be denied."""
     p = norm(path, cwd)
     low = p.lower()
     if os.path.basename(p) in ALLOW_BASE or low.endswith(".md"):
@@ -170,14 +173,14 @@ def blocked(path, cwd):
 
 def main():
     mode = os.environ.get("BASH_WRITE_FENCE", "enforce").lower()
-    if mode == "off":
+    if mode == "off" or os.environ.get("CLAUDE_BASH_WRITE_FENCE", "").lower() == "off":
         return
     raw = sys.stdin.read()
     data = json.loads(raw) if raw.strip() else {}
-    if is_subagent(data):
-        return
     cmd = str((data.get("tool_input") or {}).get("command", "") or "")
     if not cmd:
+        return
+    if any(tool in cmd for tool in CODEX_TOOLS):
         return
     cwd = str(data.get("cwd") or os.getcwd())
     hits = [t for t in targets(cmd) if blocked(t, cwd)]
@@ -187,15 +190,45 @@ def main():
             hits = ["<git apply/patch>"]
     if not hits:
         return  # SILENT: zero bytes, exit 0
-    msg = (f"BASH-WRITE BLOCKED: main tried to write source via Bash -> "
-           f"{', '.join(sorted(set(hits))[:3])}. Main orchestrates; a subagent "
-           f"(codex/claude) writes code. Allowed here: *.md, .planning/, docs/, "
+    role = "subagent" if is_subagent(data) else "main"
+    msg = (f"BASH-WRITE BLOCKED: {role} tried to write source via Bash -> "
+           f"{', '.join(sorted(set(hits))[:3])}. Use codex-companion/codex exec "
+           f"for code writes. Allowed here: *.md, .planning/, docs/, "
            f".mulch/, memory/, /tmp. Kill: BASH_WRITE_FENCE=off\n")
     sys.stderr.write(msg)
     sys.exit(0 if mode == "warn" else 2)
 
 
+def _selftest():
+    def run(command, subagent=False):
+        payload = {"cwd": "/repo", "tool_input": {"command": command}}
+        if subagent:
+            payload["agent_id"] = "test-subagent"
+        env = os.environ.copy()
+        env.pop("BASH_WRITE_FENCE", None)
+        env.pop("CLAUDE_BASH_WRITE_FENCE", None)
+        return subprocess.run(
+            [sys.executable, __file__], input=json.dumps(payload), text=True,
+            capture_output=True, env=env, check=False,
+        ).returncode
+
+    cases = [
+        ("subagent redirect", "cat > x.py", True, 2),
+        ("subagent companion allowlist",
+         'node /path/to/codex-companion.mjs task --write "write to foo > bar"', True, 0),
+        ("main codex allowlist",
+         'codex exec --sandbox workspace-write -C /repo "spec text with > in it"', False, 0),
+    ]
+    for name, command, subagent, expected in cases:
+        actual = run(command, subagent)
+        assert actual == expected, f"{name}: rc={actual}, want {expected}"
+    print("selftest passed")
+
+
 if __name__ == "__main__":
+    if "--selftest" in sys.argv:
+        _selftest()
+        sys.exit(0)
     try:
         main()
     except Exception:

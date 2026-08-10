@@ -7,9 +7,11 @@ The 2026-07-27 session that did this was deleted mid-flight; context recovered f
 
 ## Active Resume Point
 
-**Last updated:** 2026-08-02 (night) — AUDIT WAVE 2 + FIRST REAL CUT
-**Status:** SHIPPED + pushed `b8daf8a`. Four more audits (10-13) in `docs/audits/2026-08-02/`,
-plus the FIRST measured change: hooks are now silent-by-default.
+**Last updated:** 2026-08-09 — BASH WRITE FENCE SUBAGENT HOLE CLOSED
+**Status:** READY TO SHIP. `hooks/bash-write-fence.py` now fences redirect-shaped source
+writes for main and subagents while always allowing `codex-companion.mjs` and `codex exec`.
+The three requested regression cases, both kill switches, compilation, and check-all passed.
+**Resume:** commit/push this fence change, then review script-content and `perl -e` false positives.
 
 **THE REFRAME — I aimed at the wrong target and the data corrected me.**
 Hooks are 14.70% of billed main-session INPUT but **~5.5% of DOLLARS**, because 93.1% of
