@@ -205,6 +205,11 @@
         "hooks": [
           {
             "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/claude-spawn-gate.py\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/spawn-necessity.py\"",
             "timeout": 12
           }
