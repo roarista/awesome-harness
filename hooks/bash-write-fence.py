@@ -56,6 +56,12 @@ PY_OPEN = re.compile(r"\bopen\(\s*['\"]([^'\"]+)['\"]\s*,\s*['\"][wax]")
 PY_WT = re.compile(r"['\"]([^'\"]+)['\"]\s*\)?\s*\.\s*write_(?:text|bytes)\(")
 JS_WF = re.compile(r"\bwriteFileSync?\(\s*['\"]([^'\"]+)['\"]")
 PERL_OPEN = re.compile(r"\bopen\(?\s*\w*\s*,\s*['\"]?>{1,2}([^'\",\s)]+)")
+PERL_OPEN_3ARG = re.compile(
+    r"\bopen\s*\(\s*\w+\s*,\s*['\"][<>!+-]{1,2}['\"]\s*,\s*['\"]([^'\"]+)['\"]"
+)
+PERL_OPEN_CONCAT = re.compile(
+    r"\bopen\s*\(\s*\w+\s*,\s*['\"][<>!+-]{1,2}['\"]['\"]([^'\"]+)['\"]"
+)
 # inline-interpreter write: `python3 -c '...'`, `node -e "..."`, `perl -e '...'`
 # — MATCH THE WRITE, not the language: any of python3/python/node/nodejs/perl
 # followed (anywhere before the flag, flags/args in between are fine) by a
@@ -136,7 +142,8 @@ def targets(cmd):
                 out += [m.group(1) for m in rx.finditer(body)]
     for m in DASH_C.finditer(code):
         inner = m.group(2) or m.group(3) or ""
-        for rx in (PY_OPEN, PY_WT, JS_WF, PERL_OPEN):
+        for rx in (PY_OPEN, PY_WT, JS_WF, PERL_OPEN, PERL_OPEN_3ARG,
+                   PERL_OPEN_CONCAT):
             out += [x.group(1) for x in rx.finditer(inner)]
     return [t.strip("'\"") for t in out
             if t and not t.startswith("&") and not t.startswith("/dev/")]
@@ -180,7 +187,7 @@ def main():
     cmd = str((data.get("tool_input") or {}).get("command", "") or "")
     if not cmd:
         return
-    if any(tool in cmd for tool in CODEX_TOOLS):
+    if any(tool in mask_quotes(cmd) for tool in CODEX_TOOLS):
         return
     cwd = str(data.get("cwd") or os.getcwd())
     hits = [t for t in targets(cmd) if blocked(t, cwd)]
@@ -213,11 +220,19 @@ def _selftest():
         ).returncode
 
     cases = [
-        ("subagent redirect", "cat > x.py", True, 2),
-        ("subagent companion allowlist",
-         'node /path/to/codex-companion.mjs task --write "write to foo > bar"', True, 0),
-        ("main codex allowlist",
-         'codex exec --sandbox workspace-write -C /repo "spec text with > in it"', False, 0),
+        ("perl three-argument open", 'perl -e \'open(F,">>","evil.py")\'', False, 2),
+        ("perl concatenated open", 'perl -e \'open(F,">""evil.py")\'', False, 2),
+        ("quoted allowlist is not executable", "echo 'codex exec' > evil.py", False, 2),
+        ("python inline write", 'python3 -c "open(\'evil.py\',\'w\').write(\'x\')"', False, 2),
+        ("bsd sed in-place", "sed -i '' s/a/b/ hooks/x.py", False, 2),
+        ("cat redirect", "cat > evil.py", False, 2),
+        ("quoted grep example", "command grep -n 'cat > x.py' hooks/bash-write-fence.py", False, 0),
+        ("quoted echo example", "echo 'we used cat > foo.py earlier'", False, 0),
+        ("python inline read-only", 'python3 -c "print(1)"', False, 0),
+        ("markdown heredoc body",
+         "cat > notes.md <<'EOF'\ncat > a.py\nEOF", False, 0),
+        ("companion allowlist",
+         'node /path/to/codex-companion.mjs dispatch "prompt text with > in it"', True, 0),
     ]
     for name, command, subagent, expected in cases:
         actual = run(command, subagent)

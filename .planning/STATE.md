@@ -7,11 +7,11 @@ The 2026-07-27 session that did this was deleted mid-flight; context recovered f
 
 ## Active Resume Point
 
-**Last updated:** 2026-08-09 — BASH WRITE FENCE SUBAGENT HOLE CLOSED
-**Status:** READY TO SHIP. `hooks/bash-write-fence.py` now fences redirect-shaped source
-writes for main and subagents while always allowing `codex-companion.mjs` and `codex exec`.
-The three requested regression cases, both kill switches, compilation, and check-all passed.
-**Resume:** commit/push this fence change, then review script-content and `perl -e` false positives.
+**Last updated:** 2026-08-09 — BASH WRITE FENCE QUOTE/PERL GAPS CLOSED
+**Status:** COMPLETE. Quoted Codex tool names no longer bypass the fence; three-argument
+and concatenated-string Perl `open` writes are detected. Eleven BLOCK/PASS regressions,
+both kill switches, fail-open, compilation, diff check, and check-all passed.
+**Resume:** No pending work; monitor the fence for new shell write syntaxes.
 
 **THE REFRAME — I aimed at the wrong target and the data corrected me.**
 Hooks are 14.70% of billed main-session INPUT but **~5.5% of DOLLARS**, because 93.1% of
