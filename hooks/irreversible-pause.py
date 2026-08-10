@@ -50,6 +50,12 @@ DB_CLIENT = re.compile(
 
 # 4. Other destructive filesystem, repository, disk, and cloud operations.
 GIT_RESET_HARD = re.compile(r"\bgit\b[^\n;|&]*\breset\s+--hard\b")
+# `git stash` (push/pop/apply/drop/clear/-u/...) DESTROYS or mutates uncommitted
+# work; only `stash list` and `stash show` are read-only and must pass.
+GIT_STASH = re.compile(r"\bgit\b[^\n;|&]*\bstash\b(?!\s+(?:list|show)\b)")
+# `git checkout .` / `git checkout -- <path>` discards uncommitted changes;
+# `git checkout -b foo` / `git checkout main` (branch switches) must pass.
+GIT_CHECKOUT = re.compile(r"\bgit\b[^\n;|&]*\bcheckout\b([^\n;|&]*)")
 FIND_DELETE = re.compile(r"\bfind\b[^\n;|&]*\s-delete\b|\bfind\b[^\n;|&]*\s-exec\s+rm\b")
 TRUNCATE_ZERO = re.compile(r"\btruncate\s+-s\s+0\b")
 DD_OF = re.compile(r"\bdd\b[^\n;|&]*\bof=")
@@ -150,6 +156,19 @@ def _rm_is_recursive_force(cmd: str) -> bool:
     return False
 
 
+def _git_checkout_is_destructive(cmd: str) -> bool:
+    """True iff one `git checkout` invocation discards working-tree changes:
+    bare `.` as the (first) arg, or a `-- <path>` pathspec-restore form. A
+    branch switch (`checkout main`, `checkout -b foo`) is NOT destructive."""
+    for m in GIT_CHECKOUT.finditer(cmd):
+        tokens = m.group(1).split()
+        if not tokens:
+            continue
+        if tokens[0] == "." or tokens[0] == "--":
+            return True
+    return False
+
+
 def _git_clean_is_destructive(cmd: str) -> bool:
     """True iff one git-clean invocation has force plus d or x flags."""
     for m in re.finditer(r"\bgit\b[^\n;|&]*\bclean\b([^\n;|&]*)", cmd):
@@ -178,6 +197,10 @@ def matches_denylist(cmd: str) -> bool:
         return True
     if _git_clean_is_destructive(bare):
         return True
+    if GIT_STASH.search(bare):
+        return True
+    if _git_checkout_is_destructive(bare):
+        return True
     if any(pattern.search(bare) for pattern in (
         GIT_RESET_HARD, FIND_DELETE, TRUNCATE_ZERO,
         DD_OF, MKFS, AWS_S3_RM_RECURSIVE, GCLOUD_DELETE, RCLONE_DELETE,
@@ -197,7 +220,8 @@ def matches_denylist(cmd: str) -> bool:
 def deny() -> None:
     sys.stderr.write(
         "BLOCKED: this is an IRREVERSIBLE operation (recursive force-delete, "
-        "force push, destructive SQL/DB reset, or a GRADED-COURSEWORK SUBMISSION) "
+        "force push, git stash/checkout that discards uncommitted work, "
+        "destructive SQL/DB reset, or a GRADED-COURSEWORK SUBMISSION) "
         "and cannot be undone. NEVER submit Ro's coursework — he submits it himself. "
         "STOP and confirm with Ro before proceeding. After he approves, re-run "
         "the EXACT command prefixed with `" + OVERRIDE + " ` to re-arm and "
@@ -236,6 +260,11 @@ def _selftest() -> None:
         "wget --post-file=essay.pdf https://moodle.school.edu/mod/assign/submit",
         # real destructive commands as ACTUAL commands, not mentions — must BLOCK
         "rm -rf /some/path", "git reset --hard HEAD~1",
+        # git stash / checkout that discards uncommitted work — must BLOCK
+        "git stash", "git stash -u", "git stash push", "git stash pop",
+        "git stash apply", "git stash drop", "git stash clear",
+        "git stash --include-untracked", "git checkout .", "git checkout -- foo.py",
+        "git checkout -- .",
     )
     for command in destructive:
         assert matches_denylist(command), command
@@ -255,6 +284,9 @@ def _selftest() -> None:
         "cat >> notes.md <<'EOF'\nrm -rf /\nEOF",
         'echo "git push --force"',
         "# rm -rf build\ngit status",
+        # git stash / checkout read-only or non-destructive forms — must NOT block
+        "git stash list", "git stash show", "git stash show -p",
+        "git checkout -b foo", "git checkout main", "git checkout -b foo main",
     )
     for command in allowed:
         assert not matches_denylist(command), command

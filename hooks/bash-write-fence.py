@@ -52,7 +52,15 @@ PATCH_SAFE = re.compile(r"--(?:check|stat|numstat|summary|dry-run)\b")
 PY_OPEN = re.compile(r"\bopen\(\s*['\"]([^'\"]+)['\"]\s*,\s*['\"][wax]")
 PY_WT = re.compile(r"['\"]([^'\"]+)['\"]\s*\)?\s*\.\s*write_(?:text|bytes)\(")
 JS_WF = re.compile(r"\bwriteFileSync?\(\s*['\"]([^'\"]+)['\"]")
-DASH_C = re.compile(r"-c\s+('([^']*)'|\"([^\"]*)\")")
+PERL_OPEN = re.compile(r"\bopen\(?\s*\w*\s*,\s*['\"]?>{1,2}([^'\",\s)]+)")
+# inline-interpreter write: `python3 -c '...'`, `node -e "..."`, `perl -e '...'`
+# — MATCH THE WRITE, not the language: any of python3/python/node/nodejs/perl
+# followed (anywhere before the flag, flags/args in between are fine) by a
+# -c or -e flag carrying a quoted script is scanned with the SAME write-shape
+# regexes (PY_OPEN/PY_WT/JS_WF/PERL_OPEN) used for heredoc bodies below.
+DASH_C = re.compile(
+    r"\b(?:python3?|node|nodejs|perl)\b[^\n;|&]*?-[ce]\s+('([^']*)'|\"([^\"]*)\")"
+)
 QUOTED = re.compile(r"'[^']*'|\"[^\"]*\"")
 
 
@@ -125,7 +133,7 @@ def targets(cmd):
                 out += [m.group(1) for m in rx.finditer(body)]
     for m in DASH_C.finditer(code):
         inner = m.group(2) or m.group(3) or ""
-        for rx in (PY_OPEN, PY_WT, JS_WF):
+        for rx in (PY_OPEN, PY_WT, JS_WF, PERL_OPEN):
             out += [x.group(1) for x in rx.finditer(inner)]
     return [t.strip("'\"") for t in out
             if t and not t.startswith("&") and not t.startswith("/dev/")]
