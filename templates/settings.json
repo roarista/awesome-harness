@@ -27,103 +27,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh \"$HOME/.claude/hooks/caveman-discipline.sh\""
-          },
-          {
-            "type": "command",
-            "command": "python3 \"/Users/rodrigoarista/.claude/hooks/northstar-inject.py\"",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/reread-guard.py\""
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/graphify-gate.py\""
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/manifest-guard.py\""
-          },
-          {
-            "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/codemap-inject.py\"",
             "timeout": 20
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "SendUserFile",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"/Users/rodrigoarista/.claude/hooks/senduserfile-path-echo.js\"",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "Read",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/graphify-blindspot.py\""
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/token-discipline.py\""
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/reread-guard.py\""
-          }
-        ]
-      },
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/session-checkpoint.py\""
-          },
-          {
-            "type": "command",
-            "command": "python3 \"/Users/rodrigoarista/.claude/hooks/harness-usage-telemetry.py\""
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"/Users/rodrigoarista/.claude/hooks/phantom-edit-guard.py\""
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/graphify-gate.py\""
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/builder-fence.py\""
-          }
-        ]
-      },
-      {
-        "matcher": "Task|Agent",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/post-agent-guard.py\"",
-            "timeout": 5
           }
         ]
       }
@@ -136,34 +41,12 @@
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/northstar-protect.py\"",
             "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/now-gate.py\"",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/route-only-gate.py\""
-          },
-          {
-            "type": "command",
-            "command": "python3 \"/Users/rodrigoarista/.claude/hooks/main-edit-guard.py\""
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/graphify-blindspot.py\""
           }
         ]
       },
       {
         "matcher": "Bash",
         "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"/Users/rodrigoarista/.claude/hooks/check-all-commit-gate.sh\"",
-            "timeout": 120
-          },
           {
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/northstar-protect.py\"",
@@ -176,26 +59,7 @@
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/builder-fence.py\""
-          },
-          {
-            "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/bash-write-fence.py\"",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "Task",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "sh \"$HOME/.claude/hooks/coding-routing-guard.sh\"",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/understand-gate.py\"",
             "timeout": 5
           }
         ]
@@ -207,119 +71,6 @@
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/claude-spawn-gate.py\"",
             "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/spawn-necessity.py\"",
-            "timeout": 12
-          }
-        ]
-      },
-      {
-        "matcher": "Read",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/reread-guard.py\""
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/graphify-gate.py\""
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/filesize-cap.py\""
-          }
-        ]
-      },
-      {
-        "matcher": "Grep",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/graphify-gate.py\""
-          }
-        ]
-      },
-      {
-        "matcher": "Skill",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/skill-reinject-guard.py\"",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/recall-inject.py\"",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/northstar-inject.py\"",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/harness-enforce.py\"",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "sh \"/Users/rodrigoarista/.claude/hooks/voice-dictation-nudge.sh\"",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "PreCompact": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"$HOME/.claude/hooks/pre_compact_global.sh\"",
-            "timeout": 60
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/precompact-handoff.py\"",
-            "timeout": 55
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/compact-prep-gate.py\""
-          }
-        ]
-      },
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"/Users/rodrigoarista/.claude/hooks/speak.py\""
-          }
-        ]
-      },
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/abs-path-nudge.py\""
           }
         ]
       }
