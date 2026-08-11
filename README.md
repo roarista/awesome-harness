@@ -1,65 +1,73 @@
 <p align="center">
-  <img src="assets/hero-banner-v3.png" alt="awesome-harness" width="900">
+  <img src="assets/hero-banner-v3.png" alt="awesome-harness">
 </p>
 
 <h1 align="center">awesome-harness</h1>
 
 <p align="center">
-  <b>A drop-in harness that makes Claude Code cheaper, sharper, and forgetful-proof.</b><br>
-  Persistent memory · token savings · anti-drift · a code-map RAG · disciplined cheap-model coding — all booted with one command: <code>/awesomeharness</code>.
+  <b>A measured, local workflow harness for Claude Code and Codex.</b><br>
+  Code maps · durable memory · deterministic checks · small agent workflows
 </p>
 
 ---
 
+## What is actually used
+
+This is the current harness, not a catalogue of everything ever tried. The table below comes from 30 days of 6,426 real transcripts. “Core” means broadly useful and repeatedly used; “niche” means useful in narrower workflows; “on probation” means retained without enough adoption to call it established.
+
+| Component | 30d calls | Repos | Verdict |
+|---|---:|---:|---|
+| graphify | 819 | 8 | core |
+| mulch | 351 | 3 | core |
+| check-all | 339 | 5 | core |
+| repowise | 286 | 2 | niche |
+| ytintel | 242 | 7 | niche |
+| semgrep | 197 | 4 | core |
+| git-sync | 166 | 5 | niche |
+| l0.py | 150 | 1 | niche |
+| skeleton | 142 | 3 | niche |
+| finding.sh | 119 | 3 | niche |
+| chains | 101 | 1 | niche |
+| l1 | 85 | 2 | niche |
+| retrieve.sh | 84 | 1 | niche |
+| codemap.py | 81 | 2 | niche |
+| route-model | 40 | 2 | niche |
+| graphify-blast | 9 | 1 | on probation |
+| memgraph | 6 | 1 | on probation |
+| drift-replay | 3 | 1 | on probation |
+
+The largest gap is search routing: grep ran 10,879 times and semgrep 197 times, a 55:1 ratio. The rule to prefer semgrep for structural searches is aspirational, not enforced. Grep remains the real default.
+
 ## Why this exists
 
-If you run Claude Code seriously you hit the same three walls:
+Long coding sessions lose context, repeat discovery, and drift away from the requested outcome. `awesome-harness` provides a small set of local tools and conventions for orientation, retrieval, code mapping, delegated implementation, verification, and handoff.
 
-1. **Token burn.** Big `CLAUDE.md`s, MCP tool schemas, and ANSI-noisy tool output get re-billed on every turn. Plans evaporate.
-2. **Amnesia.** Each session starts cold. Decisions, conventions, and hard-won failures are re-learned (and re-paid for) every time.
-3. **Drift.** Long sessions wander off the actual goal — agents quietly start doing something adjacent and forget what you were building.
-
-`awesome-harness` is the set of hooks, skills, and small tools that fix all three, plus a few things that just make the agents *better* (lazy-by-default coding, a code-map to query instead of grepping, deterministic gates). It's the result of a lot of iteration on real multi-repo projects — packaged so you can install it in a minute.
-
-Everything runs **locally**. The one optional network component (a compression proxy) only ever talks to `api.anthropic.com` — the same place your requests already go.
+The project now follows measured use. Components that earn repeated use stay prominent; specialized tools are documented as niche; low-use experiments remain on probation instead of being presented as proven defaults.
 
 ## Benchmarks
 
-Measured from the **full 94-session history** of one real user's Claude Code logs (`message.usage` token fields), split at the first `awesome-harness` commit into **bare Claude Code (WITHOUT)** vs **harness present (WITH)**. This is **observational**, not a controlled A/B — sessions differ in task and length across the boundary — but the sample is the *entire* history (not one cherry-picked window), and the per-session-normalized rates hold under every session-size filter. Every figure is labelled by rigor; full method + honesty appendix in **[docs/BENCHMARK.md](docs/BENCHMARK.md)**.
+The current evidence base is the 30-day, 6,426-transcript usage census summarized above. It measures adoption, not causal productivity: a call count can show that a component is used, but it cannot prove that the component improved the outcome.
 
-<p align="center">
-  <img src="assets/benchmark-hero.jpeg" alt="95% less context — typical session on the repos that were drowning" width="900">
-</p>
+That distinction drove a large simplification. Measurement showed no positive effect from the old hook surface, so 41 hook entries were removed: 47 entries became 6. This counts registrations, not unique scripts. The cut removed redundant reminders, behavioral nudges, read guards, edit guards, session checkpoints, and compaction gates instead of continuing to claim unmeasured benefits.
 
-**Median context cost per session — on the three repos that were drowning pre-harness** (anonymized; per-project, not an aggregate):
+The removed entries are no longer documented; they were largely ineffective at their stated goals.
 
-| Project | Median tok/session WITHOUT → WITH | Δ | Redundant re-reads/session | Compactions/session |
-|---|---:|---|---:|---:|
-| **A** (orchestrator) | 3.19M → 63k | **−98%** | 1.04 → 0.15 | 1.43 → 0.37 |
-| **B** | 2.76M → 109k | **−96%** | 2.93 → 0.00 | 5.07 → 0.00 |
-| **C** | 951k → 246k | **−74%** | 2.84 → 0.33 | 2.00 → 0.39 |
-
-The **redundant-re-read** win is the bulletproof one — it improves in **6 / 6** measured projects (best: **−88%**), because the guard *prevents* the churn rather than logging it. The 25–50× token collapse is scoped to the repos that were drowning; on repos that became long autonomous-build pipelines post-harness, per-session tokens rose (bigger *work* per session) even as their re-read rate fell — so this is deliberately shown per-project, not as one headline number.
-
-Plus the mechanism-level wins underneath: the **state-distiller** pulls **167,919 tokens** of history out of the every-session read path (98% / 78% / 52% across three projects; 100% preserved in an archive); the **reread-guard** eliminates redundant big-file re-reads (one documented loop re-read a 66 KB file **65×** ≈ **4.13 M tokens** — all but the first blocked); **graphify** answers an orientation lookup for **~300–500 tokens** instead of the **3,000–5,000** a cold full-read costs (**~8–15× cheaper**).
-
-*Honesty notes: token medians are **observational** (sessions differ in task/length across the rollout boundary); the per-session **rates** (re-reads, compactions) are the robust figures and hold under every session-size filter. `STATE.md` is append-only and re-bloats, so the distiller figure is a **per-application** offload (re-realized each run), which is why it's paired with a read-side cap. Project names are anonymized. Full labels and caveats: [docs/BENCHMARK.md](docs/BENCHMARK.md).*
+After the cut, silent usage telemetry was restored as a seventh entry so future decisions can keep using real evidence. It exits successfully and emits 0 bytes to the model context.
 
 ## Install
 
 ```bash
-git clone https://github.com/<you>/awesome-harness && cd awesome-harness
-./install.sh           # copies harness into ~/.claude, safely merges settings.json (backup first)
-./install.sh --proxy   # also enable the local token-saving proxy (macOS)
-# then, per project you want the full treatment on:
+git clone https://github.com/<you>/awesome-harness
+cd awesome-harness
+./install.sh
 ./install-repo.sh /path/to/your/repo
 ```
 
-Re-running is safe (idempotent). `--dry-run` shows changes without touching anything. **Restart Claude Code afterward** — env vars and tool-search load at process start.
+Use `--dry-run` to inspect changes first. Restart Claude Code after installation so its environment and hook configuration reload.
 
 ### Codex adapter (opt-in)
 
-The Codex adapter installs separately and only enables a repository after an explicit per-repo command:
+The Codex adapter is installed separately and enabled per repository:
 
 ```bash
 ./install.sh --codex --dry-run
@@ -68,172 +76,108 @@ The Codex adapter installs separately and only enables a repository after an exp
 ./install-repo.sh --codex /absolute/path/to/repo
 ```
 
-Review and trust the merged hooks in Codex (`/hooks`), then restart Codex. The repository marker carries a workflow policy; it does not mechanically role-gate direct patches.
-
-| Capability | Boundary |
-|---|---|
-| `^Bash$` builder guard | Narrow shell guard only; gated by enablement, trust, and a runtime smoke test. |
-| `^apply_patch$` | Configured as advisory only, never a block; verify its runtime behavior with a smoke test. |
-| Hosted-tool coverage and roles | No total tool coverage and no reliable main-versus-builder identity. This adapter does not mechanically enforce chat prose or delegation. |
-| Commit backstop | Git hooks can check commits, not every prior action. |
-| Caveman | Behavioral policy: contract, builder, distinct audit, and R2 evidence. |
+Review the merged hooks, trust the repository, and restart Codex. The adapter supplies workflow policy and narrow shell protections; it does not claim complete enforcement over every edit path or over chat behavior.
 
 ### Runtime pilot and rollback
 
-Run the disposable runtime proof from this checkout before enabling a real
-repository. It creates a temporary Git repo and a fake CODEX_HOME, installs
-the global and per-repo adapter there, and proves that a real Codex session
-dispatches both Bash and apply_patch. It copies local Codex credentials
-only into that temporary directory so the session can authenticate; it never
-prints them and removes the directory on exit.
+Run the disposable runtime smoke test before enabling a real repository:
 
-~~~bash
+```bash
 tests/test_codex_runtime_smoke.sh
-~~~
+```
 
-To disable a repository without disturbing unrelated hooks, remove only this
-adapter command and its policy marker. Run this after replacing
-/absolute/path/to/repo; it preserves every other hook entry, including other
-commands under the same matcher.
-
-~~~bash
-python3 - /absolute/path/to/repo/.codex/hooks.json "$HOME/.codex/awesome-harness/hooks/pre_tool_use.py" <<'PY'
-import json, sys
-from pathlib import Path
-
-path, adapter = map(Path, sys.argv[1:])
-data = json.loads(path.read_text())
-command = f'python3 "{adapter.resolve()}"'
-pre = data.get("hooks", {}).get("PreToolUse", [])
-kept = []
-for entry in pre:
-    if entry.get("matcher") not in {"^Bash$", "^apply_patch$"}:
-        kept.append(entry)
-        continue
-    entry = dict(entry)
-    entry["hooks"] = [hook for hook in entry.get("hooks", []) if hook.get("command") != command]
-    if entry["hooks"]:
-        kept.append(entry)
-data["hooks"]["PreToolUse"] = kept
-path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
-PY
-rm -f /absolute/path/to/repo/.codex/awesome-harness.json
-~~~
-
-The installer also creates a timestamped hooks.json.bak.* before its first
-write. Treat that as recovery evidence, not a general rollback command:
-restoring it replaces the entire hook file and can discard unrelated changes
-made after installation. The targeted command above is the normal rollback.
+The test uses a temporary repository and Codex home. To roll back, remove the awesome-harness command from the repository’s `.codex/hooks.json` and remove the repository policy marker, leaving unrelated hooks untouched.
 
 ## What you get
 
-### 🚀 `/awesomeharness` — boot the whole harness in one command
+### The current seven hook entries
 
-Type **`/awesomeharness`** at the start of a session (it also works mid-session, and even in an already-running one — skills load from disk on invoke). It reads your North Star + current state, re-asserts the operating rules, announces which guardrail hooks are armed, and — the main thing — installs **THE PROCEDURE**: the standing pipeline every non-trivial task follows for the rest of the session.
+There are seven registrations backed by six hook scripts. `northstar-protect` is intentionally registered twice because edits and shell commands have different matchers.
 
-```
-0. ORIENT      .northstar.md + .now.md + STATE resume point
-1. RECALL      memory (memgraph / mulch / MEMORY.md) before deciding
-2. UNDERSTAND  codebase-first — front door → BOTH code maps (graphify
-               structure/blast + repowise semantics/risk) → reuse ladder
-3. GATE        STOP | PLAN | BUILD      ← STOP is a real outcome
-4. DECOMPOSE   code-decompose — unit specs CONTEXT/CHANGE/GOAL/VERIFY/REUSE
-5. BUILD       one cheap coder subagent per unit (+ BUILDER_STANDARD.md)
-6. VERIFY      non-builder auditor per unit → check-all
-7. PERSIST     compact-prep — commit, memory record, .now.md, STATE, push
-```
+| Entry | Event / matcher | Behavior |
+|---|---|---|
+| codemap-inject | `SessionStart` | Injects the compact repository map. |
+| northstar-protect | `PreToolUse: Write\|Edit\|MultiEdit` | Protects the repository’s north-star file from direct edits. |
+| northstar-protect | `PreToolUse: Bash` | Applies the same protection to shell writes. |
+| irreversible-pause | `PreToolUse: Bash` | Pauses recognized irreversible shell operations. |
+| bash-write-fence | `PreToolUse: Bash` | Fences shell-based file writes. |
+| claude-spawn-gate | `PreToolUse: Task\|Agent` | Routes builder and auditor work through the supported agent path. |
+| harness-usage-telemetry | `PostToolUse` | Silently records relevant usage; emits 0 bytes. |
 
-Steps 2–3 are one skill, 4–6 are another — so the procedure is two skills plus rituals, not eight things to remember. Multi-step objectives wrap the whole thing in **`/goal`**. The skill file also carries the **canonical map of every harness component**, grouped into the six systems below, so nothing sits unused because you forgot it existed. Definition: `skills/awesomeharness/SKILL.md`.
+The count can otherwise look contradictory: the reduction was from 47 to 6 entries, then telemetry was restored, producing the current seven-entry set.
 
-### 🧠 Memory that persists across sessions
-| Piece | What it does |
-|---|---|
-| **memgraph** | An FTS index + link graph over your markdown memory. A `recall` hook injects the 1–3 most relevant records into every substantive turn — so the agent starts *warm*, not cold. |
-| **mulch** *(dep)* | Per-repo decision/convention/failure memory. `ml prime` at session start, `ml sync` at compact. Wired automatically per repo. |
-| **scaffold-ledger** | Captures the *approach* that worked for a task-category on a verified pass, and **promotes-on-beat** (keeps the version that passed in fewer iterations). Next time, recall feeds it back. verify → capture → recall → beat → replace. |
-| **MEMORY_STANDARD** | The memory conventions every repo follows: mulch records are ≤2 sentences with overflow → `.mulch/details/<slug>.md` and a **read-the-detail-before-you-diagnose** rule; STATE.md is trimmed to current scope with history moved (never deleted) to `STATE-ARCHIVE.md`; shared/cross-lane memory is pruned proposal-only. See `MEMORY_STANDARD.md`. |
-| **state-trim + front-door** *(skill + template)* | `state-trim` trims a bloated `STATE.md` to the current workstream at session start (a SessionStart nudge in `northstar-inject.py` flags it past ~40 lines), archiving the rest. `templates/FRONT_DOOR.md` is the single read-first doc a cold agent opens — pipelines, invariants, `file:line` citations, one line per file, plus a workstream disambiguation banner. |
+### What was removed, and why
 
-### 💸 Token savings
-| Piece | What it does |
-|---|---|
-| **reread-guard + token-discipline** | A blocking guard on redundant full re-reads plus a warning on the 3rd full re-read of the same file (offset/limit reads are exempt — that's navigation, not churn). Directly targets the biggest measured waste: re-slurping unchanged files. |
-| **tool-search** | Turns on MCP tool-schema deferral so dozens of MCP tools aren't loaded into every prefix. |
-| **router slimming + cache discipline** | Conventions + a length cap that keep `CLAUDE.md`/`AGENTS.md` as routers, not encyclopedias, and keep the prompt-cache prefix stable (where ~90% of the savings live). |
-| **autocompact @ 60%** | Compacts earlier so you spend fewer tokens carrying a bloated window. |
+On 2026-08-10, 41 hook entries were removed after measurement showed no positive effect on session outcomes; see the [audit](docs/audits/2026-08-04/simpler-harness.md).
 
-### 🎯 Anti-drift
-| Piece | What it does |
-|---|---|
-| **north star** | A repo-root `.northstar.md` (OBJECTIVE / DONE_WHEN / NOT_NOW) re-injected **every turn**. If a task isn't serving the objective, the agent is told to stop and flag it. This is the single biggest fix for "the agent forgot what we were doing." |
-| **north-star protection** | A `PreToolUse` gate (`northstar-protect.py`) that makes `.northstar.md` **read-only to the agent** — Write/Edit and the Bash bypasses (`>`, `sed -i`, `tee`, `chmod`…) are denied. A drifting agent can't silence its own alarm by softening the goal; only you edit it, by hand. |
-| **PreCompact handoff** | `precompact-handoff.py` — before every compaction a cheap model reads the transcript-slice-since-last-handoff and writes a fixed 7-field handoff (objective / decisions / open-questions / constraints+traps / files+commands / next-step / sources), re-injected on the next session start. Uses a **monotonic ratchet**: inherited constraints are trusted-carry, deleted only on positive contradiction — so negative decisions ("we decided NOT to X") don't silently evaporate across compactions. |
-| **irreversible-ops pause** | `irreversible-pause.py` — a denylist-only `PreToolUse` Bash gate that hard-stops `rm -rf`, `git push --force`, and destructive SQL (`DROP`/`TRUNCATE`), with an explicit `CLAUDE_ALLOW_IRREVERSIBLE=1` re-arm. Tight by design (no cry-wolf). |
-| **new-project nudge** | If you start work in a real project (git repo / manifest / ≥3 code files) that has no `.northstar.md`, `northstar-inject.py` nudges the agent — at session start only — to establish one *with you* before deep work. Fixes the silent failure where new projects got zero anti-drift because the file never existed. Retire a finished project with `mv .northstar.md .northstar.done`. |
-| **code-map blind-spot** | `graphify-blindspot.py` — before you edit a file that *other* files reference, if you haven't opened any of those callers this session, it injects a non-blocking advisory naming them and pointing at `graphify explain`. Objective ("you're editing a hub you haven't mapped"), not a self-assessment. No-op without a graphify code-map, silent on leaf files, silent once you've read the callers. |
-| **session checkpoint** | `session-checkpoint.py` — a `PostToolUse` guard that injects a soft "stop and re-scope" nudge (never blocks) when a session looks abnormal: ≥150 tool calls, ≥25 errors, or the **same command run 3× in a row** (the reliable loop signal). Points you at the compact-prep → /compact → resume ritual. Fires once per band, not per call. |
-| **token discipline** | `token-discipline.py` — warns on the **3rd full re-read of the same file** in a session (reads with `offset`/`limit` are exempt — that's navigation, not churn). If the re-read file is also large, it says so. Warn only. Directly targets the biggest measured token waste: re-slurping unchanged files. |
-| **stable-files handoff** | The PreCompact handoff (`precompact-handoff.py`) now appends the list of files you **read but never edited** this session — "already seen, don't re-read." Kills post-compaction re-read churn. |
-| **caveman discipline** | Terse intermediate output, one complete final message per turn — you read the summary, not the play-by-play, and pay for fewer tokens in between. |
+Removed scripts: `reread-guard`, `token-discipline`, `caveman-discipline`, `graphify-blindspot`, `graphify-gate`, `understand-gate`, `main-edit-guard`, `now-gate`, `manifest-guard`, `recall-inject`, `northstar-inject`, `spawn-necessity`, `builder-fence`, `coding-routing-guard`, `post-agent-guard`, `phantom-edit-guard`, `advertised-command-guard`, `filesize-cap`, `skill-reinject-guard`, `check-all-commit-gate`, `session-checkpoint`, `compact-prep-gate`, `abs-path-nudge`, `harness-enforce`, and `precompact-handoff`.
 
-### 🛠️ Better code from cheaper models
-| Piece | What it does |
-|---|---|
-| **code-decompose** | The orchestration pattern: a decomposer turns a change into tiny verifiable specs (CONTEXT/CHANGE/GOAL/VERIFY) → cheap coder subagents execute one each → a rotating non-builder auditor checks each against its spec. The expensive model thinks once; cheap models do the volume. |
-| **codebase-first** *(skill)* | A **mandatory behavioral workflow** run *before* decomposition — the companion to `ponytail`: reach an evidence-backed **REUSE / ADAPT / REJECT** decision on what already exists, then pass a **STOP / PLAN / BUILD** gate before any new code. The hook side is a **narrow** recognized-builder **REUSE-pointer** contract (it points builders at existing code, nothing more). Comprehension/reuse *quality* is **independent-audit-backed, not mechanically proven**. Also installed into `~/.codex/skills` so Codex builders inherit it. |
-| **understand-gate** | `understand-gate.py` — a `PreToolUse(Task)` gate that inspects any subagent spawn that looks like it will **write code** and checks the spawn prompt for codebase-first reuse evidence (a `.scratch/discovery/<slug>.md` pointer or an inline `REUSE:` / `ADAPT:` / `REJECT:` verdict). Modes `off` / `log` / `warn` / `enforce` via `UNDERSTAND_GATE` or the live control file `~/.claude/hooks/state/understand-gate.mode`; default **warn**, `enforce` blocks (exit 2). Fail-open. Makes the UNDERSTAND → GATE steps mechanical instead of behavioral — honest limit: it checks for an evidence *pointer*, it cannot judge evidence quality. |
-| **ponytail** *(dep)* | A "lazy senior dev" discipline: YAGNI, stdlib/native first, shortest working diff, leave one runnable check. Fewer lines, fewer 3am pages. |
-| **BUILDER_STANDARD.md** | A <40-line correctness/boundary ruleset to prepend to any coder prompt: validate input at trust boundaries, no swallowed errors, smallest change, leave a regression check. |
-| **check-all** | An opt-in deterministic commit gate (typecheck/lint/test/file-size/TODO/dup) so "done" is objective, not vibes. |
+The files remain in `hooks/` and can be re-registered individually; removal was from `settings.json`, not from disk.
 
-### 🔁 A harness that improves itself
-| Piece | What it does |
-|---|---|
-| **harness-coach** | A weekly, **propose-only** self-audit. A deterministic Python miner reads the last 7 days of your session transcripts (fast — byte-stats over everything, deep-parse only the biggest sessions), computes where you waste tokens (re-read churn, oversized tool results, runaway subagent fan-out, error/rework rates), then hands a compact digest **plus a snapshot of your current harness** to a strong model. It returns a ranked report — each finding tagged `[NEW]`, `[IMPROVE <existing file>]`, or `[ALREADY-COVERED-BY <x>]` with a concrete diff — to `~/Downloads/harness-coach/DATE.md`. It **never edits your harness**; you decide what to apply. Describe your deliberate patterns in `tools/harness-coach.workstyle.md` so it doesn't mistake intentional technique (e.g. read-to-summarize subagents that keep the orchestrator lean) for waste. Schedule it with the launchd template (`templates/com.awesomeharness.harness-coach.plist`) or any cron. |
-| **harness-scout** *(skill + runner)* | A weekly, **propose-only** intelligence pass: (A) repetition-mine your recent transcripts for things you keep hand-prompting (candidate skills/hooks), and (B) research-scout external sources (GitHub, AI-company frameworks, named creators) for harness ideas worth stealing. Run it interactively (`/harness-scout`) or headless on a schedule via `tools/run-harness-scout.sh` + the launchd template (`templates/com.awesomeharness.harness-scout.plist`, Sun 18:00) or any cron. Report lands in `~/Downloads/HARNESS_SCOUT_<date>.md`. Never edits the live tree. |
-| **harness-audit** *(skill)* | Audits one repo's harness (CLAUDE.md, front-door docs, mulch/STATE, agent specs) against the REAL codebase and emits a proposal-only drift report. Read-only. `/harness-audit` or "audit the harness". |
-| **drift-replay** | A one-shot measurement tool: replay a past transcript through a candidate LLM drift-judge and measure its false-positive rate *before* you wire it live. (In practice it showed a history-anchored judge cries wolf ~90% of the time while the deterministic north-star injection already captures the value — so we *didn't* build the expensive layer. Instrument before you build.) |
+### Orientation and memory
 
-### 🗺️ A code-map RAG (query instead of grep)
-| Piece | What it does |
-|---|---|
-| **graphify** *(dep)* | Builds a queryable graph of your code **and** docs (`graphify-out/graph.json`) plus a human-readable wiki (`GRAPH_REPORT.md`). Agents run `graphify query/explain/path` to get a scoped subgraph with `file:line` anchors instead of reading whole files. |
-| **auto-refresh** | A niced, non-blocking, self-locking `post-commit` hook keeps the graph current on every commit — no daemon, CPU-safe. |
-| **graphify-blast** | Maps a `git diff` → impacted symbols, so a coder sees the blast radius *before* editing. |
-| **repowise** *(dep, complements graphify)* | Adds the signals graphify doesn't: **git-hotspots / defect-risk**, **code-health scoring** (CCN + churn), dead-code detection, and a **task-shaped MCP** (`get_context` / `get_risk`) an agent queries instead of grepping. `repowise init --index-only` = **no API key, no LLM cost** (AST + git history + graph + dead code into a local `.repowise/`). Per-repo MCP: add to `.mcp.json` or `claude mcp add repowise -- repowise mcp`. |
+- `codemap.py` creates a compact repository index, and `codemap-inject` makes it available at session start.
+- graphify is the primary structural code-map tool.
+- mulch is the primary per-repository durable-memory tool.
+- memgraph is still available for global memory, but its measured adoption puts it on probation.
+- `l0.py`, `l1.py`, `retrieve.sh`, and `skeleton.py` support narrower retrieval and context-building workflows.
+
+### Build and verification
+
+- `codebase-first` asks whether existing code, the platform, or an installed dependency already covers the request.
+- `code-decompose` turns the remaining work into small units with an explicit verification command.
+- `check-all` composes repository checks with deterministic pre-ship checks.
+- semgrep remains part of deterministic checking and structural search, despite the measured grep-routing gap.
+- `git-sync.sh`, `finding.sh`, and the chain scripts support handoff, evidence storage, and preship workflows where those conventions are installed.
+
+### Builders and auditors
+
+Builders and auditors are the `codex` and `codex-audit` agents. Those agents are thin dispatchers: they call real GPT through the OpenAI Codex plugin companion, with the Codex CLI as the narrow fallback. They are not alternate Claude personas pretending to be GPT.
+
+### Code intelligence
+
+graphify is the core structural map. repowise remains a niche CLI for the workflows that use its risk, dead-code, and preship signals.
+
+The repowise MCP server was removed. Only the CLI survives, currently consumed by `c5-dead.sh` and `c7-preship.sh`.
+
+### Measurement and experiments
+
+`harness-usage-telemetry` is silent instrumentation, and `tools/harness-usage.sh` summarizes its local log. `drift-replay`, `graphify-blast`, and memgraph remain on probation: available for the jobs they already serve, but not advertised as proven defaults.
 
 ## How it works (two layers)
 
-- **Global layer** (`~/.claude/`): the hooks, skills, and tools. Most hooks are **dormant** until a repo opts in.
-- **Per-repo markers**: `install-repo.sh` drops a `.northstar.md`, a code-map, the auto-refresh hook, and mulch wiring. That's what activates the global hooks for that repo.
+- The global layer under `~/.claude/` contains hooks, skills, agents, and tools.
+- A repository opts in through `install-repo.sh`, which installs its local orientation and policy files.
 
-So the global install is harmless everywhere, and each repo gets the full treatment only when you ask.
+Most behavior is local and inspectable. Hooks cover only their declared events and matchers; the rest of the workflow is behavioral and verified through explicit checks, not described as mechanically guaranteed.
 
 ## Dependencies
 
-The harness wires these together; install the ones you want (the installer detects what's missing and degrades gracefully):
+The installer detects optional tools and degrades gracefully.
 
-| Tool | Purpose | Install |
-|---|---|---|
-| `python3`, `git` | core | preinstalled on most systems |
-| **graphify** | code-map RAG | `uv tool install graphifyy` |
-| **repowise** | code-intelligence (git-hotspots/health + MCP), complements graphify | `pip install repowise` (needs Python ≥3.11) |
-| **mulch** (`ml`) | per-repo memory | `npm i -g @mulch/cli` (needs `~/.bun/bin` on PATH) |
-| **ponytail** | lazy-coding discipline | Claude Code plugin: `DietrichGebert/ponytail` |
-| **semgrep** | optional deterministic SAST step in check-all (bugs/injection/secrets) | `pipx install semgrep` (needs Python ≥3.9) |
-| codex / kimi / gemini | non-Claude builder/auditor subagents (optional) | each vendor's CLI |
+| Tool | Purpose |
+|---|---|
+| Python and Git | Harness scripts and repository operations |
+| graphify | Core structural code map |
+| mulch (`ml`) | Core per-repository memory |
+| semgrep | Deterministic structural and security checks |
+| repowise CLI | Niche dead-code and preship analysis |
+| OpenAI Codex plugin companion | Dispatch to GPT-backed builders and auditors |
+
+Install only the optional components used by your workflow. The usage table is a better guide than the size of the `tools/` directory.
 
 ## Safety & privacy
 
-- Nothing is uploaded. The optional proxy talks only to Anthropic.
-- `install.sh` **backs up** your `settings.json` before merging and only adds entries that are missing (idempotent).
-- The proxy is **opt-in** and fail-open; it never sets a third-party endpoint.
-- Machine-local memory (`tools/memgraph/out/`, `scaffolds/`) is gitignored — your notes never get committed here.
+- Harness state and telemetry stay local.
+- Usage telemetry is fail-open, can be disabled with `HARNESS_TELEMETRY=off`, and emits no model-context text.
+- `install.sh` backs up Claude settings before merging its entries.
+- Repository installation is explicit; the Codex adapter is separately opt-in.
+- Open-source documentation uses aggregate, anonymized measurements and does not expose consuming repositories’ internal paths or business logic.
 
 ## Related
 
-- **[youtube-research](https://github.com/roarista/youtube-research)** — a zero-install YouTube/social intelligence CLI (transcripts, credible-creator discovery, comment mining) that ships a Claude Code skill so your agents can pull expert, up-to-date knowledge straight from video.
+- [youtube-research](https://github.com/roarista/youtube-research) provides the `ytintel` workflow used for transcript and creator research.
 
 ## Status & contributing
 
-This is actively used and will keep evolving. PRs and issues welcome — especially new gates, new memory backends, and Linux parity for the proxy. MIT licensed.
+This project is actively used and periodically cut back based on measured adoption. Contributions are welcome, but new hooks and tools should arrive with a way to measure whether they are used and whether they help. MIT licensed.
