@@ -6,9 +6,23 @@ description: Boot the entire harness for this session in one command. Installs T
 
 # awesomeharness — one-command harness boot
 
-`hooks/caveman-discipline.sh` already injects the contract + FLOOR every SessionStart. `/awesomeharness` turns on what the floor can't deliver: THE PROCEDURE below, the component map, routing table, retired list, invocation report — for this session **and every subagent it spawns**. Skills load from disk at invoke time, so this works mid-session too.
+Nothing injects the contract automatically any more — the SessionStart hook that did was removed on 2026-08-10. `/awesomeharness` is now the single self-contained entry point: contract, floor, THE PROCEDURE, component map, routing table, retired list — for this session **and every subagent it spawns**. Skills load from disk at invoke time, so this works mid-session too.
 
 **Running `/awesomeharness` = use ALL of the below by default for the rest of the session. Not a menu.**
+
+---
+
+## CONTRACT + FLOOR (assert these for the rest of the session)
+
+**CONTRACT:** (a) zero prose between tool calls — only the final message; (b) ONE thorough standalone final summary; (c) every turn ends compaction-safe: `.now.md` + STATE updated.
+
+**FLOOR:**
+- Start from the injected `.codemap`, not exploratory grep/ls/find. It is a map, not proof — a load-bearing claim still needs a real read or a semgrep hit.
+- "All the places where X" is a semgrep question, never a grep question. Use `command grep`, never `grep -r` (plain `grep -r` execs ugrep with `--ignore-files` and silently returns a false zero on gitignored paths).
+- Main orchestrates; code writes go to the `codex` subagent, audits to `codex-audit`. Both dispatch to real GPT via the openai codex plugin companion.
+- Every claim about repo state carries its receipt: the exact command and its real output, run in the repo it will actually run in. A number from one repo is not evidence about another.
+- Spawn prompts <= 200 words, one line each: REUSE/REJECT, CONTEXT, CHANGE, GOAL, VERIFY.
+- Structure questions go to `graphify query`/`explain` — edge list is `links`, field is `relation`, not `type`.
 
 ---
 
@@ -43,7 +57,7 @@ description: Boot the entire harness for this session in one command. Installs T
                `"$(git rev-parse --show-toplevel)/tools/git-sync.sh"` (absolute).
 ```
 
-Steps 1-3 = skill `orient`, 4-6 = skill `code-decompose` — 2 skills plus rituals, not 8 things to remember. **Escape hatch:** trivial one-line edits / docs-only wording skip 1-4, never 0/7 — still spawn with an inline `REUSE:`/`REJECT:` verdict; that satisfies understand-gate.
+Steps 1-3 = skill `orient`, 4-6 = skill `code-decompose` — 2 skills plus rituals, not 8 things to remember. **Escape hatch:** trivial one-line edits / docs-only wording skip 1-4, never 0/7 — still spawn with an inline `REUSE:`/`REJECT:` verdict — the gate that used to enforce this is gone, so it is on you.
 
 Multi-step / "loop until done" objectives → wrap the procedure in **`/goal`** (SEED -> decomposition -> checklist -> cheap workers + independent verifier + hard stop).
 
@@ -61,25 +75,25 @@ Six systems; pieces within each row already wired together — **use the system,
 
 ### 1. ORIENT + anti-drift
 `.northstar.md` · `.now.md` · `.planning/STATE.md` · `templates/FRONT_DOOR.md` · `.codemap` (`tools/codemap.py`, ~1.9k tokens, `path|LOC|symbols` + `#HUB`/`#BIN`/`#DOC`; `hooks/codemap-inject.py` prints at SessionStart, regenerates on `@sha` drift; kill `CODEMAP_INJECT=off`) · STATE-trim in `compact-prep` · `state-distiller.py`.
-**Enforced by:** northstar-inject, northstar-protect (BLOCK), now-gate (BLOCK), codemap-inject. **Step 0.**
+**Enforced by:** northstar-protect (BLOCK), codemap-inject. **Step 0.**
 
 ### 2. MEMORY
-**memgraph** + **`orient` Part A** (1-3 lookups) · recall-inject hook · **mulch** (`ml prime`/`ml sync`) · MEMORY_STANDARD.md · **`tools/finding.sh`** (`.findings/<session>/<id>.md`, append-only; `record`/`get`/`list`/`search`) · scaffold-ledger · precompact-handoff.
+**mulch** (`ml prime`/`ml sync`/`ml record`, 351 calls/3 repos — the primary memory tool; awesome-harness got its own `.mulch/` on 2026-08-11) · **`orient` Part A** (1-3 lookups) · MEMORY_STANDARD.md · **`tools/finding.sh`** (`.findings/<session>/<id>.md`, append-only; `record`/`get`/`list`/`search`) · scaffold-ledger · **memgraph** (6 calls/30d — on probation).
 **One loop:** `prime -> recall -> decide -> record -> handoff -> recall`. `tools/git-sync.sh` is the step-7 push: commit, integrate, push, never force/reset; untracked/conflicts = hard STOP. **Steps 1 and 7.**
 
 ### 3. UNDERSTAND-BEFORE-YOU-CODE
 **`orient` Part B** owns this layer — front door, both code maps, reuse ladder, blast radius, STOP/PLAN/BUILD gate. Inside it: **graphify** (`update` then `query`/`explain`/`path` + `graphify-blast.sh`; real import graph in the big repos — only awesome-harness is degenerate (imports=1); edge key `links`, field `relation` not `type`) **AND repowise** (per-repo, needs `.mcp.json` + index; else fall back to graphify) **AND semgrep** (complete-set enumeration). Use together: repowise locates/risk, graphify confirms structure/blast, semgrep answers "all the places."
-**Enforced by:** understand-gate, graphify-gate (BLOCK), graphify-blindspot, reread-guard (BLOCK), token-discipline. **Steps 1-3.**
+**Enforced by:** nothing — behavioral only since the 2026-08-10 hook cut. **Steps 1-3.**
 
 ### 4. BUILD
 **`code-decompose`** (unit specs -> cheap coder per unit -> rotating auditor) · BUILDER_STANDARD.md · ponytail · **`check-all`** (typecheck/lint/test/file-size/TODO/dup + Semgrep SAST ADVISORY, `SEMGREP_STRICT=1` to gate) · 8-line return contract baked into `~/.claude/agents/{codex,codex-audit,opus,gemini}.md` — overflow to `tools/finding.sh record`.
-**Enforced by:** main-edit-guard, builder-fence, coding-routing-guard, post-agent-guard, route-only-gate, filesize-cap, manifest-guard, irreversible-pause, check-all-commit-gate. **Steps 4-6.**
+**Enforced by:** bash-write-fence, irreversible-pause, claude-spawn-gate. Everything else here is behavioral. **Steps 4-6.**
 
 ### 5. TOKEN DISCIPLINE
-caveman discipline · tool-search · token-discipline hook · reread-guard (BLOCK) · filesize-cap · autocompact @60% · stable-files handoff · compact-prep STATE-trim · router slimming · session-checkpoint · `.codemap`. Cross-cutting.
+CONTRACT + FLOOR · .codemap injection @SessionStart · autocompact @60% · compact-prep STATE-trim · subagent fleet optimization · Cross-cutting.
 
 ### 6. SELF-IMPROVEMENT
-harness-coach (weekly miner) · **`harness-intel`** (Mode A drift, Mode B repetition-mine + research scout via launchd; folds old `harness-audit`/`harness-scout`) · harness-enforce · harness-usage-telemetry · drift-replay · scaffold-ledger · `tools/claudemd-trim.py` (propose-only) · `tools/open-findings.sh` (`OPEN_FINDINGS=0` to kill). **All propose-only. None edit the tree.**
+harness-coach (weekly miner) · **`harness-intel`** (Mode A drift, Mode B repetition-mine + research scout via launchd; folds old `harness-audit`/`harness-scout`; all three launchd jobs are WEEKLY as of 2026-08-11) · harness-usage-telemetry + `tools/harness-usage.sh` to read it · drift-replay · scaffold-ledger · `tools/claudemd-trim.py` (propose-only) · `tools/open-findings.sh` (`OPEN_FINDINGS=0` to kill). **All propose-only. None edit the tree.**
 
 ---
 
@@ -87,8 +101,14 @@ harness-coach (weekly miner) · **`harness-intel`** (Mode A drift, Mode B repeti
 - **GLM / `glm` subagent + CLI** — retired (out of credits). Never auditor/council; use Opus-4.8-low.
 - **`cc-gemini-plugin` (`gemini-agent`)** — dead (missing binary). Real non-Claude voice is `gemini` subagent / `tools/gemini-opencode.sh`.
 - **zai / z.ai coding plugin** — dead provider.
-- ~~graphify for import-graph questions~~ — RETIRED 2026-08-04, false in every real repo (only
-  awesome-harness has imports=1). Most-used tool in the harness (288 calls/30d, 6 repos). Use it.
+- **repowise MCP** — removed 2026-08-04. The CLI survives ONLY for `tools/chains/c5-dead.sh` (`dead-code`) and `c7-preship.sh` (`risk`).
+- **obsidian MCP** — removed 2026-08-11, 0 calls in 30 days.
+- ~~graphify for import-graph questions~~ — that ban was RETIRED 2026-08-04; it was false in every real repo (only
+  awesome-harness has imports=1). graphify is the most-used tool in the harness (819 calls/30d, 8 repos). Use it.
+
+## Live hook registrations (exactly these 7 — nothing else fires)
+`codemap-inject` (SessionStart) · `northstar-protect` (PreToolUse `Write|Edit|MultiEdit`, and PreToolUse `Bash`) · `irreversible-pause` (Bash, BLOCK) · `bash-write-fence` (Bash, BLOCK) · `claude-spawn-gate` (`Task|Agent`, BLOCK) · `harness-usage-telemetry` (PostToolUse, silent, 0 bytes; read it with `tools/harness-usage.sh`).
+~25 other hook scripts remain in `hooks/` but are NO LONGER REGISTERED — 41 entries were cut 2026-08-10 after measurement showed no positive effect. Everything else in this file is behavioral: it happens only if you do it.
 
 ## Live skill roster (exactly these 10 — anything else stale)
 `awesomeharness` `check-all` `code-decompose` `compact-prep` `goal` `harness-intel` `notes-inbox` `orient` `ui-console-debug` `youtube-research`. `codebase-first`/`recall`/`state-trim`/`harness-audit`/`harness-scout` are NOT skills — folded into `orient`/`compact-prep`/`harness-intel`.
@@ -105,7 +125,7 @@ NORTH STAR: …
 NOW: …
 RECALL: <=2 bullets
 PROCEDURE: armed (0-7)
-FLOOR: blocking hooks armed, understand-gate=warn
+FLOOR: asserted from this skill (7 hooks registered; the rest is behavioral)
 FINDINGS: .findings/ ready (N prior)
 NEXT: <the task>
 ```
