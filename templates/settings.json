@@ -18,7 +18,28 @@
       "WebSearch(*)",
       "WebFetch(*)"
     ],
-    "defaultMode": "dontAsk"
+    "defaultMode": "dontAsk",
+    "deny": [
+      "Read(**/.env)",
+      "Read(**/.env.local)",
+      "Read(**/.env.production)",
+      "Read(**/.env.prod)",
+      "Read(**/.env.development)",
+      "Read(**/.env.dev)",
+      "Read(**/.env.staging)",
+      "Read(**/.env.test)",
+      "Read(**/.envrc)",
+      "Read(**/*.pem)",
+      "Read(**/*.p12)",
+      "Read(**/*.pfx)",
+      "Read(**/id_rsa)",
+      "Read(**/id_ed25519)",
+      "Read(**/.ssh/**)",
+      "Read(**/.aws/**)",
+      "Read(**/.gnupg/**)",
+      "Read(**/service-account*.json)",
+      "Read(**/*credentials*.json)"
+    ]
   },
   "model": "claude-opus-5[1m]",
   "hooks": {

@@ -474,3 +474,31 @@ OUTSIDE the repo root passes silently.
 4) ASK-LEDGER hook 5) restate-and-hold gate 6) fix `irreversible-pause` mention-matching
 (3 false positives in one day) 7) CUT the repowise tier + 280 dead MCP tools 8) LAST:
 repowise MCP restart.
+
+## 2026-08-11 — secrets guarded at the permission layer
+
+`permissions.deny` in `~/.claude/settings.json` now carries **19 rules** covering `.env` and its
+named variants, `*.pem/.p12/.pfx`, `id_rsa`, `id_ed25519`, `.ssh/**`, `.aws/**`, `.gnupg/**`,
+`service-account*.json`, `*credentials*.json`. Mirrored into `templates/settings.json` so
+`install.sh` ships it. **No new hook** — this is rung 3 of the ponytail ladder, native platform
+enforcement instead of another script to maintain, and it is the one class the 2026-08-09
+simpler-harness audit said to keep: irreversible harm.
+
+RECEIPTS (fresh headless sessions, not this one — deny rules load at session start):
+`.env` BLOCKED · `.env.local` BLOCKED · `.env.example` readable · `server.pem` BLOCKED via the
+Read tool AND via `wc -l` in Bash.
+
+**Deny beats allow, always.** The first attempt denied `Read(**/.env.*)` and allow-listed
+`Read(**/.env.example)`; the probe still returned BLOCKED. There is no negation syntax —
+enumerate the risky variants.
+
+ROLLBACK: `cp ~/.claude/settings.json.bak-canary-2026-08-11 ~/.claude/settings.json`
+
+**DELEGATION FAILURE, twice in two turns:** a codex agent scoped to two doc files reverted
+`templates/settings.json` "to restore pristine state", undoing a change made before it was
+spawned. Its own DIFFSTAT was accurate about what it meant to touch and silent about what it
+destroyed. Verify with `git diff --stat` against the files YOU changed pre-spawn.
+
+NEXT (ranked): 1) grep/semgrep 55:1 routing gap 2) claim-check 3) decide .now.md vs STATE.md
+(flagged 23x imbalance across three auditor passes) 4) measure codex-audit vs opus on a
+known-bad diff.

@@ -23,6 +23,7 @@ Nothing injects the contract automatically any more — the SessionStart hook th
 - Every claim about repo state carries its receipt: the exact command and its real output, run in the repo it will actually run in. A number from one repo is not evidence about another.
 - Spawn prompts <= 200 words, one line each: REUSE/REJECT, CONTEXT, CHANGE, GOAL, VERIFY.
 - Structure questions go to `graphify query`/`explain` — edge list is `links`, field is `relation`, not `type`.
+- Secret files are denied at the permission layer (19 permissions.deny rules), so a blocked read is the guard working, not a bug; never work around it by copying the file.
 
 ---
 

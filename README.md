@@ -114,6 +114,10 @@ Removed scripts: `reread-guard`, `token-discipline`, `caveman-discipline`, `grap
 
 The files remain in `hooks/` and can be re-registered individually; removal was from `settings.json`, not from disk.
 
+### Secret-file deny rules
+
+Nineteen rules in `permissions.deny` block reads of secret files, including `.env` variants, `*.pem`, `*.p12`, `*.pfx`, `id_rsa`, `.ssh/`, `.aws/`, `.gnupg/`, and service-account and credentials JSON files. The safe template `.env.example` remains readable. Because deny rules take precedence over allow rules, protected patterns are enumerated explicitly rather than expressed through negation. These rules are enforced by Claude Code itself, not by a hook.
+
 ### Orientation and memory
 
 - `codemap.py` creates a compact repository index, and `codemap-inject` makes it available at session start.
