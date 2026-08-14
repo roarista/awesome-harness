@@ -1,6 +1,7 @@
 # Lightweight harness plan
 
-**Status:** PLAN — no harness or target-repo behavior changed.
+**Status:** IN PROGRESS — thin skill and Intrn diet shipped 2026-08-13; fresh Intrn Opus-5 start
+measured 43,038 input tokens versus 56,568–61,107 in four prior sampled starts (directional, not a controlled A/B).
 **Decision gate:** ADAPT what exists. Do not add another map refresher, memory store, or standing agent.
 
 ## Outcome
@@ -61,7 +62,7 @@ remove repeated `ml prime` and graphify additional-context hooks.
 - Store the baseline outside injected docs. Define a task sample for before/after comparison.
 - Gate: no percentage-saved marketing claim without this baseline.
 
-### Unit 1 — thin `/awesomeharness`
+### Unit 1 — thin `/awesomeharness` — SHIPPED
 
 - Reduce the skill to the compact loop and tool-routing table above.
 - Point to `orient`, `code-decompose`, and `compact-prep`; do not restate their bodies.
@@ -69,14 +70,14 @@ remove repeated `ml prime` and graphify additional-context hooks.
   the skill again.
 - Verify: second invocation adds no full skill body; the coding/audit loop remains discoverable.
 
-### Unit 2 — ambient surface diet
+### Unit 2 — ambient surface diet — PARTIAL
 
 - Shorten every live skill description to a trigger-only sentence.
 - Disable globally unused plugins/MCPs; opt in by repo/task; keep deferred tool search enabled.
 - Audit actual tool calls before each removal. Remove repowise MCP, not its two CLI consumers.
 - Verify: compare tool/skill prefix size and cache diagnostics before/after.
 
-### Unit 3 — continuity consolidation
+### Unit 3 — continuity consolidation — INTRN SHIPPED
 
 - For each target repo, inventory unique facts, migrate them to one router + resume + Mulch, archive
   historical state, then remove obsolete auto-read requirements and legacy `.memory` hooks.
@@ -95,7 +96,8 @@ remove repeated `ml prime` and graphify additional-context hooks.
 
 - Restore `assets/benchmark-hero.jpeg` under “Historical observational benchmark (July 2026),” not
   as a current causal claim. Link `docs/BENCHMARK.md` and the later ROI/simplification audits.
-- Current headline should use defensible facts: 47 -> 7 hook entries, 6,426 transcripts measured,
+- Current headline should use defensible facts: 47 -> 6 reminder/enforcement entries before the
+  evidence-backed telemetry and duplicate-skill guard were restored; 6,426 transcripts measured;
   silent telemetry emits 0 bytes. Do not claim the harness currently saves 90–95% overall usage.
 - Verify every number against its source and label observational/confounded results.
 

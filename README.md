@@ -52,7 +52,7 @@ That distinction drove a large simplification. Measurement showed no positive ef
 
 The removed entries are no longer documented; they were largely ineffective at their stated goals.
 
-After the cut, silent usage telemetry was restored as a seventh entry so future decisions can keep using real evidence. It exits successfully and emits 0 bytes to the model context.
+After the cut, silent usage telemetry was restored as a seventh entry so future decisions can keep using real evidence. A narrowly scoped eighth entry now blocks duplicate `/awesomeharness` loads within a session; unlike the removed reminder hooks, it prevents a directly measured source of repeated context.
 
 ## Install
 
@@ -90,13 +90,14 @@ The test uses a temporary repository and Codex home. To roll back, remove the aw
 
 ## What you get
 
-### The current seven hook entries
+### The current eight hook entries
 
-There are seven registrations backed by six hook scripts. `northstar-protect` is intentionally registered twice because edits and shell commands have different matchers.
+There are eight registrations backed by seven hook scripts. `northstar-protect` is intentionally registered twice because edits and shell commands have different matchers.
 
 | Entry | Event / matcher | Behavior |
 |---|---|---|
 | codemap-inject | `SessionStart` | Injects the compact repository map. |
+| skill-reinject-guard | `PreToolUse: Skill` | Blocks a duplicate `/awesomeharness` body within the same session. |
 | northstar-protect | `PreToolUse: Write\|Edit\|MultiEdit` | Protects the repository’s north-star file from direct edits. |
 | northstar-protect | `PreToolUse: Bash` | Applies the same protection to shell writes. |
 | irreversible-pause | `PreToolUse: Bash` | Pauses recognized irreversible shell operations. |
@@ -104,13 +105,13 @@ There are seven registrations backed by six hook scripts. `northstar-protect` is
 | claude-spawn-gate | `PreToolUse: Task\|Agent` | Routes builder and auditor work through the supported agent path. |
 | harness-usage-telemetry | `PostToolUse` | Silently records relevant usage; emits 0 bytes. |
 
-The count can otherwise look contradictory: the reduction was from 47 to 6 entries, then telemetry was restored, producing the current seven-entry set.
+The count can otherwise look contradictory: the reduction was from 47 to 6 entries, telemetry restored the seventh, and the measured duplicate-skill guard added the eighth.
 
 ### What was removed, and why
 
 On 2026-08-10, 41 hook entries were removed after measurement showed no positive effect on session outcomes; see the [audit](docs/audits/2026-08-04/simpler-harness.md).
 
-Removed scripts: `reread-guard`, `token-discipline`, `caveman-discipline`, `graphify-blindspot`, `graphify-gate`, `understand-gate`, `main-edit-guard`, `now-gate`, `manifest-guard`, `recall-inject`, `northstar-inject`, `spawn-necessity`, `builder-fence`, `coding-routing-guard`, `post-agent-guard`, `phantom-edit-guard`, `advertised-command-guard`, `filesize-cap`, `skill-reinject-guard`, `check-all-commit-gate`, `session-checkpoint`, `compact-prep-gate`, `abs-path-nudge`, `harness-enforce`, and `precompact-handoff`.
+Removed scripts: `reread-guard`, `token-discipline`, `caveman-discipline`, `graphify-blindspot`, `graphify-gate`, `understand-gate`, `main-edit-guard`, `now-gate`, `manifest-guard`, `recall-inject`, `northstar-inject`, `spawn-necessity`, `builder-fence`, `coding-routing-guard`, `post-agent-guard`, `phantom-edit-guard`, `advertised-command-guard`, `filesize-cap`, `check-all-commit-gate`, `session-checkpoint`, `compact-prep-gate`, `abs-path-nudge`, `harness-enforce`, and `precompact-handoff`.
 
 The files remain in `hooks/` and can be re-registered individually; removal was from `settings.json`, not from disk.
 

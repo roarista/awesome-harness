@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """PreToolUse(Skill) — stop paying for the same skill body twice.
 
-CONTEXT DIET 2026-08-02 (audit 13 / audit 04 §5). The awesomeharness skill body
-is 13.3 K tokens and was injected a mean of 3.0x per session (worst session 15x /
-97.9 K tokens). Every copy is byte-identical AND, because the transcript is
+CONTEXT DIET 2026-08-02 (audit 13 / audit 04 §5). The awesomeharness skill was
+repeatedly injected in measured sessions. Every copy is byte-identical AND, because the transcript is
 append-only, is then re-sent on every remaining API call. Re-loading a skill
 whose body is already in the transcript buys nothing.
 
@@ -45,8 +44,8 @@ def main() -> None:
             "permissionDecision": "deny",
             "permissionDecisionReason": (
                 f"`{name}` is already loaded in this session — its body is still in your "
-                "context above. Re-loading would re-inject ~13 K identical tokens. Scroll "
-                "up to THE PROCEDURE instead. (context-diet guard; re-arms after 2h)"
+                "context above. Re-loading would append identical instructions. Scroll "
+                "up to the active contract instead. (context-diet guard; re-arms after 2h)"
             ),
         }
     }))
