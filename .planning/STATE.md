@@ -7,12 +7,11 @@ The 2026-07-27 session that did this was deleted mid-flight; context recovered f
 
 ## Active Resume Point
 
-**Last updated:** 2026-08-11 — README REWRITTEN FROM MEASURED USAGE
-**Status:** IMPLEMENTED, UNCOMMITTED. `README.md` now reports the 30-day, 6,426-transcript
-component census, the current seven hook entries, the 47-to-6 cut plus restored silent
-telemetry, the grep/semgrep gap, retired repowise MCP, and GPT-backed Codex agent routes.
-README assertions and diff checks passed; check-all reported READY with advisory warnings.
-**Resume:** Commit `README.md`, `.now.md`, and `.planning/STATE.md`, then push.
+**Last updated:** 2026-08-13 — LIGHTWEIGHT HARNESS PLAN
+**Status:** PLAN ONLY. Evidence and delivery units are in
+`.planning/LIGHTWEIGHT-HARNESS-PLAN.md`; no harness or target-repo behavior changed.
+**Resume:** Run Unit 0's seven-day measurement contract, then implement and A/B the thin
+`/awesomeharness` unit before touching target-repo continuity files.
 
 **THE REFRAME — I aimed at the wrong target and the data corrected me.**
 Hooks are 14.70% of billed main-session INPUT but **~5.5% of DOLLARS**, because 93.1% of
