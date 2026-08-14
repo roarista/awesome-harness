@@ -78,6 +78,8 @@ The Codex adapter is installed separately and enabled per repository:
 
 Review the merged hooks, trust the repository, and restart Codex. The adapter supplies workflow policy and narrow shell protections; it does not claim complete enforcement over every edit path or over chat behavior.
 
+The installer also adds the native `awesomeharness` skill. Invoke it with `$awesomeharness`; enabled skills appear in Codex's slash-command list, so it can also be selected there. Project `AGENTS.md` files should direct Codex to read any compact root `CLAUDE.md` router when that file carries the shared project procedure.
+
 ### Runtime pilot and rollback
 
 Run the disposable runtime smoke test before enabling a real repository:

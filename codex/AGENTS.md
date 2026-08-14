@@ -47,15 +47,16 @@ Steps 2-3 are one skill (`codebase-first`); 4-6 are one loop (decompose -> build
 **Escape hatch:** genuinely trivial one-line edits and docs-only wording skip 2-4, never 0/1/7 —
 but still state a one-line `REUSE:` / `REJECT:` verdict before editing.
 
-**Codex has no subagent fleet.** Where the Claude harness would delegate, you do it yourself:
-you write the code AND you still owe the discovery evidence (step 2) and an independent-eyes
-self-verify (step 6, re-read the diff against the spec before declaring done). Never claim a
-VERIFY pass you did not actually run.
+Use native Codex subagents for the procedure's bounded builder and independent-auditor roles when
+they are available. If the current Codex surface has no subagents, preserve the separation
+sequentially: finish the spec, build, then re-read the diff against the spec with independent eyes.
+Never claim a VERIFY pass you did not actually run.
 
 # Skills (read the file when the step comes up — do not preload)
 
 | Step | Skill | Path |
 |------|-------|------|
+| session activation | `awesomeharness` | `~/.codex/skills/awesomeharness/SKILL.md` |
 | 1 RECALL | `recall` | `~/.codex/skills/recall/SKILL.md` |
 | 2-3 UNDERSTAND + GATE | `codebase-first` | `~/.codex/skills/codebase-first/SKILL.md` |
 | 4-6 DECOMPOSE/BUILD/VERIFY | `code-decompose` | `~/.codex/skills/code-decompose/SKILL.md` |
@@ -64,8 +65,8 @@ VERIFY pass you did not actually run.
 | always, when you build | BUILDER standard | `~/.codex/BUILDER_STANDARD.md` |
 | always, when you record | MEMORY standard | `~/.codex/MEMORY_STANDARD.md` |
 
-You hold yourself to `BUILDER_STANDARD.md` — in this session you ARE the builder, so the
-standard the Claude harness hands to a builder subagent applies to you directly.
+Every builder, including the main session when delegation is unavailable, follows
+`BUILDER_STANDARD.md`.
 
 # Operating rules
 
@@ -84,14 +85,14 @@ standard the Claude harness hands to a builder subagent applies to you directly.
 
 # Deliberately excluded
 
-Everything the Claude harness does that a Codex session cannot execute is omitted on purpose:
-instructions you cannot act on are pure token cost and invite fake compliance.
+Claude-only implementation details are omitted; equivalent Codex-native capabilities are used
+where available.
 
-- **Subagent spawning/routing** — opus auditors, codex builders, 2-model councils, Explore
-  agents. You play every role yourself, sequentially (see `code-decompose`).
-- **Claude's `Skill` tool and its slash commands** — `/awesomeharness` (a Claude-session boot),
-  `/goal`, `/harness-audit`, `/harness-scout`, `/state-trim`. Their value is orchestration or
-  Claude-side machinery. The skills table above is your equivalent: plain files you Read.
+- **Skills and commands** — invoke the installed `awesomeharness` skill with `$awesomeharness`;
+  enabled skills also appear in Codex's slash-command list. Other Claude-only commands are not
+  implied unless a corresponding Codex skill is installed.
+- **Subagents** — use native Codex subagents for bounded builders and independent auditors. Do not
+  emulate Claude-specific agent types or model names.
 - **Claude hooks** — session-start injection, PreCompact, PreToolUse gates. Nothing fires
   automatically for you, so the rituals are yours to run by hand, every turn, unprompted.
   (Codex's own repo-level `.codex/hooks.json` adapter is separate and unrelated to these.)

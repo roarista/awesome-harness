@@ -34,7 +34,7 @@ if [ "$CODEX" = 1 ]; then
   run "cp '$SRC/codex/AGENTS.md' '$CODEX_ROOT/AGENTS.md'"
   run "chmod +x '$CODEX_DEST'/hooks/*.py"
   echo "[2/3] copying Codex skills, standards, and tools"
-  for s in caveman code-decompose compact-prep check-all recall; do
+  for s in awesomeharness caveman codebase-first code-decompose compact-prep check-all recall; do
     run "mkdir -p '$CODEX_ROOT/skills/$s'"
     run "cp '$SRC/codex/skills/$s/SKILL.md' '$CODEX_ROOT/skills/$s/SKILL.md'"
   done

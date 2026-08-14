@@ -24,6 +24,11 @@ test -f "$ADAPTER"
 SKILL="$CODEX_HOME/skills/caveman/SKILL.md"
 test -f "$SKILL"
 cmp -s "$SRC/codex/skills/caveman/SKILL.md" "$SKILL"
+HARNESS_SKILL="$CODEX_HOME/skills/awesomeharness/SKILL.md"
+test -f "$HARNESS_SKILL"
+cmp -s "$SRC/codex/skills/awesomeharness/SKILL.md" "$HARNESS_SKILL"
+test -f "$CODEX_HOME/skills/codebase-first/SKILL.md"
+cmp -s "$SRC/codex/skills/codebase-first/SKILL.md" "$CODEX_HOME/skills/codebase-first/SKILL.md"
 test ! -e "$CODEX_HOME/awesome-harness/skills/caveman/SKILL.md"
 test "$(cat "$FAKE_HOME/.claude/settings.json")" = '{"keep":"claude"}'
 test "$(find "$FAKE_HOME/.claude" -type f | sed "s#^$FAKE_HOME/.claude/##" | sort)" = 'settings.json'

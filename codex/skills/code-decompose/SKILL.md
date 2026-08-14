@@ -9,7 +9,7 @@ description: The standard coding workflow for a Codex session — decompose a co
 
 The point: **the change must be fully understood before any code is written — the code that exists and the code you intend to write — and that understanding must be written down precisely enough that it could be executed without further judgment.** Decomposition is the expensive thinking step; execution is the cheap step done at volume.
 
-**Codex has no subagent fleet.** You play decomposer, coder, and auditor yourself, sequentially. The separation of roles is preserved *in time* instead of across processes: you finish specing before you write, and you re-read the diff against the spec before declaring done. Never collapse the three into "just write it and see."
+Use one bounded Codex builder per unit and a distinct auditor against the same spec when native subagents are available. Never run sibling builders concurrently in a dirty checkout. If subagents are unavailable, preserve the separation *in time*: finish specing, build, then re-read the diff against the spec with independent-auditor eyes.
 
 ## Phase 1 — Decompose (write the specs first, no code)
 
@@ -38,7 +38,7 @@ If the change is large or has real trade-offs, surface the unit list to Ro befor
 
 For each unit, in order:
 
-1. Re-read the unit spec. Hold yourself to `~/.codex/BUILDER_STANDARD.md`.
+1. Re-read the unit spec and give it, plus `~/.codex/BUILDER_STANDARD.md`, to one bounded builder. If delegation is unavailable, execute it yourself.
 2. Write the **minimum** code that satisfies CHANGE. Nothing extra — scope creep is a spec violation, not a bonus.
 3. Run that unit's VERIFY and keep the real output. Never report a VERIFY you did not run.
 
@@ -46,7 +46,7 @@ Do not start unit N+1 until unit N passes its own VERIFY.
 
 ## Phase 3 — Self-audit each unit against its own spec
 
-Immediately after each unit's VERIFY, switch roles: read `git diff` for that unit **against the written spec**, not against your memory of what you meant.
+Immediately after each unit's VERIFY, give the same spec and resulting diff to a distinct auditor. If delegation is unavailable, switch roles and read `git diff` for that unit **against the written spec**, not against your memory of what you meant.
 
 - Does the diff match CHANGE exactly? Anything extra or missing?
 - Does it actually achieve GOAL, including the edge cases from Phase 1?

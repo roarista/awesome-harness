@@ -7,13 +7,14 @@ The 2026-07-27 session that did this was deleted mid-flight; context recovered f
 
 ## Active Resume Point
 
-**Last updated:** 2026-08-14 — THREE-REPO CONTEXT DIET SHIPPED
-**Status:** `/awesomeharness` is 2,634 B; duplicate loads are blocked; Intrn, Vividlist,
-and virality now use compact routers/resume files, task-scoped memory, opt-in MCPs, short skill
-descriptions, and the <=8-line agent report contract.
-**Measured:** fresh Opus first turns: Intrn 43,038; Vividlist 47,340; virality 39,082 total
-input tokens. These are directional snapshots, not controlled A/B measurements.
-**Resume:** Observe real task quality/cache use for one week; prune further only from measured non-use.
+**Last updated:** 2026-08-14 — CODEX PROCEDURE PARITY READY
+**Status:** the Codex installer now installs native `awesomeharness` and `codebase-first` skills;
+Codex policy uses native builder/auditor subagents when available; Vividlist, Intrn, and virality
+AGENTS explicitly load each repository's compact root CLAUDE router. The adapter and hooks were
+installed locally in all three repositories.
+**Verified:** skill validators, `tests/test_codex_install.sh`, JSON parsing, diff checks, and
+check-all fast passed.
+**Resume:** Restart Codex in each project and confirm `awesomeharness` appears in the slash/skill picker.
 
 **THE REFRAME — I aimed at the wrong target and the data corrected me.**
 Hooks are 14.70% of billed main-session INPUT but **~5.5% of DOLLARS**, because 93.1% of
