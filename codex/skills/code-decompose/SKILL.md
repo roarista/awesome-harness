@@ -1,6 +1,6 @@
 ---
 name: code-decompose
-description: The standard coding workflow for a Codex session — decompose a code change into small, independently-verifiable units BEFORE writing any of it, then execute and self-audit them one at a time. Use whenever you are about to write or change code beyond a one-line edit: features, refactors, bug fixes, new modules, pipeline stages. Activates on "build", "implement", "add this feature", "refactor", "write the code for", "change X to do Y". Skip only for truly trivial single-line edits.
+description: 'The standard coding workflow for a Codex session — decompose a code change into small, independently-verifiable units BEFORE writing any of it, then execute and self-audit them one at a time. Use whenever you are about to write or change code beyond a one-line edit: features, refactors, bug fixes, new modules, pipeline stages. Activates on "build", "implement", "add this feature", "refactor", "write the code for", "change X to do Y". Skip only for truly trivial single-line edits.'
 ---
 
 # code-decompose (Codex edition)

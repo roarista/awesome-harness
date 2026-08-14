@@ -7,14 +7,12 @@ The 2026-07-27 session that did this was deleted mid-flight; context recovered f
 
 ## Active Resume Point
 
-**Last updated:** 2026-08-14 — CODEX PROCEDURE PARITY READY
-**Status:** the Codex installer now installs native `awesomeharness` and `codebase-first` skills;
-Codex policy uses native builder/auditor subagents when available; Vividlist, Intrn, and virality
-AGENTS explicitly load each repository's compact root CLAUDE router. The adapter and hooks were
-installed locally in all three repositories.
-**Verified:** skill validators, `tests/test_codex_install.sh`, JSON parsing, diff checks, and
-check-all fast passed.
-**Resume:** Restart Codex in each project and confirm `awesomeharness` appears in the slash/skill picker.
+**Last updated:** 2026-08-14 — COMPACT CODEX LAYER INSTALLED
+**Status:** six coding skills, Ponytail policy, safety/commit hooks, and bounded native
+builder→auditor lifecycle hooks are installed globally and in Vividlist, Intrn, and virality-pipeline.
+**Verified:** independent final auditor PASS; 30 PreToolUse + 8 lifecycle cases, safe legacy upgrade,
+installer fixture, six skill validators, installed-hook selftests, and full check-all READY.
+**Resume:** Restart Codex in each project, trust/review hooks, then observe one real SubagentStart/Stop lifecycle.
 
 **THE REFRAME — I aimed at the wrong target and the data corrected me.**
 Hooks are 14.70% of billed main-session INPUT but **~5.5% of DOLLARS**, because 93.1% of

@@ -21,7 +21,7 @@ Use this contract for the rest of the session. Read the repository's root `CLAUD
 1. State `GOAL / NOT-GOAL / DONE-WHEN / PROOF`.
 2. Prove `REUSE / ADAPT / REJECT` against live files; stop if existing behavior covers the goal.
 3. Decompose units as `CONTEXT / REUSE / CHANGE / GOAL / VERIFY`.
-4. For each non-trivial unit, use one bounded builder, then a distinct auditor against the same spec. Never run sibling builders concurrently in a dirty checkout.
+4. For each non-trivial unit, launch one bounded builder, wait, then launch a distinct auditor against the same spec. Main-agent ability is not a reason to skip either launch. Never run sibling builders concurrently in a dirty checkout.
 5. Fix and re-audit until no high/critical finding remains; independently inspect the tree and verification output.
 6. Run the unit check, repository gate, and `check-all`; claims require real output.
 7. Commit scoped files, record durable learning in Mulch, update the repository's compact resume card, and push.

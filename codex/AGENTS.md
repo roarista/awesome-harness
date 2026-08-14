@@ -47,8 +47,9 @@ Steps 2-3 are one skill (`codebase-first`); 4-6 are one loop (decompose -> build
 **Escape hatch:** genuinely trivial one-line edits and docs-only wording skip 2-4, never 0/1/7 —
 but still state a one-line `REUSE:` / `REJECT:` verdict before editing.
 
-Use native Codex subagents for the procedure's bounded builder and independent-auditor roles when
-they are available. If the current Codex surface has no subagents, preserve the separation
+For every non-trivial unit, launch one bounded native Codex builder, wait for it, then launch a
+distinct auditor against the same written spec. Do not skip the launch merely because the main
+agent could edit directly. If the current surface has no subagents, preserve the separation
 sequentially: finish the spec, build, then re-read the diff against the spec with independent eyes.
 Never claim a VERIFY pass you did not actually run.
 
@@ -93,9 +94,9 @@ where available.
   implied unless a corresponding Codex skill is installed.
 - **Subagents** — use native Codex subagents for bounded builders and independent auditors. Do not
   emulate Claude-specific agent types or model names.
-- **Claude hooks** — session-start injection, PreCompact, PreToolUse gates. Nothing fires
-  automatically for you, so the rituals are yours to run by hand, every turn, unprompted.
-  (Codex's own repo-level `.codex/hooks.json` adapter is separate and unrelated to these.)
+- **Native hooks** — the opt-in repository adapter protects the north star, blocks a narrow set of
+  irreversible commands, gates armed commits, and checks subagent receipts. Other rituals remain
+  the main agent's responsibility.
 - **MCP tools** — graphify, repowise, mulch-over-MCP. Their CLIs are fair game when installed:
   `graphify query/explain/path` when `graphify-out/graph.json` exists, and `ml` for mulch.
 
