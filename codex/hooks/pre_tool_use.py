@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Codex PreToolUse guard for external builder commands.
+"""Compact Codex guard for builder contracts and irreversible writes.
 
 This is deliberately narrow: it only denies an actual builder invocation whose
 embedded task lacks the unit-contract headings.  It does not try to identify
@@ -44,6 +44,9 @@ READ_ONLY = re.compile(
     r"(?:edit|write|modify|change|patch)\b|\bdon't\s+"
     r"(?:edit|write|modify|change|patch)\b)",
     re.IGNORECASE,
+)
+NORTHSTAR_PATCH = re.compile(
+    r"^\*\*\* (?:Add|Update|Delete) File: .*\.northstar\.md$", re.MULTILINE
 )
 
 
@@ -101,6 +104,147 @@ def is_builder(command: str) -> bool:
     return any(is_builder_segment(segment) for segment in shell_segments(command))
 
 
+def executable_segment(raw: list[str]) -> tuple[str, list[str]]:
+    """Strip common execution wrappers and return executable plus arguments."""
+    segment = raw[:]
+    while segment and re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", segment[0]):
+        segment = segment[1:]
+    while segment and os.path.basename(segment[0]) in {"command", "env", "sudo"}:
+        wrapper = os.path.basename(segment.pop(0))
+        while segment and segment[0].startswith("-"):
+            option = segment.pop(0)
+            if wrapper == "sudo" and option in {"-C", "-D", "-g", "-h", "-p", "-R", "-r", "-t", "-T", "-u"} and segment:
+                segment.pop(0)
+            elif wrapper == "env" and option in {"-C", "--chdir", "-S", "--split-string", "-u", "--unset"} and segment:
+                segment.pop(0)
+        while wrapper == "env" and segment and re.match(
+            r"^[A-Za-z_][A-Za-z0-9_]*=", segment[0]
+        ):
+            segment.pop(0)
+    if not segment:
+        return "", []
+    return os.path.basename(segment[0]), segment[1:]
+
+
+def git_subcommand(args: list[str]) -> tuple[str, list[str]]:
+    """Skip common Git global options, including options that consume a value."""
+    index = 0
+    while index < len(args):
+        token = args[index]
+        if token in {"-C", "-c", "--exec-path", "--git-dir", "--namespace", "--work-tree"}:
+            index += 2
+        elif token.startswith(("--exec-path=", "--git-dir=", "--namespace=", "--work-tree=")):
+            index += 1
+        elif token in {"--bare", "--no-pager", "--paginate", "--literal-pathspecs", "--no-optional-locks"}:
+            index += 1
+        else:
+            return token, args[index + 1 :]
+    return "", []
+
+
+def irreversible_reason(command: str) -> str | None:
+    """Recognize a deliberately small set of destructive executable forms."""
+    for segment in shell_segments(command):
+        executable, args = executable_segment(segment)
+        if not executable:
+            continue
+        if executable == "rm":
+            force = any(arg == "--force" or (arg.startswith("-") and "f" in arg) for arg in args)
+            recursive = any(
+                arg == "--recursive" or (arg.startswith("-") and "r" in arg) for arg in args
+            )
+            if force and recursive:
+                return "recursive forced removal"
+        subcommand, subargs = git_subcommand(args) if executable == "git" else ("", [])
+        if subcommand == "reset" and "--hard" in subargs:
+            return "git reset --hard"
+        if subcommand == "clean" and any(
+            arg.startswith("-") and "f" in arg and "d" in arg for arg in subargs
+        ):
+            return "git clean with force and directory removal"
+        if subcommand == "push" and any(
+            arg in {"-f", "--force", "--force-with-lease"} for arg in subargs
+        ):
+            return "forced git push"
+    return None
+
+
+def shell_writes_northstar(command: str) -> bool:
+    """Recognize direct shell writers targeting the protected file."""
+    for segment in shell_segments(command):
+        if not any(Path(token).name == ".northstar.md" for token in segment):
+            joined = " ".join(segment)
+            executable, _ = executable_segment(segment)
+            if not (executable.startswith("python") and ".northstar.md" in joined):
+                continue
+        executable, args = executable_segment(segment)
+        if executable in {"rm", "tee", "touch", "truncate"}:
+            return True
+        if executable == "sed" and any(arg == "--in-place" or arg.startswith("-i") for arg in args):
+            return True
+        if executable == "mv":
+            operands = [arg for arg in args if not arg.startswith("-")]
+            if any(Path(arg).name == ".northstar.md" for arg in operands):
+                return True
+        if executable in {"cp", "install"}:
+            operands = [arg for arg in args if not arg.startswith("-")]
+            if operands and Path(operands[-1]).name == ".northstar.md":
+                return True
+        if executable.startswith("python"):
+            joined = " ".join(args)
+            if re.search(
+                r"(?:write_text|write_bytes|unlink|remove|replace|rename)\s*\(|"
+                r"open\s*\([^)]*\.northstar\.md[^)]*['\"](?:w|a|x|\+)|"
+                r"Path\s*\([^)]*\.northstar\.md[^)]*\)\.open\s*\([^)]*"
+                r"(?:mode\s*=\s*)?['\"](?:w|a|x|\+)",
+                joined,
+            ):
+                return True
+        if any(token.startswith(">") for token in segment):
+            return True
+    return False
+
+
+def patch_edits_northstar(payload: Any) -> bool:
+    if not isinstance(payload, dict) or payload.get("tool_name") != "apply_patch":
+        return False
+    for key in ("tool_input", "toolInput", "input"):
+        value = payload.get(key)
+        if isinstance(value, dict):
+            for field in ("patch", "input", "command"):
+                patch = value.get(field)
+                if isinstance(patch, str) and NORTHSTAR_PATCH.search(patch):
+                    return True
+    return False
+
+
+def is_git_commit(command: str) -> bool:
+    for segment in shell_segments(command):
+        executable, args = executable_segment(segment)
+        if executable == "git" and git_subcommand(args)[0] == "commit":
+            return True
+    return False
+
+
+def check_all_failure(command: str) -> str | None:
+    """Run the installed fast gate only for an armed repository commit."""
+    if not is_git_commit(command) or not Path(".check-all.json").is_file():
+        return None
+    runner = Path(__file__).resolve().parents[2] / "tools" / "check-all" / "check_all.sh"
+    if not runner.is_file():
+        return "check-all is armed, but its installed runner is missing"
+    result = subprocess.run(
+        ["bash", str(runner), str(Path.cwd()), "--fast"],
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    if result.returncode:
+        tail = (result.stdout + result.stderr).strip().splitlines()[-1:]
+        return "check-all fast gate failed" + (f": {tail[0]}" if tail else "")
+    return None
+
+
 def has_write_intent(command: str) -> bool:
     """Only contract external builder tasks that request a source mutation."""
     return bool(WRITE_INTENT.search(command)) and not bool(READ_ONLY.search(command))
@@ -129,14 +273,21 @@ def deny(reason: str) -> dict[str, dict[str, str]]:
 
 def decision(payload: Any) -> dict[str, Any] | None:
     """Return Codex's documented deny response, or None to allow/fail open."""
+    if patch_edits_northstar(payload):
+        return deny("Do not edit .northstar.md without Ro's explicit approval.")
     command = command_from(payload)
-    if command is None or not is_builder(command) or not has_write_intent(command):
+    if command is None:
         return None
-    if edits_northstar(command):
-        return deny(
-            "External builders may not edit .northstar.md; return the proposed "
-            "change to the orchestrator for an explicit decision."
-        )
+    destructive = irreversible_reason(command)
+    if destructive:
+        return deny(f"Blocked irreversible command ({destructive}); get explicit approval.")
+    if edits_northstar(command) or shell_writes_northstar(command):
+        return deny("Do not edit .northstar.md without Ro's explicit approval.")
+    gate_failure = check_all_failure(command)
+    if gate_failure:
+        return deny(gate_failure)
+    if not is_builder(command) or not has_write_intent(command):
+        return None
     missing = missing_headings(command)
     if not missing:
         return None
@@ -189,7 +340,7 @@ def run_hook() -> int:
     try:
         payload = json.load(sys.stdin)
         result = decision(payload)
-    except (json.JSONDecodeError, OSError, TypeError, ValueError):
+    except (json.JSONDecodeError, OSError, subprocess.SubprocessError, TypeError, ValueError):
         # A malformed hook payload must not stop normal work.
         return 0
     record_apply_patch_advisory(payload)
@@ -286,6 +437,122 @@ def selftest() -> int:
             None,
         ),
         (
+            "north-star patch is denied",
+            {
+                "tool_name": "apply_patch",
+                "tool_input": {"patch": "*** Update File: .northstar.md\n@@"},
+            },
+            "deny",
+        ),
+        (
+            "recursive forced removal is denied",
+            {"tool_name": "Bash", "tool_input": {"command": "rm -rf build"}},
+            "deny",
+        ),
+        (
+            "hard reset is denied",
+            {"tool_name": "Bash", "tool_input": {"command": "git reset --hard HEAD"}},
+            "deny",
+        ),
+        (
+            "split recursive forced removal is denied",
+            {"tool_name": "Bash", "tool_input": {"command": "rm -r -f build"}},
+            "deny",
+        ),
+        (
+            "command wrapper removal is denied",
+            {"tool_name": "Bash", "tool_input": {"command": "command rm -rf build"}},
+            "deny",
+        ),
+        (
+            "sudo wrapper removal is denied",
+            {"tool_name": "Bash", "tool_input": {"command": "sudo rm -rf build"}},
+            "deny",
+        ),
+        (
+            "env unset wrapper removal is denied",
+            {
+                "tool_name": "Bash",
+                "tool_input": {"command": "env -u NAME rm -rf build"},
+            },
+            "deny",
+        ),
+        (
+            "git global option hard reset is denied",
+            {
+                "tool_name": "Bash",
+                "tool_input": {"command": "git -C /tmp/repo reset --hard HEAD"},
+            },
+            "deny",
+        ),
+        (
+            "shell north-star write is denied",
+            {"tool_name": "Bash", "tool_input": {"command": "touch .northstar.md"}},
+            "deny",
+        ),
+        (
+            "read-only sed north-star passes",
+            {"tool_name": "Bash", "tool_input": {"command": "sed -n 1,20p .northstar.md"}},
+            None,
+        ),
+        (
+            "copy from north-star passes",
+            {
+                "tool_name": "Bash",
+                "tool_input": {"command": "cp .northstar.md /tmp/northstar-copy"},
+            },
+            None,
+        ),
+        (
+            "copy to north-star is denied",
+            {
+                "tool_name": "Bash",
+                "tool_input": {"command": "cp /tmp/new-northstar .northstar.md"},
+            },
+            "deny",
+        ),
+        (
+            "move from north-star is denied",
+            {
+                "tool_name": "Bash",
+                "tool_input": {"command": "mv .northstar.md /tmp/saved"},
+            },
+            "deny",
+        ),
+        (
+            "python north-star write is denied",
+            {
+                "tool_name": "Bash",
+                "tool_input": {
+                    "command": "python3 -c \"from pathlib import Path; Path('.northstar.md').write_text('x')\""
+                },
+            },
+            "deny",
+        ),
+        (
+            "python Path open north-star write is denied",
+            {
+                "tool_name": "Bash",
+                "tool_input": {
+                    "command": "python3 -c \"from pathlib import Path; Path('.northstar.md').open(mode='w').close()\""
+                },
+            },
+            "deny",
+        ),
+        (
+            "apply_patch command field north-star edit is denied",
+            {
+                "tool_name": "apply_patch",
+                "tool_input": {"command": "*** Update File: .northstar.md\n@@"},
+            },
+            "deny",
+        ),
+        (
+            "quoted destructive text passes",
+            {"tool_name": "Bash", "tool_input": {"command": "echo 'rm -rf build'"}},
+            None,
+        ),
+        (
             "builder with contract but no REUSE is denied",
             {
                 "tool_name": "Bash",
@@ -350,6 +617,27 @@ def selftest() -> int:
         os.environ["AWESOME_HARNESS_ADVISORY_LOG"] = old_log
     if "direct_apply_patch_advisory" not in records or "private source" in records:
         print("selftest failed: apply_patch advisory record", file=sys.stderr)
+        return 1
+    original_cwd = Path.cwd()
+    with tempfile.TemporaryDirectory() as directory:
+        repo = Path(directory)
+        subprocess.run(["git", "init", "-q", str(repo)], check=True)
+        (repo / ".check-all.json").write_text(
+            '{"base_command":"false"}\n', encoding="utf-8"
+        )
+        os.chdir(repo)
+        try:
+            gated = decision(
+                {"tool_name": "Bash", "tool_input": {"command": "git commit -m test"}}
+            )
+        finally:
+            os.chdir(original_cwd)
+    if (
+        not gated
+        or "check-all fast gate failed"
+        not in gated["hookSpecificOutput"]["permissionDecisionReason"]
+    ):
+        print("selftest failed: armed commit gate", file=sys.stderr)
         return 1
     print(f"selftest passed: {len(cases)} representative payloads")
     return 0

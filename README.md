@@ -76,7 +76,9 @@ The Codex adapter is installed separately and enabled per repository:
 ./install-repo.sh --codex /absolute/path/to/repo
 ```
 
-Review the merged hooks, trust the repository, and restart Codex. The adapter supplies workflow policy and narrow shell protections; it does not claim complete enforcement over every edit path or over chat behavior.
+Review the merged hooks, trust the repository, and restart Codex. The compact adapter wires `PreToolUse`, `SubagentStart`, and `SubagentStop`: it protects the north star, blocks a narrow irreversible-command set, runs `check-all --fast` before commits only when `.check-all.json` exists, and gives each subagent one receipt retry. It deliberately omits repeated reminders and broad context injection.
+
+The installer adds six compact coding skills: `awesomeharness`, `recall`, `codebase-first`, `code-decompose`, `check-all`, and `compact-prep`. Ponytail stays in global `AGENTS.md`; the former Caveman skill is not duplicated. Invoke `$awesomeharness` (also available from the slash-command list). Project `AGENTS.md` files should direct Codex to read any compact root `CLAUDE.md` router when that file carries the shared project procedure.
 
 ### Runtime pilot and rollback
 

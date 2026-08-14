@@ -34,7 +34,15 @@ if [ "$CODEX" = 1 ]; then
   run "cp '$SRC/codex/AGENTS.md' '$CODEX_ROOT/AGENTS.md'"
   run "chmod +x '$CODEX_DEST'/hooks/*.py"
   echo "[2/3] copying Codex skills, standards, and tools"
-  for s in caveman code-decompose compact-prep check-all recall; do
+  LEGACY_CAVEMAN="$CODEX_ROOT/skills/caveman/SKILL.md"
+  if [ -f "$LEGACY_CAVEMAN" ] && cmp -s "$SRC/codex/legacy/caveman.SKILL.md" "$LEGACY_CAVEMAN"; then
+    run "rm '$LEGACY_CAVEMAN'"
+    run "rmdir '$CODEX_ROOT/skills/caveman' 2>/dev/null || true"
+    say "removed installer-owned legacy Caveman skill"
+  elif [ -f "$LEGACY_CAVEMAN" ]; then
+    say "preserved modified Caveman skill: $LEGACY_CAVEMAN"
+  fi
+  for s in awesomeharness codebase-first code-decompose compact-prep check-all recall; do
     run "mkdir -p '$CODEX_ROOT/skills/$s'"
     run "cp '$SRC/codex/skills/$s/SKILL.md' '$CODEX_ROOT/skills/$s/SKILL.md'"
   done

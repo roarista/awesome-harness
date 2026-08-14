@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Merge awesome-harness's narrow Codex PreToolUse entries without clobbering a repo.
+"""Merge awesome-harness's narrow Codex lifecycle hooks without clobbering a repo.
 
-Only the two entries owned by this installer are managed.  The old, repository
-relative ``exec_command`` entry is migrated only when it is an exact known
+Only entries owned by this installer are managed. The old repository-relative
+``exec_command`` entry is migrated only when it is an exact known
 awesome-harness command; arbitrary user hooks are left untouched.
 """
 from __future__ import annotations
@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any
 
 MANAGED_MATCHERS = ("^Bash$", "^apply_patch$")
+SUBAGENT_EVENTS = ("SubagentStart", "SubagentStop")
 # This was the first local adapter location used during the Codex migration.
 LEGACY_COMMANDS = {
     'python3 "$(git rev-parse --show-toplevel)/.codex/awesome-harness/pre_tool_use.py"',
@@ -85,6 +86,23 @@ def merge(settings: dict[str, Any], adapter: str) -> tuple[dict[str, Any], list[
         if not any(isinstance(item, dict) and item.get("command") == command for item in nested):
             nested.append(hook(command))
             actions.append(f"add harness command to PreToolUse {matcher}")
+
+    subagent_command = managed_command(str(Path(adapter).with_name("subagent.py")))
+    for event in SUBAGENT_EVENTS:
+        entries = hooks.setdefault(event, [])
+        if not isinstance(entries, list):
+            raise ValueError(f"refusing to merge: hooks.{event} must be an array")
+        if not any(
+            isinstance(entry, dict)
+            and isinstance(entry.get("hooks"), list)
+            and any(
+                isinstance(item, dict) and item.get("command") == subagent_command
+                for item in entry["hooks"]
+            )
+            for entry in entries
+        ):
+            entries.append({"hooks": [hook(subagent_command)]})
+            actions.append(f"add {event}")
 
     return settings, actions
 

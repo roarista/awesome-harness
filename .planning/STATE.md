@@ -7,13 +7,12 @@ The 2026-07-27 session that did this was deleted mid-flight; context recovered f
 
 ## Active Resume Point
 
-**Last updated:** 2026-08-14 — THREE-REPO CONTEXT DIET SHIPPED
-**Status:** `/awesomeharness` is 2,634 B; duplicate loads are blocked; Intrn, Vividlist,
-and virality now use compact routers/resume files, task-scoped memory, opt-in MCPs, short skill
-descriptions, and the <=8-line agent report contract.
-**Measured:** fresh Opus first turns: Intrn 43,038; Vividlist 47,340; virality 39,082 total
-input tokens. These are directional snapshots, not controlled A/B measurements.
-**Resume:** Observe real task quality/cache use for one week; prune further only from measured non-use.
+**Last updated:** 2026-08-14 — COMPACT CODEX LAYER INSTALLED
+**Status:** six coding skills, Ponytail policy, safety/commit hooks, and bounded native
+builder→auditor lifecycle hooks are installed globally and in Vividlist, Intrn, and virality-pipeline.
+**Verified:** independent final auditor PASS; 30 PreToolUse + 8 lifecycle cases, safe legacy upgrade,
+installer fixture, six skill validators, installed-hook selftests, and full check-all READY.
+**Resume:** Restart Codex in each project, trust/review hooks, then observe one real SubagentStart/Stop lifecycle.
 
 **THE REFRAME — I aimed at the wrong target and the data corrected me.**
 Hooks are 14.70% of billed main-session INPUT but **~5.5% of DOLLARS**, because 93.1% of
