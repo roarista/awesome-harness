@@ -7,13 +7,13 @@ The 2026-07-27 session that did this was deleted mid-flight; context recovered f
 
 ## Active Resume Point
 
-**Last updated:** 2026-08-13 — THIN HARNESS + INTRN DIET SHIPPED
-**Status:** `/awesomeharness` is 2,634 B (was 11,534), duplicate loads are blocked, and
-Intrn now uses one normal resume file with task-scoped memory/MCPs and silent hooks. Sub-agents
-write full reports to the repo report folder and return <=8 lines; orchestrators stay silent.
-**Measured:** fresh Intrn Opus-5 first turn was 43,038 input tokens versus 56,568–61,107
-in four prior sampled starts (not a controlled A/B; directionally 24–30% lower).
-**Resume:** Apply the same measured pattern to Vividlist and virality-pipeline one repo at a time.
+**Last updated:** 2026-08-14 — THREE-REPO CONTEXT DIET SHIPPED
+**Status:** `/awesomeharness` is 2,634 B; duplicate loads are blocked; Intrn, Vividlist,
+and virality now use compact routers/resume files, task-scoped memory, opt-in MCPs, short skill
+descriptions, and the <=8-line agent report contract.
+**Measured:** fresh Opus first turns: Intrn 43,038; Vividlist 47,340; virality 39,082 total
+input tokens. These are directional snapshots, not controlled A/B measurements.
+**Resume:** Observe real task quality/cache use for one week; prune further only from measured non-use.
 
 **THE REFRAME — I aimed at the wrong target and the data corrected me.**
 Hooks are 14.70% of billed main-session INPUT but **~5.5% of DOLLARS**, because 93.1% of
