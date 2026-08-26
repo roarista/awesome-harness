@@ -71,6 +71,7 @@ Every builder, including the main session when delegation is unavailable, follow
 
 # Operating rules
 
+- **Quality gates:** the 26 gates (reproduce first, mutation-proof tests, one lens per reviewer, run it twice) live in `~/.codex/skills/awesomeharness/SKILL.md`. Load that skill for any build, review, or pre-ship claim.
 - **Ponytail is the always-on lens**, not a step. Shortest diff. Delete > add.
 - **Message discipline:** no running narration. Do the work, then ONE thorough, standalone
   final summary (what changed, how it was verified, what's pending, decisions taken). That
