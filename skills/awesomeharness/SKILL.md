@@ -76,6 +76,10 @@ that got past someone without it.)
 ## Non-negotiables
 
 - Minimum code; no speculative abstractions or dependencies.
+- **Hard file-size cap: no source file over 200 lines.** Aim well under. A unit that would push a
+  file past 200 lines is split first — new module, not a longer file. 300 lines is a hard ceiling
+  that only pre-existing files may sit at, and touching one means shrinking it. Small files are
+  what let agents hold the codebase in context; this is a build constraint, not a style note.
 - Preserve unrelated dirty work; never force/reset/clean/stash/restore it away.
 - No unauthorized spend, production mutation, messages, or destructive action.
 - Keep stable instructions byte-stable for cache reuse, but optimize context bytes before cache rate.
