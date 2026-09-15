@@ -12,7 +12,10 @@ or archive files during routine orientation.
 ## Route
 
 - Recall: targeted `ml search <term>` or one domain prime. Do not prime everything.
-- Inventory: injected `.codemap`.
+- Inventory: injected `.codemap` (small repos: every file + symbols; large repos: L0 area index).
+  Zoom before reading source: `~/.claude/tools/l1.py <area>` (files+LOC+entrypoints, ≤8KB) then
+  `~/.claude/tools/skeleton.py <file>` (verbatim signatures, no bodies). Open a file body only
+  when the skeleton is not enough. In Codex use `tools/l1.py` / `tools/skeleton.py`.
 - Structure/reach: Graphify query/explain/path.
 - Complete AST occurrences: Semgrep.
 - Literal text, slices, history: `rg` / git.
@@ -22,8 +25,11 @@ or archive files during routine orientation.
 ## Code loop
 
 1. State GOAL / NOT-GOAL / DONE-WHEN / PROOF.
-2. Prove REUSE / ADAPT / REJECT against live files; STOP if existing behavior already covers it.
-3. Decompose into units: CONTEXT / REUSE / CHANGE / GOAL / VERIFY.
+2. Prove REUSE / ADAPT / REJECT against live files (`/orient` does steps 1-2 in one call); STOP
+   if existing behavior already covers it. Walk the ponytail ladder first: not needed → stdlib →
+   native platform → installed dep → one line → minimum code.
+3. Decompose maximally into units (`/code-decompose`): CONTEXT / REUSE / CHANGE / GOAL / VERIFY.
+   Each unit must fit one cheap builder and leave every touched file ≤200 lines.
 4. Run one Codex builder per unit. Never run sibling builders concurrently in a dirty checkout.
 5. Give the same spec to an independent auditor; fix and re-audit until no HIGH/CRITICAL remains.
 6. Run the unit check, repository gate, and `check-all`; claims require real output.

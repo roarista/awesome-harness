@@ -10,7 +10,10 @@ Use this contract for the rest of the session. Read the repository's root `CLAUD
 ## Route
 
 - Recall: targeted `ml search <term>` or one domain prime.
-- Inventory: the injected `.codemap`; do not reopen it wholesale.
+- Inventory: the injected `.codemap` (small repos: every file + symbols; large repos: L0 area index).
+  Zoom before reading source: `tools/l1.py <area>` (files+LOC+entrypoints, ≤8KB) then
+  `tools/skeleton.py <file>` (verbatim signatures, no bodies). Open a file body only when the
+  skeleton is not enough.
 - Structure/reach: Graphify query/explain/path.
 - Complete AST occurrences: Semgrep.
 - Literal text, slices, history: `rg` / git.
@@ -20,7 +23,10 @@ Use this contract for the rest of the session. Read the repository's root `CLAUD
 
 1. State `GOAL / NOT-GOAL / DONE-WHEN / PROOF`.
 2. Prove `REUSE / ADAPT / REJECT` against live files; stop if existing behavior covers the goal.
-3. Decompose units as `CONTEXT / REUSE / CHANGE / GOAL / VERIFY`.
+   Walk the ponytail ladder first: not needed → stdlib → native platform → installed dep → one
+   line → minimum code.
+3. Decompose maximally into units as `CONTEXT / REUSE / CHANGE / GOAL / VERIFY`. Each unit must
+   fit one cheap builder and leave every touched file ≤200 lines.
 4. For each non-trivial unit, launch one bounded builder, wait, then launch a distinct auditor against the same spec. Main-agent ability is not a reason to skip either launch. Never run sibling builders concurrently in a dirty checkout.
 5. Fix and re-audit until no high/critical finding remains; independently inspect the tree and verification output.
 6. Run the unit check, repository gate, and `check-all`; claims require real output.
