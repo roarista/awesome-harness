@@ -65,7 +65,7 @@ IS_PYTHON=0
 SRC_EXTS=( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" -o -name "*.py" -o -name "*.go" -o -name "*.rs" )
 # ponytail: array, NOT a quoted string — word-splitting a string kept the quote
 # chars literal so `-name "node_modules"` never matched and deps were scanned.
-PRUNE_DIRS=( -name node_modules -o -name .git -o -name dist -o -name build -o -name .next -o -name out -o -name vendor -o -name __pycache__ -o -name .venv -o -name venv -o -name .mypy_cache -o -name .pytest_cache -o -name site-packages )
+PRUNE_DIRS=( -name node_modules -o -name .git -o -name dist -o -name build -o -name .next -o -name out -o -name vendor -o -name __pycache__ -o -name .venv -o -name venv -o -name .mypy_cache -o -name .pytest_cache -o -name site-packages -o -name .scratch )
 
 # ─── Temp dir for per-check logs ───────────────────────────────────────────────
 TMP_BASE="${TMPDIR:-/tmp}/check_all_$$"
