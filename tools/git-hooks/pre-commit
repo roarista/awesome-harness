@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# awesome-harness git pre-commit gate (installed per repo by install.sh as a shim).
+#   1. 200-line ratchet on STAGED source files (ratchet.py, index vs HEAD)
+#   2. check-all --fast, only if the repo opted in with .check-all.json (120s cap)
+#   3. chain to a preserved pre-commit.local, if any
+# Bypass: `git commit --no-verify`, or SKIP_RATCHET=1 (skips step 1 only, loudly).
+# Must run on macOS stock bash 3.2.
+set -u
+
+AWESOME_HARNESS="${AWESOME_HARNESS:-/Users/rodrigoarista/Downloads/awesome-harness}"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(git rev-parse --show-toplevel)" || exit 1
+cd "$ROOT" || exit 1
+
+# 1. ratchet
+if [ "${SKIP_RATCHET:-0}" = "1" ]; then
+  echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" >&2
+  echo "!! SKIP_RATCHET=1 - 200-line ratchet SKIPPED for this commit.  !!" >&2
+  echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" >&2
+else
+  python3 "$HERE/ratchet.py"
+  rc=$?
+  if [ $rc -ne 0 ]; then
+    [ $rc -eq 2 ] && echo "pre-commit: ratchet errored (rc=2)" >&2
+    echo "pre-commit: BLOCKED (bypass: git commit --no-verify or SKIP_RATCHET=1)" >&2
+    exit 1
+  fi
+fi
+
+# run_group_timeout SECS cmd... - runs cmd in its OWN process group; on timeout
+# TERMs, then KILLs, the whole group (tsc/semgrep/node grandchildren included)
+# and returns 142. macOS has no `timeout`; gtimeout (coreutils) signals the group.
+run_group_timeout() {
+  local secs="$1" rc; shift
+  if command -v gtimeout >/dev/null 2>&1; then
+    gtimeout -k 5 "$secs" "$@"; rc=$?
+    case $rc in 124|137) return 142 ;; esac
+    return $rc
+  fi
+  perl -e '
+    my $secs = shift;
+    my $pid = fork(); defined $pid or exit 1;
+    if ($pid == 0) { setpgrp(0, 0); exec @ARGV or exit 127; }
+    $SIG{ALRM} = sub {
+      kill "TERM", -$pid;
+      for (1..50) { last unless kill 0, -$pid; select(undef, undef, undef, 0.1); }
+      kill "KILL", -$pid;
+      waitpid($pid, 0); exit 142;
+    };
+    alarm $secs;
+    waitpid($pid, 0); my $st = $?; alarm 0;
+    exit(($st & 127) ? 128 + ($st & 127) : $st >> 8);
+  ' "$secs" "$@"
+}
+
+# 2. check-all (opt-in)
+CHECK_ALL="$AWESOME_HARNESS/tools/check-all/check_all.sh"
+if [ ! -f "$ROOT/.check-all.json" ]; then
+  echo "pre-commit: check-all skipped (no .check-all.json)"
+elif [ ! -x "$CHECK_ALL" ] && [ ! -f "$CHECK_ALL" ]; then
+  echo "pre-commit: WARN check-all not found at $CHECK_ALL - skipped" >&2
+else
+  run_group_timeout "${CHECK_ALL_TIMEOUT:-120}" bash "$CHECK_ALL" "$ROOT" --fast
+  rc=$?
+  if [ $rc -eq 142 ]; then
+    echo "pre-commit: WARN check-all timed out after ${CHECK_ALL_TIMEOUT:-120}s - passing anyway" >&2
+  elif [ $rc -ne 0 ]; then
+    echo "pre-commit: BLOCKED by check-all --fast (rc=$rc; bypass: git commit --no-verify)" >&2
+    exit 1
+  fi
+fi
+
+# 3. chain the hook we displaced at install time
+HOOKS_DIR="$(git rev-parse --git-path hooks)"
+LOCAL="$HOOKS_DIR/pre-commit.local"
+# (git ignores a non-executable hook, so we do too)
+[ -x "$LOCAL" ] && exec "$LOCAL" "$@"
+exit 0
