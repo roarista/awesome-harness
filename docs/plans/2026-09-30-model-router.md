@@ -122,3 +122,7 @@ Awesome-harness gets: the `route-model.sh` delegation, an `awesomeharness` skill
 - **Parallel Laya instances are out** (MPS crash). Use one batched call with all questions, and run different checkpoints one after another.
 - Until fine-tuning lands, use Laya for **type and skill** only. **Difficulty and risk** stay rule-based, because zero-shot difficulty is flat.
 - **Router output carries the gates.** Each decision returns the agent, model and effort, plus a spec template (CONTEXT / REUSE file:line / CHANGE / GOAL / VERIFY), the required skills and a review lens. Reason: docs/audits/2026-10-01/gate-adherence.md shows rules embedded in tools get followed and skills don't.
+
+## Backlog seen while dogfooding (2026-10-01)
+- **Wait vs downgrade.** Claude 5h was at 96% with 14 minutes to reset, and the router sent two code builds to gpt-reserve (a cheap tier). For quality_first tasks, when the best provider resets within about 30 minutes, the router should offer "wait N min for <model>" next to the downgrade.
+- **gpt-reserve as a builder** is being measured on two small units: the labeler and the route-model.sh delegation. Record the outcomes with `fmr outcome`.

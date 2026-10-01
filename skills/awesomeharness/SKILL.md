@@ -24,6 +24,8 @@ or archive files during routine orientation.
 
 ## Code loop
 
+Route every launch with `tools/route-model.sh "<task>"` (delegates to free-model-router's `fmr route`; record results with `$FMR_HOME/.venv/bin/python -m fmr outcome <id> <result>`).
+
 1. State GOAL / NOT-GOAL / DONE-WHEN / PROOF.
 2. Prove REUSE / ADAPT / REJECT against live files (`/orient` does steps 1-2 in one call); STOP
    if existing behavior already covers it. Walk the ponytail ladder first: not needed → stdlib →
