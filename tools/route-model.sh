@@ -29,21 +29,20 @@ fi
 FMR_HOME="${FMR_HOME:-/Users/rodrigoarista/Downloads/free-model-router}"
 FMR_PYTHON="$FMR_HOME/.venv/bin/python"
 if [[ -z "${FMR_DISABLE+x}" && -x "$FMR_PYTHON" ]]; then
-  fmr_output="$(mktemp)"
-  fmr_error="$(mktemp)"
-  trap 'rm -f "$fmr_output" "$fmr_error"' EXIT
+  # No temp files: inside a Codex seatbelt sandbox $TMPDIR is not writable.
   fmr_args=("$FMR_PYTHON" -m fmr route)
   [[ -n "$OVERRIDE_MODEL" ]] && fmr_args+=(--model "$OVERRIDE_MODEL")
   fmr_args+=(-- "$TASK")
-  if (cd "$FMR_HOME" && perl -e '$SIG{TERM}="IGNORE"; my $timeout=shift @ARGV; my $p=fork; if(!$p){setpgrp; $SIG{TERM}="DEFAULT"; exec @ARGV} $SIG{ALRM}=sub{kill "TERM",-$p; sleep 2; kill "KILL",-$p; exit 124}; alarm $timeout; waitpid $p,0; exit($?>>8)' 20 "${fmr_args[@]}" >"$fmr_output" 2>"$fmr_error"); then
-    if [[ "$(head -n 1 "$fmr_output")" == NECESSITY:\ DO-NOT-LAUNCH:* ]]; then
-      head -n 1 "$fmr_output"
-      grep '^ID: ' "$fmr_output" || true
+  if fmr_output="$(cd "$FMR_HOME" && perl -e '$SIG{TERM}="IGNORE"; my $timeout=shift @ARGV; my $p=fork; if(!$p){setpgrp; $SIG{TERM}="DEFAULT"; exec @ARGV} $SIG{ALRM}=sub{kill "TERM",-$p; sleep 2; kill "KILL",-$p; exit 124}; alarm $timeout; waitpid $p,0; exit($?>>8)' 20 "${fmr_args[@]}")"; then
+    first_line="${fmr_output%%$'\n'*}"
+    if [[ "$first_line" == NECESSITY:\ DO-NOT-LAUNCH:* ]]; then
+      echo "$first_line"
+      printf '%s\n' "$fmr_output" | grep '^ID: ' || true
       exit 0
     fi
-    builder_line="$(grep '^BUILDER: ' "$fmr_output" || true)"
-    if [[ "$(head -n 1 "$fmr_output")" == "NECESSITY: LAUNCH" && "$builder_line" =~ ^BUILDER:\ ([^[:space:]]+)\ via\ ([^[:space:]]+)\ effort=([^[:space:]]+) ]]; then
-      cat "$fmr_output"
+    builder_line="$(printf '%s\n' "$fmr_output" | grep '^BUILDER: ' || true)"
+    if [[ "$first_line" == "NECESSITY: LAUNCH" && "$builder_line" =~ ^BUILDER:\ ([^[:space:]]+)\ via\ ([^[:space:]]+)\ effort=([^[:space:]]+) ]]; then
+      printf '%s\n' "$fmr_output"
       echo "AGENT: ${BASH_REMATCH[2]}"
       echo "MODEL: ${BASH_REMATCH[1]}"
       echo "EFFORT: ${BASH_REMATCH[3]}"

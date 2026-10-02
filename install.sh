@@ -51,6 +51,7 @@ if [ "$CODEX" = 1 ]; then
   run "mkdir -p '$CODEX_ROOT/tools/check-all'"
   run "cp -R '$SRC/tools/check-all/.' '$CODEX_ROOT/tools/check-all/'"
   run "chmod +x '$CODEX_ROOT'/tools/check-all/*.sh 2>/dev/null || true"
+  run "cp '$SRC/tools/route-model.sh' '$CODEX_ROOT/tools/route-model.sh' && chmod +x '$CODEX_ROOT/tools/route-model.sh'"
   echo "[3/3] complete"
   say "Claude settings were not read or changed."
   say "For one trusted repository: ./install-repo.sh --codex /absolute/path/to/repo"
