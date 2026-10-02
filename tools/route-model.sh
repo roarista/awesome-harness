@@ -26,6 +26,44 @@ if [[ -z "$TASK" ]]; then
   exit 2
 fi
 
+FMR_HOME="${FMR_HOME:-/Users/rodrigoarista/Downloads/free-model-router}"
+FMR_PYTHON="$FMR_HOME/.venv/bin/python"
+if [[ -z "${FMR_DISABLE+x}" && -x "$FMR_PYTHON" ]]; then
+  fmr_output="$(mktemp)"
+  fmr_error="$(mktemp)"
+  trap 'rm -f "$fmr_output" "$fmr_error"' EXIT
+  fmr_args=("$FMR_PYTHON" -m fmr route)
+  [[ -n "$OVERRIDE_MODEL" ]] && fmr_args+=(--model "$OVERRIDE_MODEL")
+  fmr_args+=(-- "$TASK")
+  if (cd "$FMR_HOME" && perl -e '$SIG{TERM}="IGNORE"; my $timeout=shift @ARGV; my $p=fork; if(!$p){setpgrp; $SIG{TERM}="DEFAULT"; exec @ARGV} $SIG{ALRM}=sub{kill "TERM",-$p; sleep 2; kill "KILL",-$p; exit 124}; alarm $timeout; waitpid $p,0; exit($?>>8)' 20 "${fmr_args[@]}" >"$fmr_output" 2>"$fmr_error"); then
+    if [[ "$(head -n 1 "$fmr_output")" == NECESSITY:\ DO-NOT-LAUNCH:* ]]; then
+      head -n 1 "$fmr_output"
+      grep '^ID: ' "$fmr_output" || true
+      exit 0
+    fi
+    builder_line="$(grep '^BUILDER: ' "$fmr_output" || true)"
+    if [[ "$(head -n 1 "$fmr_output")" == "NECESSITY: LAUNCH" && "$builder_line" =~ ^BUILDER:\ ([^[:space:]]+)\ via\ ([^[:space:]]+)\ effort=([^[:space:]]+) ]]; then
+      cat "$fmr_output"
+      echo "AGENT: ${BASH_REMATCH[2]}"
+      echo "MODEL: ${BASH_REMATCH[1]}"
+      echo "EFFORT: ${BASH_REMATCH[3]}"
+      echo "WHY: fmr route (see above)"
+      exit 0
+    fi
+    echo "ROUTER: fmr unavailable (malformed output), using legacy table" >&2
+  else
+    fmr_status=$?
+    if [[ "$fmr_status" -eq 124 ]]; then
+      fmr_reason="timeout"
+    elif [[ "$fmr_status" -eq 3 ]]; then
+      fmr_reason="no usable model"
+    else
+      fmr_reason="exit $fmr_status"
+    fi
+    echo "ROUTER: fmr unavailable ($fmr_reason), using legacy table" >&2
+  fi
+fi
+
 lower="$(echo "$TASK" | tr '[:upper:]' '[:lower:]')"
 
 # ---------------------------------------------------------------------------
