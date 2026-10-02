@@ -7,17 +7,13 @@ The 2026-07-27 session that did this was deleted mid-flight; context recovered f
 
 ## Active Resume Point
 
-**Last updated:** 2026-10-01
-**Branch:** codex-procedure-parity (pushed)
-**Status:** free-model-router Phases 1-2 shipped and wired into route-model.sh; Laya training unit in flight.
-
-**Current workstream:** free-model-router (~/Downloads/free-model-router, github roarista/free-model-router). Commands: `fmr status` (live usage), `fmr route "<task>"` (picks builder, auditor, model, effort, skills and lens), `fmr outcome/report`, `fmr label` (gpt-reserve teacher labels, 642 in data/labels.jsonl), `fmr bakeoff`. tools/route-model.sh delegates to fmr and falls back to its legacy table.
-
-**Next concrete step:** in free-model-router, review the uncommitted Laya training WIP (fmr/laya_*.py, head_train.py, docs/laya-train-2026-10-01.md, data/laya_head.pt), run `.venv/bin/python -m unittest discover -s tests -t .`, have it audited by a Claude auditor (shared rubric), then commit. Use the trained head only for features where it beats rules on the test split (FMR_LAYA=head).
-
-**Open questions for founder:** virality-pipeline bugs (unit05 reembed_live writes the live DB via --db copy; unit01 tests write fake spend rows into state/costs.jsonl). Hook rollout for Vividlist, intrn-v2 and virality-pipeline.
-
-**Blocked on:** Codex capped until Oct 6 20:07. Ro said NO to using reset credits. gpt-reserve and Claude carry the work until then.
+**Last updated:** 2026-10-02
+**Branch:** codex-procedure-parity @ 66245e6 (pushed; main == 54a0d16 via PR #3)
+**Status:** Router phase 2 shipped (fmr 9fb2561 + feffa83: Laya head opt-in, add-model, wait-vs-downgrade, Codex-sandbox safe). Hook live in 10 repos. Vividlist pushed origin/main 838e148a.
+**Current workstream:** virality-pipeline unit01/unit05 money-bug fixes (builder committing locally, no push); Codex router parity installed (~/.codex AGENTS.md + skill, writable_roots for fmr receipts).
+**Next concrete step:** audit virality fixes + codex-router diffs with opus48-audit (shared rubric); open PR codex-procedure-parity → main; then eval `fmr route` vs legacy table on held-out taskset (North Star DONE_WHEN).
+**Open questions for founder:** push virality-pipeline fixes after audit?
+**Blocked on:** nothing. Codex main capped until Oct 6 (use gpt-reserve; never reset credits).
 
 ## LAST_VERIFIED (2026-07-27)
 - `e639ff5` un-inverted guards (mention-matching → write-matching), main-edit-guard/builder-fence/route-only-gate

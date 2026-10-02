@@ -21,7 +21,7 @@ Use this contract for the rest of the session. Read the repository's root `CLAUD
 
 ## Code loop
 
-Route every launch with `~/.codex/tools/route-model.sh "<task>"` (delegates to free-model-router's `fmr route`; record results with `cd ${FMR_HOME:-~/Downloads/free-model-router} && .venv/bin/python -m fmr outcome <id> <result>`). Launch the builder and auditor it names with the model and effort it gives: a Codex-family model as a native Codex subagent, a Claude-family model via `claude -p --model <model>`. Audits are always cross-family. Codex reset credits are never consumed without Ro's explicit yes. Inside the sandbox the receipt cannot be written (stderr says so); rerun with escalated permissions when the outcome must be recorded.
+Route every launch with `~/.codex/tools/route-model.sh "<task>"` (delegates to free-model-router's `fmr route`; record results with `cd ${FMR_HOME:-~/Downloads/free-model-router} && .venv/bin/python -m fmr outcome <id> <result>`). Launch the builder and auditor it names with the model and effort it gives: a Codex-family model as a native Codex subagent, a Claude-family model via `claude -p --model <model>`. Audits are always cross-family. Codex reset credits are never consumed without Ro's explicit yes. In read-only sandboxes (or without `writable_roots` for `~/.local/state/free-model-router` in config.toml) the receipt cannot be written (stderr says so); rerun with escalated permissions when the outcome must be recorded.
 
 1. State `GOAL / NOT-GOAL / DONE-WHEN / PROOF`.
 2. Prove `REUSE / ADAPT / REJECT` against live files; stop if existing behavior covers the goal.
