@@ -2,12 +2,11 @@
 """Filesize-cap PreToolUse Read guard — ADVISE before a full slurp of a large file.
 
 Reading a huge file WHOLE dumps the entire thing into context and burns
-headroom for zero targeting. The reread-guard catches the *second* full read of
-a file you already have; this one fires on the *first* — before you slurp a big
-file at all — and injects advice (never exit 2: blocking was unmeasured, 2026-10-03
+headroom for zero targeting. This fires on the *first* full read of a big file
+and injects advice (never exit 2: blocking was unmeasured, 2026-10-03
 audit) to read a range, grep, or use graphify instead.
 
-Blocks only when ALL hold:
+Advises only when ALL hold:
   * tool is Read, tool_input.file_path resolves to an existing, TEXT file
   * the file is LARGE: >= 2000 lines OR >= 200 KB
   * the Read is a FULL slurp: no `offset` and no `limit` in tool_input
@@ -49,7 +48,7 @@ def _full_read(ti: dict) -> bool:
 
 
 def evaluate(ti: dict) -> str:
-    """Return the block-reason string, or '' when the hook should stay silent."""
+    """Return the advisory string, or '' when the hook should stay silent."""
     fp = str(ti.get("file_path", "") or "")
     if not fp:
         return ""
@@ -70,8 +69,8 @@ def evaluate(ti: dict) -> str:
         return ""
     rel = os.path.relpath(ap, os.getcwd()) if ap.startswith(os.getcwd()) else ap
     return (
-        f"LARGE FILE ({lines:,} lines, {size // 1024:,} KB): {rel}. full slurp blocked. "
-        f"use targeted: offset/limit span, grep the symbol, or graphify — not all {lines:,} lines."
+        f"LARGE FILE ({lines:,} lines, {size // 1024:,} KB): {rel}. Prefer offset/limit, "
+        f"grep the symbol, or graphify over reading all {lines:,} lines (advisory)."
     )
 
 
@@ -100,8 +99,8 @@ def _selftest() -> None:
         f.write("\n".join(f"line {i}" for i in range(50)))
     missing = os.path.join(d, "nope.txt")
 
-    # (a) big file, no offset -> block signal (non-empty reason)
-    assert evaluate({"file_path": big}), "a: big full read should block"
+    # (a) big file, no offset -> advisory (non-empty)
+    assert evaluate({"file_path": big}), "a: big full read should advise"
     # (b) same big file WITH offset/limit -> silent
     assert not evaluate({"file_path": big, "offset": 1}), "b: offset should silence"
     assert not evaluate({"file_path": big, "limit": 100}), "b2: limit should silence"

@@ -2,8 +2,8 @@
 """Recursive-force `rm` detector for irreversible-pause.py (split out for the
 200-line cap). ROBUST RULE: any `rm` token ANYWHERE in the token stream with
 -r/-R and -f (any spelling) blocks unless every target is provably disposable
-(tmp, $CLAUDE_JOB_DIR, a var whose LAST assignment is mktemp, worktrees, build
-output; symlinks resolved). Quoted text is DATA, except strings that become
+(see _rmsafe.py: tmp, $CLAUDE_JOB_DIR, mktemp or literal-scratch vars, worktrees,
+build output; symlinks resolved). Quoted text is DATA, except strings that become
 code, which are rescanned: $(...)/backtick bodies (heredoc bodies stripped unless
 fed to a shell), `sh -c`, ssh remote commands, eval, trap, here-strings fed to a
 shell, upstream stages of a pipeline containing a shell, and system()/exec()-style
@@ -14,11 +14,9 @@ import re
 import shlex
 
 from _heredoc import mask_single, split_heredocs
+from _rmsafe import _safe_target, _tmpvars  # noqa: F401 (tests patch _rmscan._safe_target)
 
 RM_FLAGS_LONG = {"--recursive": "r", "--force": "f"}
-SAFE_PARTS = {"node_modules", "dist", "build", "out", "__pycache__", ".pytest_cache"}
-SAFE_PREFIX = ("/tmp/", "/private/tmp/", "/var/folders/", "/private/var/folders/")
-SAFE_VARS = ("CLAUDE_JOB_DIR", "TMPDIR")
 SHELLS = {"bash", "sh", "zsh", "dash", "ksh", "fish"}
 INTERP = re.compile(r"^(?:python[\d.]*|node|perl|ruby|deno|bun)$")
 SSH_ARG_OPTS = set("bcDEeFIiJLlmOopQRSWw")
@@ -27,53 +25,7 @@ CALL = re.compile(r"\b(?:system|popen|run|call|check_call|check_output|Popen|get
                   r"getstatusoutput|exec|execSync|execFile|execFileSync|spawn|spawnSync)"
                   r"\s*\(?\s*(\[[^\]]*\]|" + LIT + ")")
 SUBST = re.compile(r"`([^`]*)`|\$\(((?:[^()]|\([^()]*\))*)\)")
-ASSIGN = re.compile(r"(?<![\w$-])(\w+)=(\$\(\s*mktemp\b)?|\b(?:for|read(?:\s+-\w+)*)\s+(\w+)")
 REDIR = re.compile(r"^(?:\d*|&)(?:>>?|<)&?")
-
-
-def _real(p: str) -> str:
-    try:
-        return os.path.realpath(p)
-    except (OSError, ValueError):
-        return os.path.normpath(p)
-
-
-def _tmpvars(cmd: str, outer: frozenset = frozenset()) -> set:
-    """Vars whose LAST assignment (outer scope first, then `cmd`) is mktemp."""
-    last = dict.fromkeys(outer, True)
-    for m in ASSIGN.finditer(cmd):
-        if m.group(1):
-            last[m.group(1)] = bool(m.group(2))
-        else:
-            last[m.group(3)] = False
-    return {k for k, v in last.items() if v}
-
-
-def _safe_target(t: str, tmpvars: set) -> bool:
-    """True iff deleting `t` is disposable: scratch/tmp/job dirs or build output."""
-    if ".." in t.split("/"):
-        return False
-    m = re.match(r"^\$\{?(\w+)\}?(/.*)?$", t)
-    if m and m.group(1) in tmpvars:
-        return True
-    if m and m.group(1) in SAFE_VARS:
-        sub = (m.group(2) or "").strip("/")
-        val = os.environ.get(m.group(1), "").rstrip("/")
-        if not sub:
-            return False
-        if not val:
-            return True  # unset here; strictly under the job/tmp dir by name
-        t = val + "/" + sub
-    if "$" in t or "`" in t or t.startswith("~"):
-        return False  # unresolvable expansion, or $HOME: not provably scratch
-    real = _real(t.rstrip("/") or "/")
-    for var in SAFE_VARS:
-        val = os.environ.get(var, "").rstrip("/")
-        if val and real.startswith(_real(val) + "/"):
-            return True
-    if real.startswith(SAFE_PREFIX) or re.search(r"/\.claude/worktrees/[^/]", real):
-        return True
-    return bool(SAFE_PARTS & set(real.split("/")))
 
 
 def _lex(text: str, comments: bool) -> list:

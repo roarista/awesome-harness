@@ -94,24 +94,20 @@ The test uses a temporary repository and Codex home. To roll back, remove the aw
 
 ### The current eight hook entries
 
-There are 22 registrations (set of 2026-10-03; `scripts/merge_settings.py` HOOKS is the source of truth and `templates/settings.json` mirrors it). A blocking hook is kept only if agents comply after it blocks.
+There are 18 registrations (set of 2026-10-03 after U10; `scripts/merge_settings.py` HOOKS is the source of truth and `templates/settings.json` mirrors it). A blocking hook is kept only if agents comply after it blocks.
 
 | Entry | Event / matcher | Behavior |
 |---|---|---|
-| codemap-inject | `SessionStart` | Injects the compact repository map (capped at 2 KB). |
-| reread-guard | `SessionStart`, `Pre/PostToolUse: Read` | Blocks a full re-read of an unchanged large file. |
-| manifest-guard | `SessionStart` | Warns when hook/settings files drift from the blessed baseline. |
 | northstar-inject | `SessionStart`, `UserPromptSubmit` | Full north star once per session; NOW line (≤300 B) per prompt. |
-| recall-inject | `UserPromptSubmit` | Maybe-relevant memory, capped at 600 chars. |
 | skill-reinject-guard | `PreToolUse: Skill` | Blocks a duplicate `/awesomeharness` body within the same session. |
 | northstar-protect | `PreToolUse: Write\|Edit\|MultiEdit`, `Bash` | Protects `.northstar.md` (grant protocol). |
 | irreversible-pause | `PreToolUse: Bash` | Blocks rm -rf of non-scratch targets, force-push, reset --hard, DROP, LMS submit. |
 | route-only-gate | `PreToolUse: Write\|Edit\|MultiEdit` | Main session only, `.route-only` repos: delegate source edits. |
-| graphify-blindspot, now-gate, filesize-cap, token-discipline, session-checkpoint | various | Advisory nudges; silent when quiet. |
+| graphify-blindspot, now-gate, filesize-cap, token-discipline, session-checkpoint, size-nudge | various | Advisory nudges; silent when quiet. size-nudge: one line when an edited source file passes 200 lines. |
 | harness-usage-telemetry | `PostToolUse` | Silently records relevant usage; emits 0 bytes. |
 | pre_compact_global.sh, precompact-handoff | `PreCompact` | Commit + handoff before compaction. |
 
-Retired on 2026-10-03 (route-around evidence): see [hooks/retired/README.md](hooks/retired/README.md). Earlier history: on 2026-08-10 the set was cut to 8 entries ([audit](docs/audits/2026-08-04/simpler-harness.md)); `merge_settings.py` was not updated then, and a 2026-10-02 reinstall re-registered most of them.
+Retired on 2026-10-03 (route-around and hook-impact evidence; U10 removed recall-inject, manifest-guard, codemap-inject, reread-guard): see [hooks/retired/README.md](hooks/retired/README.md). Earlier history: on 2026-08-10 the set was cut to 8 entries ([audit](docs/audits/2026-08-04/simpler-harness.md)); `merge_settings.py` was not updated then, and a 2026-10-02 reinstall re-registered most of them.
 
 ### Secret-file deny rules
 
@@ -119,7 +115,7 @@ Nineteen rules in `permissions.deny` block reads of secret files, including `.en
 
 ### Orientation and memory
 
-- `codemap.py` creates a compact repository index, and `codemap-inject` makes it available at session start.
+- `codemap.py` creates a compact repository index (its `codemap-inject` hook was retired in U10).
 - graphify is the primary structural code-map tool.
 - mulch is the primary per-repository durable-memory tool.
 - memgraph is still available for global memory, but its measured adoption puts it on probation.

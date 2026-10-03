@@ -11,3 +11,10 @@ Rule (Ro, 2026-10-03): keep a blocking hook only if agents comply after a block;
 - `caveman-discipline.sh`: a SessionStart copy of CLAUDE.md G1. G1 is now the single copy.
 - `post-agent-guard.py`: duplicates G2 (rule-value row 23, CUT), and its receipt text sends work to "the `codex` agent".
 - `abs-path-nudge.py`: Stop-hook nudge that was unregistered in live settings but still listed in `merge_settings.py` HOOKS. Rule-value row 26 (dead unregistered hook files, CUT). It duplicates the job contract's "absolute paths in the final message" rule.
+
+## U10 (2026-10-03, hook-impact verdicts; evidence `.artifacts/agent-reports/hook-impact-2026-10-03.md`)
+
+- `recall-inject.py`: 0/195 interactive firings were followed by use of a recalled memory; largest live injector (~4.5 KB/session) and it leaked `clyde-*` memories into unrelated repos.
+- `manifest-guard.py`: 3.84 MB injected in 30 d (98% product tmp dirs), 0 real tamper detections; every post-change firing was a stale baseline after a legit settings edit.
+- `codemap-inject.py`: 750 KB in 30 d, followed by any graphify/.codemap use in 4/413 firings (1%); re-fired on every compact/resume. `tools/codemap.py` stays.
+- `reread-guard.py` (all 3 entries): routed around on first contact (cp the image to `$CLAUDE_JOB_DIR/tmp`, Read the copy, 2/2). `token-discipline.py` nudges the same thing without blocking.

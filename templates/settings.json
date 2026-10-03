@@ -48,20 +48,16 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/codemap-inject.py\"",
-            "timeout": 20
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/reread-guard.py\""
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/manifest-guard.py\""
-          },
-          {
-            "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/northstar-inject.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/clear-resume.py\""
           }
         ]
       }
@@ -119,10 +115,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/reread-guard.py\""
-          },
-          {
-            "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/filesize-cap.py\""
           }
         ]
@@ -151,11 +143,16 @@
           },
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/reread-guard.py\""
-          },
+            "command": "python3 \"$HOME/.claude/hooks/token-discipline.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/token-discipline.py\""
+            "command": "python3 \"$HOME/.claude/hooks/size-nudge.py\""
           }
         ]
       }
@@ -164,10 +161,6 @@
       {
         "matcher": "",
         "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/recall-inject.py\""
-          },
           {
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/northstar-inject.py\""

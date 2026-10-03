@@ -58,10 +58,10 @@ only if the args do not say where we were; never historical STATE or archives.
   it). Blocking: `route-only-gate` (main-session source edits in `.route-only` repos; sub-agents never),
   `irreversible-pause` (rm -rf of non-scratch targets, force-push, reset --hard, clean -fd, stash,
   DROP/TRUNCATE, coursework submit), `northstar-protect` (eroding `.northstar.md`),
-  `skill-reinject-guard` (Skill-tool reloads only), `reread-guard` (unchanged large-file re-read).
-  Injecting: `codemap-inject` (≤2 KB), `manifest-guard`, `northstar-inject` (full north star once per
-  session and after compaction; NOW line ≤300 B per prompt), `recall-inject`. Nudges: `now-gate`,
-  `graphify-blindspot`, `token-discipline`, `filesize-cap`, `session-checkpoint`. Also
+  `skill-reinject-guard` (Skill-tool reloads only).
+  Injecting: `northstar-inject` (full north star once per session and after compaction; NOW line
+  ≤300 B per prompt), `clear-resume` (after /clear). Nudges: `now-gate`, `graphify-blindspot`,
+  `token-discipline`, `filesize-cap`, `size-nudge` (source file >200 lines), `session-checkpoint`. Also
   `harness-usage-telemetry` and PreCompact `pre_compact_global.sh` + `precompact-handoff`.
   Retired (unregistered): see `~/Downloads/awesome-harness/hooks/retired/README.md`.
 
