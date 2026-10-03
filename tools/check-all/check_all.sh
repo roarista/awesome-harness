@@ -34,7 +34,7 @@ _timeout_cmd() {
 # ─── Read config ───────────────────────────────────────────────────────────────
 CFG="$REPO_DIR/.check-all.json"
 BASE_COMMAND=""
-MAX_FILE_LINES=800
+MAX_FILE_LINES=200  # == the git pre-commit ratchet cap (tools/git-hooks/ratchet.py)
 TODO_SEVERITY="warn"
 FILESIZE_SEVERITY="warn"
 SKIP_TESTS=0
@@ -46,7 +46,7 @@ import sys, json
 with open(sys.argv[1]) as f:
     c = json.load(f)
 print("BASE_COMMAND=" + repr(c.get("base_command", "")))
-print("MAX_FILE_LINES=" + str(int(c.get("max_file_lines", 800))))
+print("MAX_FILE_LINES=" + str(int(c.get("max_file_lines", 200))))
 print("TODO_SEVERITY=" + str(c.get("todo_severity", "warn")))
 print("FILESIZE_SEVERITY=" + str(c.get("filesize_severity", "warn")))
 print("SKIP_TESTS=" + ("1" if c.get("skip_tests", False) else "0"))

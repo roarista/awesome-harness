@@ -50,6 +50,18 @@
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/codemap-inject.py\"",
             "timeout": 20
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/reread-guard.py\""
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/manifest-guard.py\""
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/northstar-inject.py\""
           }
         ]
       }
@@ -72,6 +84,18 @@
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/northstar-protect.py\"",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/graphify-blindspot.py\""
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/now-gate.py\""
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/route-only-gate.py\""
           }
         ]
       },
@@ -87,21 +111,81 @@
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/irreversible-pause.py\"",
             "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/bash-write-fence.py\"",
-            "timeout": 5
           }
         ]
       },
       {
-        "matcher": "Task|Agent",
+        "matcher": "Read",
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/claude-spawn-gate.py\"",
+            "command": "python3 \"$HOME/.claude/hooks/reread-guard.py\""
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/filesize-cap.py\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/harness-usage-telemetry.py\"",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/session-checkpoint.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/graphify-blindspot.py\""
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/reread-guard.py\""
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/token-discipline.py\""
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/recall-inject.py\""
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/northstar-inject.py\""
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$HOME/.claude/hooks/pre_compact_global.sh\""
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/precompact-handoff.py\""
           }
         ]
       }

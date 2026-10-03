@@ -54,16 +54,16 @@ only if the args do not say where we were; never historical STATE or archives.
 - **git pre-commit** (per-repo shim of `~/Downloads/awesome-harness/tools/git-hooks/pre-commit`):
   blocks staged source files over the 200-line ratchet, then runs `check-all --fast` where the repo
   has `.check-all.json`. Bypass (`--no-verify`, `SKIP_RATCHET=1`) only with Ro's yes.
-- Hooks in `~/.claude/settings.json` (some messages still say "always Codex"/"glm auditor"; CLAUDE.md
-  and the router win). Blocking: `route-only-gate` (main source edits in `.route-only` repos),
-  `bash-write-fence` (source writes via Bash), `irreversible-pause` (rm -rf, force-push, DROP/TRUNCATE),
-  `northstar-protect` (eroding `.northstar.md`), `claude-spawn-gate`, `graphify-gate` (Read/Grep until a
-  graphify call), `compact-prep-gate` (Stop unless `.now.md` was just updated), `skill-reinject-guard`
-  (Skill-tool reloads only). Injecting: `codemap-inject`, `caveman-discipline`, `manifest-guard`,
-  `northstar-inject` (north star + `.now.md` each prompt), `recall-inject`, `harness-enforce`,
-  `coding-routing-guard`, `post-agent-guard`. Nudges: `now-gate`, `graphify-blindspot`, `reread-guard`,
-  `token-discipline`, `filesize-cap`, `session-checkpoint`. Also `harness-usage-telemetry` and
-  PreCompact `pre_compact_global.sh` + `precompact-handoff`.
+- Hooks in `~/.claude/settings.json` (set of 2026-10-03; a block is kept only if agents comply after
+  it). Blocking: `route-only-gate` (main-session source edits in `.route-only` repos; sub-agents never),
+  `irreversible-pause` (rm -rf of non-scratch targets, force-push, reset --hard, clean -fd, stash,
+  DROP/TRUNCATE, coursework submit), `northstar-protect` (eroding `.northstar.md`),
+  `skill-reinject-guard` (Skill-tool reloads only), `reread-guard` (unchanged large-file re-read).
+  Injecting: `codemap-inject` (≤2 KB), `manifest-guard`, `northstar-inject` (full north star once per
+  session and after compaction; NOW line ≤300 B per prompt), `recall-inject`. Nudges: `now-gate`,
+  `graphify-blindspot`, `token-discipline`, `filesize-cap`, `session-checkpoint`. Also
+  `harness-usage-telemetry` and PreCompact `pre_compact_global.sh` + `precompact-handoff`.
+  Retired (unregistered): see `~/Downloads/awesome-harness/hooks/retired/README.md`.
 
 ## Sub-agent discipline
 

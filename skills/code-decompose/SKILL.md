@@ -44,9 +44,9 @@ A unit without a concrete VERIFY is not ready — the decomposer must define the
 
 The orchestrator gets back the compact specs (not the codebase). It sanity-checks them against the goal, surfaces the plan to Ro if the change is large or has real trade-offs, then routes each unit to a coder subagent. It carries only the specs forward — never the decomposer's raw reading.
 
-## Phase 3 — Execute (BUILDER = Codex 5.5 — NEVER Claude)
+## Phase 3 — Execute (BUILDER = the router's pick)
 
-The builder is always the `codex` CLI (gpt-5.5); Claude only orchestrates and never writes the code itself. kimi 2.7 is an acceptable alternate builder if Codex is unavailable — but never a Claude subagent. The map + reuse decision were already established by orient in Phase 1 (graphify + repowise together); pass those anchors down to the coder — do not re-run discovery here.
+The builder is whatever the router picks from live usage (`python -m fmr route`; fallback `tools/route-model.sh`): a `codex` agent for Codex, a `claude` agent for Claude. Main only orchestrates and never writes the code itself. The map + reuse decision were already established by orient in Phase 1 (graphify + repowise together); pass those anchors down to the coder — do not re-run discovery here.
 
 Spawn one worker per independent unit (parallel where DEPENDS allows; sequential where it doesn't). Each worker prompt = the **BUILDER CODING STANDARD** (`~/.claude/BUILDER_STANDARD.md`) + that unit's full spec + "implement exactly this; run VERIFY; report the VERIFY output verbatim; do not expand scope." Paste-ready wording for that prompt: `docs/CODING_AGENT_PROMPTING.md`. Because the spec is complete, a cheaper model is sufficient — the more decomposed the spec, the cheaper the model you can trust. Respect the global spawn depth limit (2). On a worker stall, kill its process tree.
 
@@ -54,9 +54,9 @@ Blast radius was already computed during orient (Phase 1, pulled early) and ride
 
 If a `scaffold-<category>.md` exists for this task-category (it surfaces via recall), pass its verified approach to the decomposer/coder as the starting decomposition — don't re-invent it.
 
-## Phase 4 — Audit (auditor = a NON-builder model, rotate) — gets the SAME spec
+## Phase 4 — Audit (auditor = the other model family) — gets the SAME spec
 
-Auditor rotates across Opus 4.8 (low effort) / sonnet 4.6 / codex 5.4 / kimi 2.7 — anything except the model that built the unit (independent eyes). Claude IS allowed as auditor (just never as builder).
+The auditor is always the other family (cross-family): Codex-built → `opus48-audit` / `opus`; Claude-built → `codex-audit` (or the other Claude auditor if Codex is exhausted).
 
 For each unit (or each batch), spawn an auditor with the **same CONTEXT/CHANGE/GOAL/VERIFY spec** plus the worker's diff. The auditor checks the implementation *against its spec*, not against vibes:
 - Does the change match CHANGE exactly? Anything extra (scope creep) or missing?

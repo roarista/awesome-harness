@@ -133,7 +133,13 @@ class ProductCallIsolation(unittest.TestCase):
 
     def test_mutation_unguarded_hook_leaks(self):
         """Teeth: the same product env against a guard-stripped hook MUST produce output."""
-        rc, out = run(self.stripped, "caveman-discipline.sh", "SessionStart", "", self.tmp_cwd, True)
+        proj = tempfile.mkdtemp(prefix="pc-proj-")  # temp dir = product-shaped cwd
+        Path(proj, ".northstar.md").write_text("OBJECTIVE: x\nDONE_WHEN: y\nNOT_NOW: z\n")
+        try:
+            rc, out = run(self.stripped, "northstar-inject.py", "SessionStart", "", proj, True)
+            self.assertEqual(run(self.guarded, "northstar-inject.py", "SessionStart", "", proj, True), (0, ""))
+        finally:
+            shutil.rmtree(proj, ignore_errors=True)
         self.assertNotEqual(out, "", "stripped hook was silent: the product assertion proves nothing")
 
     def test_rule(self):
