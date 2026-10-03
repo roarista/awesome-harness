@@ -5,7 +5,7 @@ description: Ro's standard coding workflow — decompose a code change maximally
 
 # code-decompose
 
-> **Steps 4-6 of THE PROCEDURE** (`/awesomeharness`). Entry condition: `codebase-first` already returned a **BUILD** gate + the residual gap. If it hasn't run, run it first — do not re-discover here.
+> **Steps 4-6 of THE PROCEDURE** (`/awesomeharness`). Entry condition: `orient` (`/orient`) already returned a **BUILD** gate + the residual gap. If it hasn't run, run it first — do not re-discover here.
 
 The whole point: **the change must be fully understood before any code is written — both the code that exists and the code we intend to write — and that understanding must be written down precisely enough that a cheap model can execute it without judgment.** Decomposition is the expensive thinking step; execution is the cheap step done at volume. If the spec is complete, a cheaper coder can be trusted — that trust is the entire reason this skill exists.
 
@@ -22,8 +22,8 @@ The orchestrator does NOT read the implementation. It writes a short brief and n
 
 This runs as a **subagent**, not in the main loop, so all the code-reading context stays here and never touches the orchestrator. Its prompt is the Phase-0 brief. It returns ONLY the distilled output below — not the raw code it read.
 
-The decomposer's first action is to READ the discovery artifact (`.scratch/discovery/<slug>.md`) passed in the Phase-0 brief, and carry its REUSE/ADAPT/REJECT verdicts and gate forward verbatim. Re-run a [[codebase-first]] ladder rung only if the artifact leaves the residual gap ambiguous. Only then does it produce:
-1. **Understanding** (3-6 lines max): what exists now (with `file:line` anchors), what we want, and the gap. It MUST include the codebase-first **REUSE/ADAPT/REJECT** capability decisions and the **STOP/PLAN/BUILD gate** — *before* any Units. **If the gate is STOP or PLAN, the decomposer returns that (with its reasoning) instead of Units.** Compact — this is a summary, not a transcript of everything it read.
+The decomposer's first action is to READ the discovery artifact (`.scratch/discovery/<slug>.md`) passed in the Phase-0 brief, and carry its REUSE/ADAPT/REJECT verdicts and gate forward verbatim. Re-run a [[orient]] ladder rung only if the artifact leaves the residual gap ambiguous. Only then does it produce:
+1. **Understanding** (3-6 lines max): what exists now (with `file:line` anchors), what we want, and the gap. It MUST include the orient **REUSE/ADAPT/REJECT** capability decisions and the **STOP/PLAN/BUILD gate** — *before* any Units. **If the gate is STOP or PLAN, the decomposer returns that (with its reasoning) instead of Units.** Compact — this is a summary, not a transcript of everything it read.
 2. **Units** — the gap split into the **smallest independently-verifiable pieces**. Keep splitting until each is mechanical to execute. Each unit is a self-contained spec, because the coder will have NO prior context:
 
 ```
@@ -46,11 +46,11 @@ The orchestrator gets back the compact specs (not the codebase). It sanity-check
 
 ## Phase 3 — Execute (BUILDER = Codex 5.5 — NEVER Claude)
 
-The builder is always the `codex` CLI (gpt-5.5); Claude only orchestrates and never writes the code itself. kimi 2.7 is an acceptable alternate builder if Codex is unavailable — but never a Claude subagent. The map + reuse decision were already established by codebase-first in Phase 1 (graphify + repowise together); pass those anchors down to the coder — do not re-run discovery here.
+The builder is always the `codex` CLI (gpt-5.5); Claude only orchestrates and never writes the code itself. kimi 2.7 is an acceptable alternate builder if Codex is unavailable — but never a Claude subagent. The map + reuse decision were already established by orient in Phase 1 (graphify + repowise together); pass those anchors down to the coder — do not re-run discovery here.
 
 Spawn one worker per independent unit (parallel where DEPENDS allows; sequential where it doesn't). Each worker prompt = the **BUILDER CODING STANDARD** (`~/.claude/BUILDER_STANDARD.md`) + that unit's full spec + "implement exactly this; run VERIFY; report the VERIFY output verbatim; do not expand scope." Paste-ready wording for that prompt: `docs/CODING_AGENT_PROMPTING.md`. Because the spec is complete, a cheaper model is sufficient — the more decomposed the spec, the cheaper the model you can trust. Respect the global spawn depth limit (2). On a worker stall, kill its process tree.
 
-Blast radius was already computed during codebase-first (Phase 1, pulled early) and rides in each unit's **REUSE** field as the impacted symbols/neighbors — pass it to the coder so it doesn't grep blind. Re-run `~/.claude/tools/graphify-blast.sh <files>` (bare = use `git diff`) only if the touch-set changed since decomposition.
+Blast radius was already computed during orient (Phase 1, pulled early) and rides in each unit's **REUSE** field as the impacted symbols/neighbors — pass it to the coder so it doesn't grep blind. Re-run `~/.claude/tools/graphify-blast.sh <files>` (bare = use `git diff`) only if the touch-set changed since decomposition.
 
 If a `scaffold-<category>.md` exists for this task-category (it surfaces via recall), pass its verified approach to the decomposer/coder as the starting decomposition — don't re-invent it.
 
