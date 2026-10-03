@@ -29,7 +29,9 @@ HOOKS = {  # == the registered set after docs/audits/2026-10-03 (hook-circumvent
                          # hook-integrity: sha256 the hook set against a baseline and warn on drift/tamper
                          ("", f'python3 "{HOOK}/manifest-guard.py"'),
                          # full north star once per session (also fires after /compact)
-                         ("", f'python3 "{HOOK}/northstar-inject.py"')],
+                         ("", f'python3 "{HOOK}/northstar-inject.py"'),
+                         # /clear handoff: inject .planning/CONTINUE.md written by compact-prep
+                         ("clear", f'python3 "{HOOK}/clear-resume.py"')],
     "UserPromptSubmit": [("", f'python3 "{HOOK}/recall-inject.py"'),
                          # per prompt: the NOW line only (<=300 B)
                          ("", f'python3 "{HOOK}/northstar-inject.py"')],
