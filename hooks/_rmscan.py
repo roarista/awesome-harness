@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Recursive-force `rm` detector for irreversible-pause.py (split out for the
-200-line cap). Flags count only directly after a command-position `rm`; targets
-that are provably disposable (tmp, $CLAUDE_JOB_DIR, mktemp vars, worktrees, build
-output) pass, after symlink resolution. Command position resets after separators
-and shell keywords; prefix commands (sudo/env/timeout/...) are skipped WITH their
-options; `sh -c`/`bash -lc`/`eval` strings are scanned recursively.
+200-line cap). ROBUST RULE: any `rm` token ANYWHERE in the token stream with
+-r/-R and -f (any spelling) blocks unless every target is provably disposable
+(tmp, $CLAUDE_JOB_DIR, a var whose LAST assignment is mktemp, worktrees, build
+output; symlinks resolved). So prefixes (sudo/ssh/watch/parallel/...) and
+keywords cannot hide it. Strings that become code are scanned recursively:
+$(...) and backtick bodies, `sh -c` / `bash -lc`, eval, here-strings fed to a
+shell, and arguments piped into a shell (`echo "..." | sh`).
 Audit: docs/audits/2026-10-03/hook-circumvention.md."""
 import os
 import re
@@ -14,11 +16,10 @@ RM_FLAGS_LONG = {"--recursive": "r", "--force": "f"}
 SAFE_PARTS = {"node_modules", "dist", "build", "out", "__pycache__", ".pytest_cache"}
 SAFE_PREFIX = ("/tmp/", "/private/tmp/", "/var/folders/", "/private/var/folders/")
 SAFE_VARS = ("CLAUDE_JOB_DIR", "TMPDIR")
-SHELLS = {"bash", "sh", "zsh", "dash", "ksh"}
-PREFIX_CMDS = {"sudo", "doas", "command", "builtin", "xargs", "nice", "time", "env",
-               "exec", "timeout", "gtimeout", "nohup", "stdbuf", "caffeinate", "ionice"}
-RESET_WORDS = {"then", "do", "else", "elif", "if", "while", "until", "{", "!", "time"}
-PUNCT = set(";&|()")
+SHELLS = {"bash", "sh", "zsh", "dash", "ksh", "fish"}
+SUBST = re.compile(r"`([^`]*)`|\$\(((?:[^()]|\([^()]*\))*)\)")
+ASSIGN = re.compile(r"(?<![\w$-])(\w+)=(\$\(\s*mktemp\b)?|\b(?:for|read(?:\s+-\w+)*)\s+(\w+)")
+REDIR = re.compile(r"^(?:\d*|&)(?:>>?|<)&?")
 
 
 def _real(p: str) -> str:
@@ -28,13 +29,24 @@ def _real(p: str) -> str:
         return os.path.normpath(p)
 
 
+def _tmpvars(cmd: str) -> set:
+    """Vars whose LAST assignment in `cmd` is `$(mktemp ...)`."""
+    last = {}
+    for m in ASSIGN.finditer(cmd):
+        if m.group(1):
+            last[m.group(1)] = bool(m.group(2))
+        else:
+            last[m.group(3)] = False
+    return {k for k, v in last.items() if v}
+
+
 def _safe_target(t: str, tmpvars: set) -> bool:
     """True iff deleting `t` is disposable: scratch/tmp/job dirs or build output."""
     if ".." in t.split("/"):
         return False
     m = re.match(r"^\$\{?(\w+)\}?(/.*)?$", t)
     if m and m.group(1) in tmpvars:
-        return True  # VAR=$(mktemp ...) made it in this same command
+        return True
     if m and m.group(1) in SAFE_VARS:
         sub = (m.group(2) or "").strip("/")
         val = os.environ.get(m.group(1), "").rstrip("/")
@@ -63,8 +75,7 @@ def _lex(text: str, comments: bool) -> list:
 
 
 def _tokens(cmd: str) -> list:
-    """Shell tokens with ";" between lines. Per-line so `#` comments end at EOL;
-    a quote spanning lines falls back to one whole-command pass."""
+    """Shell tokens with ";" between lines (per-line so `#` comments end at EOL)."""
     try:
         out = []
         for line in cmd.split("\n"):
@@ -77,84 +88,64 @@ def _tokens(cmd: str) -> list:
             return cmd.split()
 
 
-def _is_sep(t: str) -> bool:
-    return bool(t) and set(t) <= PUNCT
-
-
-def _skip_prefix(toks: list, i: int) -> int:
-    """Index of the real command after a prefix command at toks[i], skipping its
-    options, an option's argument, VAR=x assignments and bare numbers/durations."""
-    j = i + 1
-    while j < len(toks) and not _is_sep(toks[j]):
-        t = toks[j]
-        if t.startswith("-") and t != "-":
-            nxt = toks[j + 1] if j + 1 < len(toks) else ""
-            j += 1
-            if (len(t) == 2 and nxt and not nxt.startswith("-") and not _is_sep(nxt)
-                    and os.path.basename(nxt) not in {"rm"} | SHELLS | PREFIX_CMDS):
-                j += 1  # option argument: `sudo -u ro`, `nice -n 5`
-        elif re.match(r"^\w+=", t) or re.match(r"^[\d.]+[smhd]?$", t):
-            j += 1
+def _segments(toks: list) -> list:
+    """[(separator_before, [words])] for each simple command."""
+    segs, cur, sep = [], [], ";"
+    for t in toks:
+        if t and set(t) <= set(";&|()"):
+            segs.append((sep, cur))
+            cur, sep = [], t
         else:
-            break
-    return j
+            cur.append(t)
+    segs.append((sep, cur))
+    return [s for s in segs if s[1]]
+
+
+def _rm_hit(seg: list, k: int, tmpvars: set) -> bool:
+    j, flags = k + 1, ""
+    while j < len(seg) and seg[j].startswith("-") and seg[j] != "--":
+        flags += RM_FLAGS_LONG.get(seg[j], "" if seg[j].startswith("--") else seg[j][1:])
+        j += 1
+    if not (("r" in flags or "R" in flags) and "f" in flags):
+        return False
+    targets, skip = [], False
+    for t in seg[j:]:
+        if skip or t == "--":
+            skip = False
+            continue
+        if REDIR.match(t):
+            skip = bool(REDIR.fullmatch(t))  # bare `>` / `2>`: next token is the file
+            continue
+        targets.append(t)
+    return not targets or not all(_safe_target(x, tmpvars) for x in targets)
 
 
 def rm_is_recursive_force(cmd: str, depth: int = 0) -> bool:
-    """True iff a command-position `rm` has -r AND -f in the flag tokens directly
-    after it and any target is not provably disposable."""
-    if depth > 4:
+    if depth > 6:
         return True  # absurd nesting: refuse to call it safe
-    toks = _tokens(cmd)
-    tmpvars = set(re.findall(r"(\w+)=\$\(\s*mktemp\b", cmd))
-    at_cmd, i = True, 0
-    while i < len(toks):
-        t = toks[i]
-        if _is_sep(t) or (at_cmd and t in RESET_WORDS):
-            at_cmd, i = True, i + 1
-            continue
-        if not at_cmd:
-            i += 1
-            continue
-        base = os.path.basename(t)
-        if re.match(r"^\w+=", t):
-            i += 1
-            continue
-        if base in PREFIX_CMDS:
-            i = _skip_prefix(toks, i)
-            continue
-        if base == "eval":
-            j = i + 1
-            while j < len(toks) and not _is_sep(toks[j]):
-                j += 1
-            if rm_is_recursive_force(" ".join(toks[i + 1:j]), depth + 1):
+    again = lambda s: bool(s) and rm_is_recursive_force(s, depth + 1)  # noqa: E731
+    if any(again(m.group(1) if m.group(1) is not None else m.group(2))
+           for m in SUBST.finditer(cmd)):
+        return True
+    tmpvars, segs = _tmpvars(cmd), _segments(_tokens(cmd))
+    for n, (sep, seg) in enumerate(segs):
+        bases = [os.path.basename(w) for w in seg]
+        has_shell = bool(SHELLS & set(bases))
+        for k, w in enumerate(seg):
+            if bases[k] == "rm" and _rm_hit(seg, k, tmpvars):
                 return True
-            at_cmd, i = False, j
-            continue
-        if base in SHELLS:
-            j, has_c = i + 1, False
-            while j < len(toks) and toks[j].startswith("-") and toks[j] != "--":
-                has_c = has_c or (not toks[j].startswith("--") and "c" in toks[j])
-                j += 1
-            if has_c and j < len(toks) and rm_is_recursive_force(toks[j], depth + 1):
-                return True
-            at_cmd, i = False, j
-            continue
-        if base == "rm":
-            j, flags = i + 1, ""
-            while j < len(toks) and toks[j].startswith("-") and toks[j] != "--":
-                flags += RM_FLAGS_LONG.get(toks[j], "" if toks[j].startswith("--") else toks[j][1:])
-                j += 1
-            if j < len(toks) and toks[j] == "--":
-                j += 1
-            targets = []
-            while j < len(toks) and not _is_sep(toks[j]):
-                targets.append(toks[j])
-                j += 1
-            if ("r" in flags or "R" in flags) and "f" in flags:
-                if not targets or not all(_safe_target(x, tmpvars) for x in targets):
+            if bases[k] in SHELLS:
+                j, has_c = k + 1, False
+                while j < len(seg) and seg[j].startswith("-") and seg[j] != "--":
+                    has_c = has_c or (not seg[j].startswith("--") and "c" in seg[j])
+                    j += 1
+                if has_c and j < len(seg) and again(seg[j]):
                     return True
-            i = j
-            continue
-        at_cmd, i = False, i + 1
+            if w == "eval" and again(" ".join(seg[k + 1:])):
+                return True
+            if w.startswith("<<<") and has_shell:
+                if again(w[3:] or (seg[k + 1] if k + 1 < len(seg) else "")):
+                    return True
+        if sep == "|" and has_shell and n > 0 and again(" ".join(segs[n - 1][1][1:])):
+            return True
     return False

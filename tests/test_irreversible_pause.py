@@ -37,6 +37,12 @@ FALSE_BLOCKS = (  # each was blocked by the old hook; none is dangerous
     "git stash list", "git checkout -b foo", "git push origin main",
     "curl -s https://canvas.instructure.com/api/v1/courses/1/assignments/2 -o rubric.json",
     'git commit -m "drop table x via psql"',
+    "rm -rf /tmp/x 2>/dev/null", "rm -rf /tmp/x > /tmp/log 2>&1", "git push origin HEAD:main",
+    'grep -c "rm -rf" log.txt', 'cat <<<"rm -rf ~"', "git push -u origin main",
+    "cat > f.sh <<-EOF\n\trm -rf ~/x\n\tEOF\nls",            # <<- strips tabs: body ends
+    "cat > f.txt <<EOF\n  EOF\nrm -rf ~/x\nEOF",              # '  EOF' does not end <<EOF
+    "cat > f.txt <<'EOF'\n$(rm -rf ~/x)\nEOF",               # quoted delimiter: no expansion
+    'X=$(mktemp -d); cp a "$X"; rm -rf "$X"',
 )
 REAL_DANGER = (
     "rm -rf ~/.cache/huggingface/hub/models--google--gemma-4",
@@ -61,6 +67,20 @@ REAL_DANGER = (
     'sh -lc "rm -rf ~/x"', "bash -ec 'rm -rf ~/x'", "zsh -c 'rm -rf ~/x'", "eval rm -rf ~/x",
     # force-push flag groups and +refspec
     "git push -fu origin main", "git push -uf origin main", "git push origin +main",
+    # ec11506 re-audit: substitutions, rm anywhere, mktemp reassignment, ref deletion
+    "echo `rm -rf ~/x`", 'echo "$(rm -rf ~/x)"', "ls $(rm -rf ~/x)",
+    "ssh host rm -rf /srv/x", "watch rm -rf ~/x", "parallel rm -rf ::: ~/x",
+    "X=$(mktemp -d); X=~; rm -rf $X", 'X=$(mktemp -d); for X in ~; do rm -rf "$X"; done',
+    "git push --mirror backup", "git push origin :main", "git push --delete origin main",
+    "git push -d origin main",
+    # strings fed to a shell are code
+    'sh <<<"rm -rf ~"', 'bash <<< "rm -rf ~/x"', 'echo "rm -rf ~" | sh',
+    "printf 'rm -rf ~/x' | bash", 'echo "rm -rf ~" | zsh',
+    "bash <<'EOF'\nrm -rf ~/x\nEOF", "ssh host <<EOF\nrm -rf /srv/x\nEOF",
+    "cat > f.txt <<EOF\n$(rm -rf ~/x)\nEOF",
+    # heredoc ends at the FIRST exact delimiter line: what follows is a command
+    "cat > /tmp/t.py <<'EOF'\nok = ['rm -rf /tmp/a',\nEOF\nrm -rf ~/x\n]\nEOF",
+    'echo "x <<EOF"\nrm -rf ~/x\nEOF',
     "curl -X POST https://canvas.instructure.com/api/v1/courses/1/assignments/2/submissions -F f=@a.pdf",
 )
 

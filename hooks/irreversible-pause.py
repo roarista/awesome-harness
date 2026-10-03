@@ -15,14 +15,16 @@ import _hookout; _hookout.exit_if_product(); import json
 import re
 import sys
 
-from _rmscan import rm_is_recursive_force as _rm_is_recursive_force
+from _heredoc import split_heredocs
+from _rmscan import SHELLS, SUBST, rm_is_recursive_force as _rm_is_recursive_force
 
 OVERRIDE = "CLAUDE_ALLOW_IRREVERSIBLE=1"
 
 # 2. git push carrying a force flag.
 GIT_FORCE_PUSH = re.compile(
     r"\bgit\b[^\n;|&]*\bpush\b[^\n;|&]*"
-    r"(?:--force-with-lease|--force|(?<![\w-])-[a-zA-Z]*f[a-zA-Z]*\b|(?<!\S)\+[\w./:-])",
+    r"(?:--force-with-lease|--force|--mirror|--delete|--prune|(?<![\w-])-[a-zA-Z]*[fd][a-zA-Z]*\b"
+    r"|(?<!\S)\+[\w./:-]|(?<!\S):[\w./-])",
 )
 
 # 3. Destructive SQL — only with a real DB client invoked outside quotes.
@@ -78,25 +80,8 @@ def _is_graded_submission(cmd: str) -> bool:
     return bool(SUBMIT_ENDPOINT.search(url) or SUBMIT_VERB.search(cmd))
 
 
-HEREDOC = re.compile(r"<<-?\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\1")
 COMMENT = re.compile(r"(?:^|\s)#.*$", re.MULTILINE)
-
-
-def _split_heredocs(cmd: str) -> str:
-    """`cmd` with heredoc BODIES removed (opener lines kept)."""
-    lines = cmd.split("\n")
-    code, i = [], 0
-    while i < len(lines):
-        line = lines[i]
-        code.append(line)
-        delims = [m.group(2) for m in HEREDOC.finditer(line)]
-        i += 1
-        for delim in delims:
-            while i < len(lines) and lines[i].strip() != delim:
-                i += 1
-            if i < len(lines):
-                i += 1  # skip the closing delimiter line itself
-    return "\n".join(code)
+FEEDS_SHELL = SHELLS | {"ssh"}
 
 
 def _strip_comments(cmd: str) -> str:
@@ -133,7 +118,15 @@ def _git_clean_is_destructive(cmd: str) -> bool:
 
 def matches_denylist(cmd: str) -> bool:
     # heredoc bodies first (delimiter may be quoted), then dequote, then comments
-    cmd = _split_heredocs(cmd)
+    cmd, bodies = split_heredocs(cmd)
+    for body, opener, quoted in bodies:
+        if set(re.split(r"[\s;&|()/]+", opener)) & FEEDS_SHELL and matches_denylist(body):
+            return True  # heredoc fed to a shell (bash/ssh <<EOF) is code
+        if not quoted and any(matches_denylist(m.group(1) or m.group(2) or "")
+                              for m in SUBST.finditer(body)):
+            return True  # unquoted delimiter: $(...) / `...` in the body run
+    if any(matches_denylist(m.group(1) or m.group(2) or "") for m in SUBST.finditer(cmd)):
+        return True
     bare = _strip_comments(_dequote(cmd))
     if _rm_is_recursive_force(cmd):
         return True

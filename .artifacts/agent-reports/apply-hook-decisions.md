@@ -88,3 +88,16 @@ Backup: `$CLAUDE_JOB_DIR/tmp/settings.json.bak-2026-10-03` (= `/Users/rodrigoari
 - `abs-path-nudge`: retired properly (moved to `hooks/retired/`, README line, added to RETIRED in `merge_settings.py`). It had been unregistered live already.
 - Tests: 19 bypasses and the symlink case are must-block. Run against cf687c4, 2 tests FAIL (19 bypasses missed; symlink case not blocked). After the fix, all 5 pass on repo and live. All false-block cases still pass.
 - Live == repo for the 17 registered scripts plus `_rmscan.py`. manifest-guard re-blessed (35 files).
+
+## Follow-up 2: re-audit REJECT of ec11506, fixed
+- New `hooks/_heredoc.py` (81 lines) gives heredocs exact shell semantics.
+  - An opener is an unquoted `<<`/`<<-` (never `<<<`, never inside quotes or a comment; quote state carries across lines).
+  - The body ends at the FIRST line exactly equal to the delimiter (`<<-` strips leading tabs only). What follows that line is scanned.
+  - A heredoc fed to a shell or ssh is scanned as code.
+  - An unquoted-delimiter body has its `$(...)`/backticks scanned.
+- `_rmscan.py` (151 lines) uses the robust rule: any `rm` token anywhere with r+f blocks unless every target is safe. Redirections are not counted as targets.
+  - Scanned recursively: `$(...)`/backtick bodies, `sh -c` flag groups, eval, here-strings fed to a shell, and arguments piped into a shell.
+  - A mktemp var is trusted only if its LAST assignment (including `for`/`read`) is mktemp.
+- Force-push regex adds `--mirror`, `--delete`, `-d` groups, `--prune`, and `:ref`.
+- Tests: 20 new must-block cases, including the exact EOF-inside-data repro. On ec11506, 20 danger cases are missed and 2 tests FAIL; all pass now on repo and live. False-block cases were added (redirects, `HEAD:main`, `<<-` tab end, quoted-delimiter body, `cat <<<`).
+- **Backup note:** `$CLAUDE_JOB_DIR/tmp` was wiped during the re-audit, likely by the auditor's accidental real `rm` run. The 32-entry pre-change settings were rebuilt from the before list to `~/.claude/settings.json.bak-2026-10-03-pre-apply`.
