@@ -1,6 +1,6 @@
 ---
 name: codebase-first
-description: Prove what an existing repository already provides before adding a feature, module, integration, dependency, helper, or material refactor. Return evidence-backed REUSE/ADAPT/REJECT decisions and a STOP/PLAN/BUILD gate before code-decompose.
+description: "Prove what the repo already provides before adding code: evidence-backed REUSE/ADAPT/REJECT + STOP/PLAN/BUILD gate, before code-decompose."
 ---
 
 # codebase-first
@@ -32,3 +32,7 @@ For every plausible candidate, record `REUSE`, `ADAPT`, or `REJECT` with a `file
 For localized work, carry the evidence inline. Otherwise write `.scratch/discovery/<slug>.md` with goal, constraints, source anchors, candidate verdicts, boundary map, empirical probe, residual gap, gate, and verification.
 
 On `BUILD`, pass only the residual gap and evidence anchors to `code-decompose`. On `STOP` or `PLAN`, write no production code.
+
+## Former description (moved from frontmatter, context diet U8)
+
+Prove what an existing repository already provides before adding a feature, module, integration, dependency, helper, or material refactor. Return evidence-backed REUSE/ADAPT/REJECT decisions and a STOP/PLAN/BUILD gate before code-decompose.

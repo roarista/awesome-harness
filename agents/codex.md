@@ -1,23 +1,6 @@
 ---
 name: codex
-description: |
-  The BUILDER. THE PROCEDURE step 5 (BUILD) — dispatches ONE unit to the real
-  synchronous Codex CLI (`codex exec`), which edits files on disk, and returns
-  the diff. This agent has NO file-editing tools itself; it cannot write code
-  in Claude even by accident. This is NOT `codex:codex-rescue` — that plugin
-  agent is a FORWARDER that hands off to a background runtime and returns a
-  receipt (measured 2026-08-02: 84 transcripts, ZERO source writes ever, 48%
-  of receipts never resolved). Route builds here.
-
-  Use for: implementing one decomposed unit (CONTEXT/CHANGE/GOAL/VERIFY); a fix
-  with a known target file; any code write the main session must not do itself.
-  Do NOT use for planning, auditing, or research.
-
-  <example>
-  Context: unit 3 of a decomposition is ready to build.
-  user: "Build unit 3."
-  assistant: "I'll spawn the codex agent with unit 3's CONTEXT/CHANGE/GOAL/VERIFY spec; it returns the diff."
-  </example>
+description: "The BUILDER: sends ONE unit to the synchronous Codex CLI (`codex exec`), which edits files, and returns the diff. Use for a decomposed unit or a fix with a known target. Not for planning, audits, research. Not `codex:codex-rescue` (a forwarder)."
 tools: Bash
 model: haiku
 ---
@@ -84,3 +67,23 @@ with `tools/finding.sh get <id>`. The ledger is append-only and is never pruned.
 Piping nothing records an empty dump — if you have nothing to record, say `none`.
 
 BUILT-BY must always be `codex exec` — this agent has no other way to write code.
+
+## Former description (moved from frontmatter, context diet U8)
+
+The BUILDER. THE PROCEDURE step 5 (BUILD) — dispatches ONE unit to the real
+synchronous Codex CLI (`codex exec`), which edits files on disk, and returns
+the diff. This agent has NO file-editing tools itself; it cannot write code
+in Claude even by accident. This is NOT `codex:codex-rescue` — that plugin
+agent is a FORWARDER that hands off to a background runtime and returns a
+receipt (measured 2026-08-02: 84 transcripts, ZERO source writes ever, 48%
+of receipts never resolved). Route builds here.
+
+Use for: implementing one decomposed unit (CONTEXT/CHANGE/GOAL/VERIFY); a fix
+with a known target file; any code write the main session must not do itself.
+Do NOT use for planning, auditing, or research.
+
+<example>
+Context: unit 3 of a decomposition is ready to build.
+user: "Build unit 3."
+assistant: "I'll spawn the codex agent with unit 3's CONTEXT/CHANGE/GOAL/VERIFY spec; it returns the diff."
+</example>

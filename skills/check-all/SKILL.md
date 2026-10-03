@@ -1,6 +1,6 @@
 ---
 name: check-all
-description: Run a deterministic battery of pre-ship checks against any repo — composes the repo's own gate commands and adds universal ones (file-size caps, no-TODO scan, duplicate-code detection). Use when Ro says "check-all", "/check-all", or before shipping, handing off to another agent, or opening a PR.
+description: "Deterministic pre-ship battery: repo gates + file-size caps, TODO scan, dup code. Use on /check-all, before shipping, handoff, or a PR."
 ---
 
 # check-all — Deterministic Readiness Gate
@@ -130,3 +130,7 @@ All keys are optional. Absent file → all defaults apply.
 - Add to CLAUDE.md: "Before handing off, run check-all --fast"  
 - Wire into pre-PR step: `bash ~/.claude/tools/check-all/check_all.sh . && gh pr create ...`
 - Use `--json` to pipe results into downstream agents or scripts
+
+## Former description (moved from frontmatter, context diet U8)
+
+Run a deterministic battery of pre-ship checks against any repo — composes the repo's own gate commands and adds universal ones (file-size caps, no-TODO scan, duplicate-code detection). Use when Ro says "check-all", "/check-all", or before shipping, handing off to another agent, or opening a PR.

@@ -1,6 +1,6 @@
 ---
 name: notes-inbox
-description: Procesar el Video Inbox de Notion — transcribir links de videos pegados por Ro, clasificarlos por proyecto, y rutearlos a Notion + espejo local ~/Notes. Activar cuando Ro diga "procesa el inbox", "checa el inbox", "/notes-inbox", o pegue un link de video pidiendo transcripción/ruteo.
+description: "Process the Notion Video Inbox: transcribe pasted video links, classify by project, route to Notion + ~/Notes. Use on \"procesa el inbox\", /notes-inbox."
 ---
 
 <!-- MIRROR: copy of ~/.claude/skills/notes-inbox/SKILL.md (authoritative = the live ~/.claude copy). Re-sync: cp ~/.claude/skills/notes-inbox/SKILL.md skills/notes-inbox/SKILL.md -->
@@ -38,3 +38,7 @@ TÚ en esta sesión (suscripción).
 - No borrar queue files (son el caché de idempotencia).
 - Si un video falla (link muerto, video privado), marca la fila Status=Discarded con Summary
   explicando, y sigue.
+
+## Former description (moved from frontmatter, context diet U8)
+
+Procesar el Video Inbox de Notion — transcribir links de videos pegados por Ro, clasificarlos por proyecto, y rutearlos a Notion + espejo local ~/Notes. Activar cuando Ro diga "procesa el inbox", "checa el inbox", "/notes-inbox", o pegue un link de video pidiendo transcripción/ruteo.

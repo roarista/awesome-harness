@@ -1,6 +1,6 @@
 ---
 name: compact-prep
-description: The every-turn close for a Codex session — commit the work, record the durable lesson, update the STATE resume point and .now.md, push, and emit the CONTINUE block. Run at the end of every substantive turn and before any context compaction, so nothing that only lives in the conversation is lost. Works in any repo.
+description: "Every-turn close: commit, record the lesson, update STATE resume point + .now.md, push, emit CONTINUE. Run each substantive turn and before compaction."
 ---
 
 # compact-prep (Codex edition) — the every-turn close
@@ -77,3 +77,7 @@ git push
 ## 6. CONTINUE block
 
 End the final message with the exact resume point — the branch, the HEAD, the next action, and what was persisted. Ro reads only the final message, so this is the handoff.
+
+## Former description (moved from frontmatter, context diet U8)
+
+The every-turn close for a Codex session — commit the work, record the durable lesson, update the STATE resume point and .now.md, push, and emit the CONTINUE block. Run at the end of every substantive turn and before any context compaction, so nothing that only lives in the conversation is lost. Works in any repo.

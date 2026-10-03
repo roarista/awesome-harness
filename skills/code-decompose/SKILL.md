@@ -1,6 +1,6 @@
 ---
 name: code-decompose
-description: Ro's standard coding workflow — decompose a code change maximally before writing it, so cheap models can execute reliably. Use whenever you (or a subagent) are about to write or change code beyond a one-line edit: features, refactors, bug fixes, new modules, pipeline stages. The orchestrator stays context-light and delegates: a decomposer subagent reads the code and returns compact unit specs (CONTEXT/CHANGE/GOAL/VERIFY), cheap coder subagents execute one unit each, auditor subagents check each unit against its own spec. Activates on "build", "implement", "add this feature", "refactor", "write the code for", "change X to do Y". Skip only for truly trivial single-line edits.
+description: "Decompose a code change into CONTEXT/CHANGE/GOAL/VERIFY units for builder subagents. Use before any build, refactor or fix beyond one line."
 ---
 
 # code-decompose
@@ -88,3 +88,7 @@ Auditor returns: PASS / FAIL + specific findings tied to spec lines. On FAIL, th
 - The expensive model thinks once (decompose); cheap models do the volume (execute). That is the token-efficiency win.
 
 See `~/.claude/projects/-Users-rodrigoarista/memory/global_orchestration_rules.md` for model routing, the loop framework, and the mechanical-gate principle.
+
+## Former description (moved from frontmatter, context diet U8)
+
+Ro's standard coding workflow — decompose a code change maximally before writing it, so cheap models can execute reliably. Use whenever you (or a subagent) are about to write or change code beyond a one-line edit: features, refactors, bug fixes, new modules, pipeline stages. The orchestrator stays context-light and delegates: a decomposer subagent reads the code and returns compact unit specs (CONTEXT/CHANGE/GOAL/VERIFY), cheap coder subagents execute one unit each, auditor subagents check each unit against its own spec. Activates on "build", "implement", "add this feature", "refactor", "write the code for", "change X to do Y". Skip only for truly trivial single-line edits.

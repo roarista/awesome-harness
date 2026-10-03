@@ -2,6 +2,7 @@
 # skill-drift.sh — diff repo skills against their installed (live) copies.
 #   skills/<n>/SKILL.md        vs ~/.claude/skills/<n>/SKILL.md
 #   codex/skills/<n>/SKILL.md  vs ~/.codex/skills/<n>/SKILL.md
+#   templates/global-CLAUDE.md vs ~/.claude/CLAUDE.md; codex/AGENTS.md vs ~/.codex/AGENTS.md (no-arg run only)
 # Usage: tools/skill-drift.sh [skill-name ...]   (no args = every repo skill)
 # Exit 0 = in sync, 1 = drift or missing live copy. Fix: re-run install.sh.
 set -u
@@ -29,6 +30,12 @@ done
 for f in "$REPO"/codex/skills/*/SKILL.md; do
   check codex "$f" "$CODEX_LIVE/$(basename "$(dirname "$f")")/SKILL.md"
 done
+if [ -z "$WANT" ]; then # whole-file mirrors (no skill-name filter)
+  mirror() { checked=$((checked + 1)); if [ ! -f "$2" ]; then echo "MISSING mirror: $2"; drift=1
+    elif ! cmp -s "$1" "$2"; then echo "DRIFT   mirror $(basename "$1"): $(diff "$1" "$2" | grep -c '^[<>]') lines differ ($2)"; drift=1; fi; }
+  mirror "$REPO/templates/global-CLAUDE.md" "${CLAUDE_HOME:-$HOME/.claude}/CLAUDE.md"
+  mirror "$REPO/codex/AGENTS.md" "${CODEX_HOME:-$HOME/.codex}/AGENTS.md"
+fi
 if [ "$checked" -eq 0 ]; then echo "skill-drift: no skills matched '${WANT}'" >&2; exit 1; fi
 [ "$drift" -eq 0 ] && echo "skill-drift: $checked copies in sync"
 exit "$drift"

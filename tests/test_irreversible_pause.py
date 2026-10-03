@@ -127,6 +127,24 @@ class T(unittest.TestCase):
         missed = [c for c in REAL_DANGER if not mod.matches_denylist(c)]
         self.assertEqual(missed, [], "not blocked")
 
+    def test_literal_scratch_var(self):
+        """U10: a var assigned a literal scratch path in the same command passes;
+        non-scratch, reassigned, prefix-form, quoted or expanded values block."""
+        ok = ("M=/tmp/x; rm -rf $M", 'M=/tmp/b5mut; rm -rf "$M"',
+              "M=/tmp/x && rm -rf ${M}/sub", "export M=/private/tmp/y\nrm -rf $M")
+        bad = ("M=/Users/x; rm -rf $M", "M=/tmp/x; M=/Users/x; rm -rf $M",
+               "M=/tmp/x rm -rf $M", "echo 'M=/tmp/x;'; rm -rf $M",
+               "M=/tmp/x$(echo y); rm -rf $M", "M=/tmp/../Users/x; rm -rf $M",
+               "M=/tmp; rm -rf $M", "M=~/x; rm -rf $M", "M=/tmp/x; M=$HOME; rm -rf $M",
+               "M=/tmp/x; for M in ~; do rm -rf $M; done", "M=/tmp/x; rm -rf $M ~/y",
+               # audit b369850: ordering — only assignments before the rm count
+               "rm -rf $M; M=/tmp/x", "M=/tmp/x && M=$HOME; rm -rf $M",
+               "M=/tmp/x; rm -rf $M $HOME", "false && M=/tmp/x; rm -rf $M",
+               "cd /nope && M=/tmp/x; rm -rf $M", "rm -rf $D; D=$(mktemp -d)",
+               "echo 'D=$(mktemp -d)'; rm -rf $D", "bash -c \"rm -rf $T\"; T=$(mktemp -d)")
+        self.assertEqual([c for c in ok if mod.matches_denylist(c)], [])
+        self.assertEqual([c for c in bad if not mod.matches_denylist(c)], [])
+
     def test_hook_exit_codes(self):
         self.assertEqual(run_hook("rm -rf /tmp/x11m"), 0)
         self.assertEqual(run_hook("rm -rf ~/x"), 2)

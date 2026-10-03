@@ -1,6 +1,6 @@
 ---
 name: check-all
-description: Run a deterministic battery of pre-ship checks against any repo — composes the repo's own gate commands and adds universal ones (file-size caps, no-TODO scan, duplicate-code detection, optional semgrep). Use before shipping, before handing work back to Ro, before opening a PR, or whenever Ro says "check-all" / "run the gate" / "is this ready to ship?".
+description: "Deterministic pre-ship battery: repo gates + file-size caps, TODO scan, dup code, semgrep. Use before shipping, handoff, a PR, or on \"check-all\"."
 ---
 
 # check-all — deterministic readiness gate
@@ -52,3 +52,7 @@ All keys optional; absent file means all defaults apply.
 - Report the gate's **real output**. Never summarize a run you did not perform, and never call a change ready on a failing hard check.
 - Use `--fast` for a mid-work sanity pass; run the full gate before the close (`compact-prep`).
 - If the script is missing, the harness was not installed for Codex: run `./install.sh --codex` from the awesome-harness repo.
+
+## Former description (moved from frontmatter, context diet U8)
+
+Run a deterministic battery of pre-ship checks against any repo — composes the repo's own gate commands and adds universal ones (file-size caps, no-TODO scan, duplicate-code detection, optional semgrep). Use before shipping, before handing work back to Ro, before opening a PR, or whenever Ro says "check-all" / "run the gate" / "is this ready to ship?".

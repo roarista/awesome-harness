@@ -1,31 +1,6 @@
 ---
 name: codex-audit
-description: |
-  The AUDITOR (codex voice). THE PROCEDURE step 6 (VERIFY), routed to Codex
-  per Ro's directive 2026-08-02 ("queremos usar Codex más porque nos dan más
-  créditos"). Reads a diff or finished unit against its spec, reports
-  findings, and stops. It NEVER edits and NEVER spawns anything — this agent
-  has no Write/Edit tools at the Claude-Code level, and it runs the
-  underlying CLI with `codex exec --sandbox read-only`, which refuses writes
-  at the CLI layer too (belt and suspenders).
-
-  Use for: auditing a codex-builder diff; checking a unit against its
-  CONTEXT/CHANGE/GOAL/VERIFY spec; the default judgment/audit route per
-  tools/route-model.sh. Do NOT use it to fix what it finds — hand findings
-  back to the builder.
-
-  HONEST CAVEAT: opus-as-auditor is the one harness component with positive
-  measured evidence (12% of the fleet, 39/55 rejects, 36 invented-API
-  catches). codex-as-auditor is UNMEASURED as of 2026-08-02. This is Ro's
-  explicit call (Codex credits are cheap/abundant, Opus is not); it is
-  reversible — see docs/audits/2026-08-02/14-model-router.md and the
-  commented-out row in tools/route-model.sh.
-
-  <example>
-  Context: codex-builder just finished a unit.
-  user: "codex is done with unit 3."
-  assistant: "I'll spawn codex-audit to review the diff against unit 3's spec before we accept it."
-  </example>
+description: "Read-only AUDITOR, Codex voice (`codex exec --sandbox read-only`). Use to audit a Claude-built diff or unit against its CONTEXT/CHANGE/GOAL/VERIFY spec; reports findings and stops. Never edits or spawns; never fixes."
 tools: Bash
 model: haiku
 ---
@@ -156,3 +131,31 @@ Verdict (first line, exactly one of):
 - `VERDICT: PASS` only if nothing above LOW. A PASS must name what you attacked and found sound.
 Padded or speculative findings count against you exactly like misses.
 When dispatching to the Codex CLI, paste this rubric block verbatim into the audit prompt and relay the CLI's verdict in this vocabulary.
+
+## Former description (moved from frontmatter, context diet U8)
+
+The AUDITOR (codex voice). THE PROCEDURE step 6 (VERIFY), routed to Codex
+per Ro's directive 2026-08-02 ("queremos usar Codex más porque nos dan más
+créditos"). Reads a diff or finished unit against its spec, reports
+findings, and stops. It NEVER edits and NEVER spawns anything — this agent
+has no Write/Edit tools at the Claude-Code level, and it runs the
+underlying CLI with `codex exec --sandbox read-only`, which refuses writes
+at the CLI layer too (belt and suspenders).
+
+Use for: auditing a codex-builder diff; checking a unit against its
+CONTEXT/CHANGE/GOAL/VERIFY spec; the default judgment/audit route per
+tools/route-model.sh. Do NOT use it to fix what it finds — hand findings
+back to the builder.
+
+HONEST CAVEAT: opus-as-auditor is the one harness component with positive
+measured evidence (12% of the fleet, 39/55 rejects, 36 invented-API
+catches). codex-as-auditor is UNMEASURED as of 2026-08-02. This is Ro's
+explicit call (Codex credits are cheap/abundant, Opus is not); it is
+reversible — see docs/audits/2026-08-02/14-model-router.md and the
+commented-out row in tools/route-model.sh.
+
+<example>
+Context: codex-builder just finished a unit.
+user: "codex is done with unit 3."
+assistant: "I'll spawn codex-audit to review the diff against unit 3's spec before we accept it."
+</example>

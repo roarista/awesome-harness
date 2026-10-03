@@ -1,6 +1,6 @@
 ---
 name: code-decompose
-description: 'The standard coding workflow for a Codex session — decompose a code change into small, independently-verifiable units BEFORE writing any of it, then execute and self-audit them one at a time. Use whenever you are about to write or change code beyond a one-line edit: features, refactors, bug fixes, new modules, pipeline stages. Activates on "build", "implement", "add this feature", "refactor", "write the code for", "change X to do Y". Skip only for truly trivial single-line edits.'
+description: "Decompose a code change into small verifiable units before writing it, then build and self-audit each. Use for any change beyond one line."
 ---
 
 # code-decompose (Codex edition)
@@ -67,3 +67,7 @@ The audit is only worth something if you read the diff fresh. Reasoning from wha
 - The written spec makes "done" objective and checkable, instead of a feeling.
 - Auditing against a spec you wrote *before* the code catches inconsistencies that re-reading with intent in mind cannot.
 - Small units mean a failure is localized to one unit's diff, not to the whole change.
+
+## Former description (moved from frontmatter, context diet U8)
+
+'The standard coding workflow for a Codex session — decompose a code change into small, independently-verifiable units BEFORE writing any of it, then execute and self-audit them one at a time. Use whenever you are about to write or change code beyond a one-line edit: features, refactors, bug fixes, new modules, pipeline stages. Activates on "build", "implement", "add this feature", "refactor", "write the code for", "change X to do Y". Skip only for truly trivial single-line edits.'

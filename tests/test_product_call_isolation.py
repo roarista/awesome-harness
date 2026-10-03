@@ -48,12 +48,22 @@ def registered():
     return out
 
 
-def payload(ev, matcher, cwd):
+def expected():
+    """(event, matcher, script) for every command in merge_settings.HOOKS (source of truth)."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("ms", os.path.join(REPO, "scripts", "merge_settings.py"))
+    ms = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(ms)
+    return [(ev, m, re.search(r'hooks/([\w.-]+\.(?:py|sh))', c).group(1))
+            for ev, items in ms.HOOKS.items() for m, c in items]
+
+
+def payload(ev, matcher, cwd, ti=None):
     p = {"session_id": "pc-test", "transcript_path": "/nonexistent.jsonl", "cwd": cwd,
          "hook_event_name": ev, "permission_mode": "default"}
     tool = (matcher.split("|")[0] or "Bash")
     if ev in ("PreToolUse", "PostToolUse"):
-        p.update(tool_name=tool, tool_input=TOOL_INPUT.get(tool, {}))
+        p.update(tool_name=tool, tool_input=ti or TOOL_INPUT.get(tool, {}))
         if ev == "PostToolUse":
             p["tool_response"] = {}
     elif ev == "UserPromptSubmit":
@@ -71,12 +81,12 @@ def env_for(product, cwd, home):
     return e
 
 
-def run(hdir, script, ev, matcher, cwd, product):
+def run(hdir, script, ev, matcher, cwd, product, ti=None):
     home = tempfile.mkdtemp(prefix="pc-home-")
     os.makedirs(os.path.join(home, ".claude"), exist_ok=True)
     cmd = ["sh" if script.endswith(".sh") else "python3", os.path.join(hdir, script)]
     try:
-        r = subprocess.run(cmd, input=payload(ev, matcher, cwd), capture_output=True, text=True,
+        r = subprocess.run(cmd, input=payload(ev, matcher, cwd, ti), capture_output=True, text=True,
                            cwd=cwd, env=env_for(product, cwd, home), timeout=60)
         return r.returncode, r.stdout
     finally:
@@ -110,7 +120,8 @@ class ProductCallIsolation(unittest.TestCase):
             shutil.rmtree(d, ignore_errors=True)
 
     def test_every_registered_hook_is_guarded(self):
-        self.assertGreater(len(self.hooks), 20)
+        # live install == merge_settings.HOOKS exactly (catches drift and empty settings)
+        self.assertCountEqual(self.hooks, expected())
         for _, _, s in self.hooks:
             text = Path(HOOKS, s).read_text()
             self.assertTrue(PY_GUARD in text or SH_GUARD.search(text), f"{s} has no product guard")
@@ -129,7 +140,19 @@ class ProductCallIsolation(unittest.TestCase):
                 got = run(self.guarded, s, ev, m, REPO, False)
                 self.assertEqual(got, run(self.stripped, s, ev, m, REPO, False))
                 loud += bool(got[1].strip())
-        self.assertGreaterEqual(loud, 2, "normal run produced no output anywhere: test is vacuous")
+        self.assertGreaterEqual(loud, 1, "normal run produced no output anywhere: test is vacuous")
+        # positive control that must be loud in a normal session (and equal unguarded)
+        d = tempfile.mkdtemp(prefix="pc-big-")
+        try:
+            big = os.path.join(d, "big.py")
+            Path(big).write_text("x = 1\n" * 201)
+            ti = {"file_path": big, "content": ""}
+            got = run(self.guarded, "size-nudge.py", "PostToolUse", "Write|Edit|MultiEdit", REPO, False, ti)
+            self.assertIn("is 201 lines (cap 200)", got[1])
+            self.assertEqual(got, run(self.stripped, "size-nudge.py", "PostToolUse",
+                                      "Write|Edit|MultiEdit", REPO, False, ti))
+        finally:
+            shutil.rmtree(d, ignore_errors=True)
 
     def test_mutation_unguarded_hook_leaks(self):
         """Teeth: the same product env against a guard-stripped hook MUST produce output."""
