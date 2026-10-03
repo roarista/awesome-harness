@@ -47,11 +47,11 @@ North star: get Ro out of the loop while keeping quality.
 - **AI-lab frameworks:** what Anthropic/OpenAI/Cognition published recently, OSS liftable.
 - **Creators:** route to `youtube-research`/`ytintel` per the PRIMARY/SECONDARY/ADJACENT channel list (Jaymin West, IndyDevDan, Simon Scrapes, etc — full list in prior HARNESS_SCOUT reports; refresh from Ro's @yummapp subs occasionally).
 - **Newsletters:** Gmail MCP search `from:(morningbrew OR "the rundown") newer_than:7d`.
-- **Notion idea inbox:** `📥 Video Inbox` DB, Status=New, grouped by Project — reuse the existing `notes-inbox` pipeline, don't rebuild it.
+- **Notion idea inbox:** `📥 Video Inbox` DB, Status=New, grouped by Project.
 - Reuse `deep-research` (or, if the Vividlist symlink is broken, note that and do a bounded direct web fan-out) for heavy web fan-out+verify+synthesis.
 - Fit-filter each candidate -> **STEAL** (lift into a hook/skill in ~N lines) / **INTEGRATE** (OSS worth adding, argue dep cost) / **WATCH** (not now) / **NON-FIT** (state the GPU/weights/server blocker).
 
-**Output** `~/Downloads/HARNESS_SCOUT_<date>.md`: Summary -> A. Repetition->automate table -> B. External steal-worthy table (grouped by theme) -> C. Creator intel -> GitHub radar (per area, README-only) -> Ranked "build next" shortlist (top 3-5, one-line why + effort). Report lands in `~/Downloads/`, auto-indexed into recall via `~/.claude/tools/memgraph/sources.txt`'s `HARNESS_*` glob.
+**Output** `~/Downloads/HARNESS_SCOUT_<date>.md`: Summary -> A. Repetition->automate table -> B. External steal-worthy table (grouped by theme) -> C. Creator intel -> GitHub radar (per area, README-only) -> Ranked "build next" shortlist (top 3-5, one-line why + effort). Report lands in `~/Downloads/`, auto-indexed into memgraph via `~/.claude/tools/memgraph/sources.txt`'s `HARNESS_*` glob.
 
 **Cadence:** on demand; A1 already folds into `harness-coach`'s weekly log-audit rather than a second cron. B1 (web research) is token-heavy — run when asked, bounded.
 
@@ -59,4 +59,4 @@ North star: get Ro out of the loop while keeping quality.
 
 ## Former description (moved from frontmatter, context diet U8)
 
-Recurring harness intelligence pass, proposal-only, two modes. (A) AUDIT — map one repo's harness (CLAUDE.md, front-door docs, mulch, STATE, agent specs) against the REAL codebase and produce a fidelity/behavioral drift report. (B) SCOUT — mine Ro's recent transcripts for repeated toil to automate, and research external ideas (GitHub, AI-lab frameworks, YouTube creators, newsletters) worth stealing. Use when Ro says "audit the harness", "/harness-audit", "scout the harness", "what should we steal", "what am I repeating that should be a skill", "check <repo> for drift", or on a periodic improvement sweep. NEVER edits the live tree — output is always a report Ro reviews.
+Recurring harness intelligence pass, proposal-only, two modes. (A) AUDIT — map one repo's harness (CLAUDE.md, front-door docs, mulch, STATE, agent specs) against the REAL codebase and produce a fidelity/behavioral drift report. (B) SCOUT — mine Ro's recent transcripts for repeated toil to automate, and research external ideas (GitHub, AI-lab frameworks, YouTube creators, newsletters) worth stealing. Use when Ro says "audit the harness", "scout the harness", "what should we steal", "what am I repeating that should be a skill", "check <repo> for drift", or on a periodic improvement sweep. NEVER edits the live tree — output is always a report Ro reviews.

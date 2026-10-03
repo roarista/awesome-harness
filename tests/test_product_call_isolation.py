@@ -144,13 +144,12 @@ class ProductCallIsolation(unittest.TestCase):
         # positive control that must be loud in a normal session (and equal unguarded)
         d = tempfile.mkdtemp(prefix="pc-big-")
         try:
-            big = os.path.join(d, "big.py")
-            Path(big).write_text("x = 1\n" * 201)
-            ti = {"file_path": big, "content": ""}
-            got = run(self.guarded, "size-nudge.py", "PostToolUse", "Write|Edit|MultiEdit", REPO, False, ti)
-            self.assertIn("is 201 lines (cap 200)", got[1])
-            self.assertEqual(got, run(self.stripped, "size-nudge.py", "PostToolUse",
-                                      "Write|Edit|MultiEdit", REPO, False, ti))
+            big = os.path.join(d, "big.txt")
+            Path(big).write_text("x = 1\n" * 2001)
+            ti = {"file_path": big}
+            got = run(self.guarded, "filesize-cap.py", "PreToolUse", "Read", REPO, False, ti)
+            self.assertIn("LARGE FILE (2,001 lines", got[1])  # guarded hook is loud normally
+            # no stripped-equality here: filesize-cap only imports _hookout on the stripped guard line
         finally:
             shutil.rmtree(d, ignore_errors=True)
 

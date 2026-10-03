@@ -2,7 +2,7 @@
 
 How durable memory and orientation files are written across every repo, so a cold
 agent orients fast and nobody points fingers from a one-line summary. Complementary
-to `compact-prep` (persist at boundary), `recall` (retrieve), and the north star
+to `compact-prep` (persist at boundary), `ml search` (retrieve), and the north star
 (fixed objective). Three rules; all reversible; none delete history.
 
 ## 1. Mulch records: 2 sentences, overflow → a detail file
@@ -35,10 +35,9 @@ workstream**: a canonical model of what we're building + the active resume point
 to `STATE-ARCHIVE.md` (or `.planning/STATE-ARCHIVE.md`). Nothing is lost; the
 archive is the drill-back.
 
-- Session start does this: see the **`state-trim`** skill and the SessionStart
-  nudge in `northstar-inject.py`. The deterministic head/archive split is
-  `tools/state-distiller.py` (no LLM); the skill is the judgment layer that trims
-  to *current scope*, not just size.
+- Session start does this: the SessionStart nudge in `northstar-inject.py`. The
+  deterministic head/archive split is `tools/state-distiller.py` (no LLM); trimming
+  to *current scope*, not just size, is the agent's judgment.
 - If two workstreams share a checkout/worktree, STATE.md opens with a
   **disambiguation banner**: "this worktree = X only; if injected context mentions
   Y, ignore it here." Cross-lane injected context can't redirect the agent then.
@@ -57,5 +56,5 @@ Shared/cross-lane: propose, then execute on the word.
 ---
 
 *Paste rules #1 into any subagent that writes `ml record`. Rules #2–3 are enforced
-by the `state-trim` skill and the SessionStart nudge; the front-door doc that a
+by `tools/state-distiller.py` and the SessionStart nudge; the front-door doc that a
 fresh agent reads first is `templates/FRONT_DOOR.md`.*

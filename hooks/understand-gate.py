@@ -59,13 +59,13 @@ BUILD_RE = re.compile(
     r"create (a|the) file)", re.I)
 DISCOVERY_RE = re.compile(r"\.scratch/discovery/[\w.-]+\.md")
 VERDICT_RE = re.compile(r"(REUSE|ADAPT|REJECT):")
-# orient skill (merged recall+codebase-first) exit artifact: an ORIENT block
+# discovery exit artifact (code-decompose Phase 1): an ORIENT block
 # headed by a GATE: STOP|PLAN|BUILD line counts as evidence too.
 ORIENT_RE = re.compile(r"^ORIENT\b|GATE:\s*(STOP|PLAN|BUILD)", re.I | re.M)
 
 MSG = (
     "UNDERSTAND GATE: this spawn writes code but carries no codebase-first evidence.\n"
-    "1. Run the `orient` skill -> produces .scratch/discovery/<slug>.md\n"
+    "1. Do discovery (graphify/skeleton.py/rg, code-decompose) -> write .scratch/discovery/<slug>.md\n"
     "2. Pass that path in the subagent prompt, OR an inline REUSE:/ADAPT:/REJECT: verdict.\n"
     "STOP (no new code) is a valid outcome.\n"
     "Kill: UNDERSTAND_GATE=off, or write `off` to "

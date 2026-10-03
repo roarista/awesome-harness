@@ -1,6 +1,6 @@
 # BUILDER CODING STANDARD
 Paste this into every coder subagent's prompt (codex/kimi). Complementary to
-ponytail (do less), code-decompose (follow the spec), check-all (gates pass).
+ponytail (do less), code-decompose (follow the spec), `tools/check-all/check_all.sh` (gates pass).
 This is the *write-it-correctly* layer — bugs and boundaries.
 
 You are executing one unit spec. Obey it exactly. Before "done", self-check against every rule.
@@ -8,6 +8,8 @@ You are executing one unit spec. Obey it exactly. Before "done", self-check agai
 ## Scope
 - Make the SMALLEST change that fully satisfies the spec. Do not refactor, rename, or touch
   unrelated code. Do not add config, flags, env vars, or extension points not asked for.
+- Structure is the orchestrator's: create/split exactly what the unit's FILE PLAN names, nothing unplanned.
+  If a file would exceed its line budget, stop and report back instead of splitting it.
 - Do not change public APIs, schemas, file formats, or observable behavior unless the spec says to.
 - If the spec is ambiguous, pick the least-invasive reading and state the assumption in your summary.
 

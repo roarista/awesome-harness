@@ -3,12 +3,12 @@
 
 A "scaffold" = the verified APPROACH for a task-category (how to decompose/route/
 retry it), not the code. We capture it only when the work actually PASSED the
-deterministic verifier (check-all), and we keep the CHEAPEST one — promote-on-beat
+deterministic verifier (check_all.sh), and we keep the CHEAPEST one — promote-on-beat
 means a new approach replaces the old only if it passed in fewer iterations.
 
 Scaffolds live as markdown in ~/.claude/scaffolds/ so memgraph indexes them and
-`recall` re-injects them next time the same category comes up. That's the loop:
-  verify -> capture -> recall -> beat -> replace.
+`ml search`/memgraph surface them next time the same category comes up. That's the loop:
+  verify -> capture -> retrieve -> beat -> replace.
 
 The verifier must stay OUTSIDE the builder's control: this script is meant to be
 called by the orchestrator / check-all gate AFTER a real PASS, never by the coder

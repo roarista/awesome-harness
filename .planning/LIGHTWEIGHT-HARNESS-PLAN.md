@@ -65,7 +65,7 @@ remove repeated `ml prime` and graphify additional-context hooks.
 ### Unit 1 — thin `/awesomeharness` — SHIPPED
 
 - Reduce the skill to the compact loop and tool-routing table above.
-- Point to `orient`, `code-decompose`, and `compact-prep`; do not restate their bodies.
+- Point to `code-decompose` and `compact-prep`; do not restate their bodies.
 - Add idempotence: a repeat invocation returns a short “already active” receipt instead of appending
   the skill again.
 - Verify: second invocation adds no full skill body; the coding/audit loop remains discoverable.

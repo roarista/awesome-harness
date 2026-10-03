@@ -6,7 +6,7 @@
 - Non-trivial logic leaves one runnable check. Mark shortcuts `ponytail: <ceiling + upgrade path>`.
 
 # Procedure
-0 ORIENT `.northstar.md`, `.now.md`, STATE resume point; no archives · 1 RECALL ≤5 bullets · 2-3 `codebase-first`: REUSE/ADAPT/REJECT with file:line, gate STOP/PLAN/BUILD · 4-6 `code-decompose` + `check-all` · 7 PERSIST `compact-prep`.
+0 ORIENT `.northstar.md`, `.now.md`, STATE resume point; no archives · 1 RECALL (`ml search`) ≤5 bullets · 2-3 `codebase-first`: REUSE/ADAPT/REJECT with file:line, gate STOP/PLAN/BUILD · 4-6 `code-decompose` + `~/.codex/tools/check-all/check_all.sh` · 7 PERSIST `compact-prep`.
 One-line/docs-only edits skip 2-4, never 0/1/7, but state `REUSE:`/`REJECT:` first. Skills: `~/.codex/skills/`, per step. Builders follow `~/.codex/BUILDER_STANDARD.md`; records `~/.codex/MEMORY_STANDARD.md`. Gates: `$awesomeharness` before build/review/ship claims.
 
 # Delegation

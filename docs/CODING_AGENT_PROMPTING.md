@@ -86,7 +86,7 @@ CONTEXT, spell out:
   instead of writing a new one (ponytail: reuse before writing). graphify `query` is how you
   find these cheaply.
 
-If there is a `scaffold-<category>.md` from a prior successful build (surfaces via `recall`),
+If there is a `scaffold-<category>.md` from a prior successful build (in `~/.claude/scaffolds/`),
 pass its verified approach as the starting point — don't let the coder re-invent it.
 
 ### The `REUSE` heading — codebase-first before you build

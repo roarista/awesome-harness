@@ -259,7 +259,7 @@ def now_line(root: Path, session_id: str) -> str:
 def state_trim_nudge(root: Path) -> str:
     """SessionStart only: if STATE.md bloated past ~40 non-empty lines, nudge the
     incoming agent to trim it to current scope before deep work (archive rest to
-    STATE-ARCHIVE.md — never delete). Judgment trim = the `state-trim` skill; the
+    STATE-ARCHIVE.md — never delete). Judgment trim is the agent's; the
     deterministic split is tools/state-distiller.py. Fail-open, advisory."""
     for rel in ("STATE.md", ".planning/STATE.md"):
         f = root / rel
@@ -272,7 +272,7 @@ def state_trim_nudge(root: Path) -> str:
         if n > 40:
             return (f"STATE ({rel}) is {n} lines — trim to CURRENT scope before deep work: "
                     "keep canonical model + resume point, move the rest to STATE-ARCHIVE.md "
-                    "(never delete). run the `state-trim` skill.\n\n")
+                    "(never delete): python3 ~/Downloads/awesome-harness/tools/state-distiller.py <repo> --apply\n\n")
     return ""
 
 

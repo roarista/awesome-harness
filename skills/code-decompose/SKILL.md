@@ -5,7 +5,7 @@ description: "Decompose a code change into CONTEXT/CHANGE/GOAL/VERIFY units for 
 
 # code-decompose
 
-> **Steps 4-6 of THE PROCEDURE** (`/awesomeharness`). Entry condition: `orient` (`/orient`) already returned a **BUILD** gate + the residual gap. If it hasn't run, run it first — do not re-discover here.
+> **Steps 4-6 of THE PROCEDURE** (`/awesomeharness`). Entry condition: `ml search`+understand+REUSE/ADAPT/REJECT already returned a **BUILD** gate + the residual gap. If that hasn't happened, do it first — do not re-discover here.
 
 The whole point: **the change must be fully understood before any code is written — both the code that exists and the code we intend to write — and that understanding must be written down precisely enough that a cheap model can execute it without judgment.** Decomposition is the expensive thinking step; execution is the cheap step done at volume. If the spec is complete, a cheaper coder can be trusted — that trust is the entire reason this skill exists.
 
@@ -18,12 +18,23 @@ The orchestrator does NOT read the implementation. It writes a short brief and n
 - Hard constraints / what not to break, and pointers to where the work likely lives (a dir, a module — not a full read).
 - Then it spawns the decomposer subagent. That's it. The orchestrator's context stays clean.
 
+## Phase 0b — FILE PLAN (orchestrator, mandatory, before any Unit)
+
+Structure is the orchestrator's job (Ro 2026-10-03): builders lack the big picture, and "split it" yields unplanned files and functions cut midway. Before spawning the decomposer:
+1. `wc -l` every file the change will touch or create (signatures via `skeleton.py`/graphify; no body reads).
+2. Put this table in the brief:
+```
+path | one-line responsibility | public interface (signatures) | lines now -> budget after (<=200)
+```
+3. A touched file that would exceed 200 gets its split planned as its own first unit: a **move-only refactor** (behavior unchanged, same tests green before and after), cut only at function/module boundaries, never mid-function. Later units are `after: U1`.
+4. Each unit's CHANGE names only files from the plan. A decomposer or builder that needs another file, or would break a budget, stops and reports back; the orchestrator amends the plan.
+
 ## Phase 1 — Decompose (decomposer SUBAGENT, premium model: Opus 4.8 / Fable 5)
 
 This runs as a **subagent**, not in the main loop, so all the code-reading context stays here and never touches the orchestrator. Its prompt is the Phase-0 brief. It returns ONLY the distilled output below — not the raw code it read.
 
-The decomposer's first action is to READ the discovery artifact (`.scratch/discovery/<slug>.md`) passed in the Phase-0 brief, and carry its REUSE/ADAPT/REJECT verdicts and gate forward verbatim. Re-run a [[orient]] ladder rung only if the artifact leaves the residual gap ambiguous. Only then does it produce:
-1. **Understanding** (3-6 lines max): what exists now (with `file:line` anchors), what we want, and the gap. It MUST include the orient **REUSE/ADAPT/REJECT** capability decisions and the **STOP/PLAN/BUILD gate** — *before* any Units. **If the gate is STOP or PLAN, the decomposer returns that (with its reasoning) instead of Units.** Compact — this is a summary, not a transcript of everything it read.
+The decomposer's first action is to READ the discovery artifact (`.scratch/discovery/<slug>.md`) passed in the Phase-0 brief, and carry its REUSE/ADAPT/REJECT verdicts and gate forward verbatim. Re-run a discovery step (graphify / `skeleton.py` / `rg`) only if the artifact leaves the residual gap ambiguous. Only then does it produce:
+1. **Understanding** (3-6 lines max): what exists now (with `file:line` anchors), what we want, and the gap. It MUST include the discovery **REUSE/ADAPT/REJECT** capability decisions and the **STOP/PLAN/BUILD gate** — *before* any Units. **If the gate is STOP or PLAN, the decomposer returns that (with its reasoning) instead of Units.** Compact — this is a summary, not a transcript of everything it read.
 2. **Units** — the gap split into the **smallest independently-verifiable pieces**. Keep splitting until each is mechanical to execute. Each unit is a self-contained spec, because the coder will have NO prior context:
 
 ```
@@ -35,7 +46,8 @@ UNIT <n>: <one-line title>
   GOAL     — the outcome this unit produces and why (so the coder resolves ambiguity correctly).
   VERIFY   — the concrete check that proves this unit is done: the command to run, the test,
              the expected output, or the file state to inspect. Defined BEFORE execution.
-  DEPENDS  — which other units must land first (for ordering).
+  AFTER    — blocking edges (`after: U1, U2`); units form a DAG. Dispatch the frontier
+             (units whose blockers are done). CHANGE names only FILE PLAN paths.
 ```
 
 A unit without a concrete VERIFY is not ready — the decomposer must define the check or split further. The decomposer writes NO production code; it only specs.
@@ -46,13 +58,13 @@ The orchestrator gets back the compact specs (not the codebase). It sanity-check
 
 ## Phase 3 — Execute (BUILDER = the router's pick)
 
-The builder is whatever the router picks from live usage (`python -m fmr route`; fallback `tools/route-model.sh`): a `codex` agent for Codex, a `claude` agent for Claude. Main only orchestrates and never writes the code itself. The map + reuse decision were already established by orient in Phase 1 (graphify + repowise together); pass those anchors down to the coder — do not re-run discovery here.
+The builder is whatever the router picks from live usage (`python -m fmr route`; fallback `tools/route-model.sh`): a `codex` agent for Codex, a `claude` agent for Claude. Main only orchestrates and never writes the code itself. The map + reuse decision were already established by discovery in Phase 1 (graphify + repowise together); pass those anchors down to the coder — do not re-run discovery here.
 
-Spawn one worker per independent unit (parallel where DEPENDS allows; sequential where it doesn't). Each worker prompt = the **BUILDER CODING STANDARD** (`~/.claude/BUILDER_STANDARD.md`) + that unit's full spec + "implement exactly this; run VERIFY; report the VERIFY output verbatim; do not expand scope." Paste-ready wording for that prompt: `docs/CODING_AGENT_PROMPTING.md`. Because the spec is complete, a cheaper model is sufficient — the more decomposed the spec, the cheaper the model you can trust. Respect the global spawn depth limit (2). On a worker stall, kill its process tree.
+Spawn one worker per independent unit (the DAG frontier in parallel; blocked units wait). Each worker prompt = the **BUILDER CODING STANDARD** (`~/.claude/BUILDER_STANDARD.md`) + that unit's full spec + "implement exactly this; run VERIFY; report the VERIFY output verbatim; do not expand scope." Paste-ready wording for that prompt: `docs/CODING_AGENT_PROMPTING.md`. Because the spec is complete, a cheaper model is sufficient — the more decomposed the spec, the cheaper the model you can trust. Respect the global spawn depth limit (2). On a worker stall, kill its process tree.
 
-Blast radius was already computed during orient (Phase 1, pulled early) and rides in each unit's **REUSE** field as the impacted symbols/neighbors — pass it to the coder so it doesn't grep blind. Re-run `~/.claude/tools/graphify-blast.sh <files>` (bare = use `git diff`) only if the touch-set changed since decomposition.
+Blast radius was already computed during discovery (Phase 1, pulled early) and rides in each unit's **REUSE** field as the impacted symbols/neighbors — pass it to the coder so it doesn't grep blind. Re-run `~/.claude/tools/graphify-blast.sh <files>` (bare = use `git diff`) only if the touch-set changed since decomposition.
 
-If a `scaffold-<category>.md` exists for this task-category (it surfaces via recall), pass its verified approach to the decomposer/coder as the starting decomposition — don't re-invent it.
+If a `scaffold-<category>.md` exists for this task-category (in `~/.claude/scaffolds/`), pass its verified approach to the decomposer/coder as the starting decomposition — don't re-invent it.
 
 ## Phase 4 — Audit (auditor = the other model family) — gets the SAME spec
 
@@ -70,7 +82,7 @@ Auditor returns: PASS / FAIL + specific findings tied to spec lines. On FAIL, th
 
 1. Run the **real, deterministic verifier** for the whole change (full test suite / real-DB suite / run the app / screenshot — whatever proves the feature works in practice, not just that it compiles).
 2. `ml record` — exact syntax and the <=2-sentence rule: see `compact-prep` — the durable lessons: any failure mode hit, any decision + rationale, any new convention. This is what makes the next change smarter.
-   - **Scaffold capture (Ornith ledger) — now AMBIENT, don't hand-run it.** Write the winning APPROACH (the decomposition/routing that worked, not the code) to a file, then set four env vars on the step-1 check-all run. `check_all.sh` calls `scaffold-record.py` itself, but only on a GREEN run — so the capture cannot happen without a real PASS, and a builder can never record its own scaffold:
+   - **Scaffold capture (Ornith ledger) — now AMBIENT, don't hand-run it.** Write the winning APPROACH (the decomposition/routing that worked, not the code) to a file, then set four env vars on the step-1 `check_all.sh` run. `check_all.sh` calls `scaffold-record.py` itself, but only on a GREEN run — so the capture cannot happen without a real PASS, and a builder can never record its own scaffold:
      ```sh
      SCAFFOLD_CATEGORY=<task-category> SCAFFOLD_APPROACH=.scratch/approach.md \
      SCAFFOLD_ITERS=<iterations_it_took_to_pass> SCAFFOLD_AUDITOR=<auditor model> \

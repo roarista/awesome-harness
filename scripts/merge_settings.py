@@ -47,8 +47,6 @@ HOOKS = {  # == registered set after 2026-10-03 hook-circumvention + U10 hook-im
                          # soft re-scope nudge when a session looks abnormal (deep / errors / looping)
                          ("", f'python3 "{HOOK}/session-checkpoint.py"'),
                          ("Read", f'python3 "{HOOK}/graphify-blindspot.py"'),
-                         # one-line nudge when an edited source file is over 200 lines (never blocks)
-                         ("Write|Edit|MultiEdit", f'python3 "{HOOK}/size-nudge.py"'),
                          # token discipline: warn on the 3rd full re-read of the same file
                          ("Read", f'python3 "{HOOK}/token-discipline.py"')],
     "PreCompact":       [("", f'bash "{HOOK}/pre_compact_global.sh"'),
@@ -71,7 +69,9 @@ RETIRED = ("bash-write-fence", "compact-prep-gate", "graphify-gate", "claude-spa
            "coding-routing-guard", "harness-enforce", "caveman-discipline", "post-agent-guard",
            "abs-path-nudge",
            # U10 (.artifacts/agent-reports/hook-impact-2026-10-03.md DELETE verdicts)
-           "recall-inject", "manifest-guard", "codemap-inject", "reread-guard")
+           "recall-inject", "manifest-guard", "codemap-inject", "reread-guard",
+           # Ro 2026-10-03: structure is planned by the orchestrator (FILE PLAN)
+           "size-nudge")
 
 
 def drop_retired(settings):

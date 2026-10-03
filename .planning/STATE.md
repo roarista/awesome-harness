@@ -8,11 +8,11 @@ The 2026-07-27 session that did this was deleted mid-flight; context recovered f
 ## Active Resume Point
 
 **Last updated:** 2026-10-03
-**Branch:** context-diet (pushed; PR open → main). PR #5 merged.
-**Status:** Context diet T1-T11 done. Startup 36.6K→26.6K tokens in awesome-harness (ours 18.5K→8.2K).
-**Current workstream:** docs/plans/2026-10-03-context-diet.md (progress table + unit specs). Handoff is now compact-prep → /clear; hooks/clear-resume.py injects .planning/CONTINUE.md.
-**Next concrete step:** Ro tries compact-prep → /clear once; merge the context-diet PR; Ro decides the 12 zero-use skills (list in .artifacts/agent-reports/u6-u8-u9-text-diet.md). Then fmr: eval `fmr route` vs legacy table.
-**Open questions for founder:** merge PR; delete zero-use skills?; connectors in school/jobs (opted out — flip in their .claude/settings.local.json if Notion needed).
+**Branch:** skill-prune-fileplan (pushed; PR open → main). PRs #5, #6 merged.
+**Status:** Context diet done (36.6K→26.6K startup). Skills pruned to 9 Claude (code-decompose kept; 11 moved to ~/.claude/skills-retired/2026-10-03). File structure is the orchestrator's job: code-decompose FILE PLAN; builders create/split only planned files. size-nudge retired; pre-commit ratchet is the backstop.
+**Per-repo services:** frontend-design off everywhere; vercel plugin only in intrn (v1); claude.ai connectors on in Consulting, Vividlist, intrn, intrn-v2 (Supabase), home; off elsewhere via .claude/settings.local.json.
+**Next concrete step:** merge PR; Ro tests compact-prep → /clear → `/awesomeharness <message>`. Then fmr: eval `fmr route` vs legacy route-model.sh table on held-out taskset.
+**Open questions for founder:** none blocking.
 **Blocked on:** nothing. Codex main capped until Oct 6 (gpt-reserve ok; never reset credits).
 
 
