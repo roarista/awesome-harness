@@ -10,7 +10,7 @@ Tools: `ml search` if needed; `~/.claude/tools/l1.py`, `skeleton.py`, then bodie
 ## Code loop
 1. Prove REUSE / ADAPT / REJECT on live files; STOP if existing code covers it. Ponytail ladder first.
 2. Units spec `CONTEXT / REUSE / CHANGE / GOAL / VERIFY`. GOAL: observable end state + out of scope. VERIFY: commands that can fail + what passing looks like.
-   Orchestrator owns file structure (FILE PLAN in code-decompose). Builders never create unplanned files or split code; if a file would exceed its budget they stop and report back.
+   Orchestrator owns file structure (FILE PLAN in code-decompose). Builders create or split only the files the FILE PLAN names; anything unplanned or over budget → stop and report.
 3. One builder per unit, router's pick; no concurrent siblings in a dirty checkout.
 4. Audit (auditor per Delegation), same spec, shared rubric:
    - CRITICAL data loss/security/secret leak/money · HIGH wrong on a normal path, invented API, GOAL

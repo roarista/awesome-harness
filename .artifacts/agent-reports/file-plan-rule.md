@@ -56,3 +56,26 @@ Ro's decision: the 200-line structure belongs to the orchestrator, not to builde
 - A bash grep for `/x`, `$x`, `[[x]]`, `` `x` `` and "x skill" across all 11 deleted names finds 0 invocations in skills, codex, agents, the standards, FRONT_DOOR, CODING_AGENT_PROMPTING and README. The positive control `$check-all and /orient` matches 1.
 - `test_product_call_isolation.py` OK, skill-drift 11 in sync, desc-bytes 0 over cap.
 - Reinstalled live, both `./install.sh` and `--codex`. The live copies of the standards, `agents/codex.md` and `codex/AGENTS.md` match the repo (cmp). The settings.json diff is still only the size-nudge block (10 lines).
+
+## Re-audit REJECT fixes (2026-10-03)
+1. **awesomeharness, both copies:** now says "Builders create or split only the files the FILE PLAN names; anything unplanned or over budget → stop and report." Sizes are 2,733 B and 2,749 B, both within the 2,750 B cap.
+2. **Deleted-skill names in instruction text:**
+   - `hooks/northstar-inject.py:262,275`: `state-trim` -> `python3 ~/Downloads/awesome-harness/tools/state-distiller.py <repo> --apply`.
+   - `hooks/understand-gate.py:62,68`: `orient` -> "discovery (graphify/skeleton.py/rg, code-decompose)".
+   - `tools/scaffold-record.py`: recall/check-all -> `ml search`/memgraph and `check_all.sh`.
+   - `tools/goal/goal_judge.py`: /goal -> "goal/done loop".
+   - `tools/chains/README.md:51,55`.
+   - `tools/run-harness-scout.sh`: now says "harness-intel SCOUT output format".
+   - `.planning/LIGHTWEIGHT-HARNESS-PLAN.md:68` and `docs/compact-prep-why.md:163`.
+   - Every edit is line-neutral (`wc -l` unchanged). northstar-inject (351) and understand-gate (229) were already over 200 lines and did not grow.
+   - Removed the unregistered stale live copies of the retired `codemap-inject`, `manifest-guard`, `recall-inject` and `reread-guard` from `~/.claude/hooks`. The repo copies remain in `hooks/retired/`.
+3. **Remaining grep hits, none of them instruction text:**
+   - `check-all` path segments in `claudemd-trim.py:41` and `codex/hooks/pre_tool_use.py:233`.
+   - Gitignored `.scratch/` research notes.
+   - Historical prose in `.planning/STATE.md`, `HARNESS_DIRECTION.md`, `LIGHTWEIGHT-HARNESS-PLAN.md:34` and `compact-prep-why.md:170`.
+   - A runtime checkpoint JSON in `~/.claude/hooks/state`.
+   - `~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md` have 0 hits.
+
+**Verification:**
+- `test_northstar_inject.py` OK, `test_product_call_isolation.py` OK, skill-drift 11 in sync, desc-bytes 0 over cap. Both hooks compile and the scout script passes `bash -n`.
+- Reinstalled live with `./install.sh` and `--codex`. The live northstar-inject and understand-gate match the repo (cmp). The settings.json diff is still only size-nudge.

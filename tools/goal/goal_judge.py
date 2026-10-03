@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""goal_judge.py — independent "is it DONE?" helper for the /goal loop.
+"""goal_judge.py — independent "is it DONE?" helper for a goal/done loop.
 
 Moves the done-decision OFF the maker: the loop orchestrator spawns a SEPARATE
 judge sub-agent (a different model than the worker) that fills in an explicit
@@ -14,7 +14,7 @@ checklist; this script provides the MECHANICAL scaffolding around that judgment:
                      zero red).
 
 Everything here is ADVISORY and flag-gated by the caller (GOAL_INDEPENDENT_JUDGE,
-default off = current /goal behavior). Nothing here blocks or mutates the repo
+default off = current loop behavior). Nothing here blocks or mutates the repo
 beyond a temporary worktree it always cleans up.
 
 stdlib only. `python3 goal_judge.py --selftest` exercises the pure functions.

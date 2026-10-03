@@ -48,11 +48,11 @@ per-repo-boot / per-reuse-check / per-audit-pass / per-ship moments.
 |---|---|---|
 | `c0-preflight.sh` | reports which chains are trustworthy in the current repo | `awesomeharness` skill, step 3 (bootstrap) — once per repo, first boot |
 | `c1-blast.sh` | blast-radius union (graphify affected ∪ semgrep importers) | `via tools/retrieve.sh blast` |
-| `c2-prior-art.sh` | prior-art / precedent search before building something new | `orient` skill, Part B discovery ladder rung 1 (Need) |
+| `c2-prior-art.sh` | prior-art / precedent search before building something new | `code-decompose` Phase 1 discovery, rung 1 (Need) |
 | `c3-enumerate.sh` | complete-set enumeration via committed/generated semgrep rule | `via tools/retrieve.sh enumerate` |
 | `c5-dead.sh` | dead-code sweep | `harness-intel` skill, Mode A (AUDIT) — audit-cadence, not hot-path |
 | `c6-vestigial.sh` | vestigial/leftover-artifact sweep | `harness-intel` skill, Mode A (AUDIT) — audit-cadence, not hot-path |
-| `c7-preship.sh` | pre-ship checklist chain | `awesomeharness` skill, step 7 (PERSIST) — optional deeper gate, opt-in, not part of `check-all`'s automatic run |
+| `c7-preship.sh` | pre-ship checklist chain | `awesomeharness` skill, step 7 (PERSIST) — optional deeper gate, opt-in, not part of `check_all.sh`'s automatic run |
 
 ## Known gotchas
 

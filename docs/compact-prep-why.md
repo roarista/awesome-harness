@@ -160,7 +160,7 @@ The global hook copies `.planning/COMPACT_CONTEXT.md` plus matching STATE.md sec
 For Ro's coding pipeline repos, the default load-bearing context includes the harness-improvement queue mined from Notion:
 
 - Graphify / CodeGraph: graph-over-vector codebase maps, queried before cold grep when `graphify-out/graph.json` exists.
-- Deterministic gates: `check-all`, CLAUDE/AGENTS drift checks, coverage/file-size/TODO/duplication checks.
+- Deterministic gates: `tools/check-all/check_all.sh`, CLAUDE/AGENTS drift checks, coverage/file-size/TODO/duplication checks.
 - Agent rituals: start with state + memory + graph orientation; end with verification + durable memory + graph update.
 - Frontend verification: Chrome DevTools MCP plus Playwright for UI-heavy repos.
 - Later loop: Night Watch only after the gates and graph are trusted.
