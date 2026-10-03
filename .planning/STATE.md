@@ -7,13 +7,13 @@ The 2026-07-27 session that did this was deleted mid-flight; context recovered f
 
 ## Active Resume Point
 
-**Last updated:** 2026-10-02
-**Branch:** codex-procedure-parity @ 66245e6 (pushed; main == 54a0d16 via PR #3)
-**Status:** Router phase 2 shipped (fmr 9fb2561 + feffa83: Laya head opt-in, add-model, wait-vs-downgrade, Codex-sandbox safe). Hook live in 10 repos. Vividlist pushed origin/main 838e148a.
-**Current workstream:** virality-pipeline unit01/unit05 money-bug fixes (builder committing locally, no push); Codex router parity installed (~/.codex AGENTS.md + skill, writable_roots for fmr receipts).
-**Next concrete step:** audit virality fixes + codex-router diffs with opus48-audit (shared rubric); open PR codex-procedure-parity → main; then eval `fmr route` vs legacy table on held-out taskset (North Star DONE_WHEN).
-**Open questions for founder:** push virality-pipeline fixes after audit?
-**Blocked on:** nothing. Codex main capped until Oct 6 (use gpt-reserve; never reset credits).
+**Last updated:** 2026-10-03
+**Branch:** codex-procedure-parity (pushed; PR #4 merged to main 2026-10-02)
+**Status:** Harness audit round done; applying Ro's hook decisions.
+**Current workstream:** Ro 2026-10-03: keep a hook only if agents comply after a block; delete hooks they route around. Audit docs/audits/2026-10-03/hook-circumvention.md → DELETE bash-write-fence, compact-prep-gate, graphify-gate, claude-spawn-gate (+ coding-routing-guard, harness-enforce, caveman SessionStart copy); NARROW irreversible-pause, route-only-gate; KEEP northstar-protect, git ratchet, reread/skill-reinject. A builder is applying these (report .artifacts/agent-reports/apply-hook-decisions.md; settings.json backup in ~/.claude/jobs/116ee60d/tmp/). Product `claude -p` calls get zero harness (34cd85c); virality adding `--safe-mode` (report virality-pipeline/.artifacts/agent-reports/safe-mode-claude-p.md).
+**Next concrete step:** verify apply report (settings.json valid, tests, live==repo), opus audit with shared rubric, open PR codex-procedure-parity → main. Then free-model-router: eval `fmr route` vs legacy table on held-out taskset.
+**Open questions for founder:** none pending.
+**Blocked on:** nothing. Codex main capped until Oct 6 (gpt-reserve ok; never reset credits).
 
 ## LAST_VERIFIED (2026-07-27)
 - `e639ff5` un-inverted guards (mention-matching → write-matching), main-edit-guard/builder-fence/route-only-gate
