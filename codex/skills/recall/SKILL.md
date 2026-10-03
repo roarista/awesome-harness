@@ -1,6 +1,6 @@
 ---
 name: recall
-description: "Retrieve durable memory via the memgraph full-text index + mulch. Use for \"what do we know about X\" or before proposing what may be recorded."
+description: "Fetch durable memory (memgraph FTS + mulch). Use for \"what do we know/decide on X\", at the start of substantive work, or before proposing what may exist."
 ---
 
 # recall — fast memory retrieval

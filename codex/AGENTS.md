@@ -17,6 +17,6 @@ One-line/docs-only edits skip 2-4, never 0/1/7, but state `REUSE:`/`REJECT:` fir
 
 # Rules
 - No running narration; one thorough final summary (changes, proof, pending, decisions).
-- Close: `.now.md` (NOW/LAST_VERIFIED/NEXT ≤5 lines) + STATE resume point; name it at the end. Never rewrite `.northstar.md`'s objective; ask.
+- Close: `.now.md` (NOW/LAST_VERIFIED/NEXT ≤5 lines) + STATE resume point + `.northstar.md` updated at close; name it at the end. Never rewrite `.northstar.md`'s objective; ask.
 - Memory records ≤2 sentences, overflow to a linked detail file read before diagnosing. STATE trimmed; history archived, never deleted.
-- CLIs: `graphify query|explain|path` if `graphify-out/` exists; `ml` = mulch.
+- CLIs: `graphify query|explain|path` when `graphify-out/graph.json` exists; `ml` = mulch.

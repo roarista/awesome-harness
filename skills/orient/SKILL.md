@@ -1,6 +1,6 @@
 ---
 name: orient
-description: "PROCEDURE steps 1-3 in one call: recall, understand, REUSE/ADAPT/REJECT + STOP/PLAN/BUILD gate. Use before new code or features; skip trivial edits."
+description: "Recall+understand+REUSE/ADAPT/REJECT+STOP/PLAN/BUILD. Use before code, re-proposing, new feature/module/schema/dep, refactor, joining subsystems. Skip trivial."
 ---
 
 <!-- MIRROR: copy of ~/.claude/skills/orient/SKILL.md (authoritative = the live ~/.claude copy). Re-sync: cp ~/.claude/skills/orient/SKILL.md skills/orient/SKILL.md -->

@@ -14,7 +14,7 @@
 - Router picks builder, auditor, model, effort from live subscription usage (Claude Max 20x + ChatGPT Pro-lite/Codex; no API): `~/.claude/tools/route-model.sh "<task>"` (wraps `fmr route`; prints NECESSITY/BUILDER/AUDITOR/SPEC/`ID:`; `fmr status` shows usage). DO-NOT-LAUNCH = do it inline or skip. After the audit: `cd ${FMR_HOME:-~/Downloads/free-model-router} && .venv/bin/python -m fmr outcome <id> pass|pass_with_fixes|reject|reworked|abandoned`.
 - Spend: code + review → best model with headroom; research/mechanical → cheapest; a quota resetting soon with room left goes first. Never use Codex reset credits without Ro's explicit yes. Ro naming a model beats the router.
 - Audits always cross-family, one shared rubric (in the auditor definitions): Codex-built → `opus48-audit`/`opus`; Claude-built → `codex-audit` (other Claude auditor if Codex is exhausted).
-- Agent types: Claude builds/analysis → `claude`; Codex builds → `codex`; never `general-purpose`.
+- Agent types: Claude builds/analysis → `claude`; Codex builds → `codex`; never `general-purpose` or `Explore`.
 - Councils / second opinions: one Codex + one Claude voice (Gemini optional third).
 
 ## Graphify
