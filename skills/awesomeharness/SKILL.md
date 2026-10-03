@@ -9,9 +9,9 @@ Tools: `ml search` if needed; `~/.claude/tools/l1.py`, `skeleton.py`, then bodie
 
 ## Code loop
 1. Prove REUSE / ADAPT / REJECT on live files; STOP if existing code covers it. Ponytail ladder first.
-2. Units spec `CONTEXT / REUSE / CHANGE / GOAL / VERIFY`. GOAL: observable end state + out of scope. VERIFY: commands that can fail + what passing looks like. Files ≤200 lines.
+2. Units spec `CONTEXT / REUSE / CHANGE / GOAL / VERIFY`. GOAL: observable end state + out of scope. VERIFY: commands that can fail + what passing looks like.
 3. One builder per unit, router's pick; no concurrent siblings in a dirty checkout.
-4. Audit cross-family, same spec, shared rubric:
+4. Audit (auditor per Delegation), same spec, shared rubric:
    - CRITICAL data loss/security/secret leak/money · HIGH wrong on a normal path, invented API, GOAL
      unmet · MEDIUM edge input, unhandled I/O error, untested risky branch, test that cannot fail · LOW style.
    - `VERDICT: REJECT` if any CRITICAL/HIGH, any MEDIUM touching money/auth/secrets/data-loss/prod
