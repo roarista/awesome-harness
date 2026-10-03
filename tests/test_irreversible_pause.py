@@ -43,6 +43,9 @@ FALSE_BLOCKS = (  # each was blocked by the old hook; none is dangerous
     "cat > f.txt <<EOF\n  EOF\nrm -rf ~/x\nEOF",              # '  EOF' does not end <<EOF
     "cat > f.txt <<'EOF'\n$(rm -rf ~/x)\nEOF",               # quoted delimiter: no expansion
     'X=$(mktemp -d); cp a "$X"; rm -rf "$X"',
+    'git commit -m "remove rm -rf ~/x hack"', 'echo "rm -rf ~"', "grep 'rm -rf' file",
+    "rg -n 'rm -rf ~' hooks/", "sed -n '/rm -rf/p' notes.txt", 'echo "rm -rf ~" | tee /tmp/log',
+    'ssh host "ls -la /srv"', 'python3 -c "print(1)"',
 )
 REAL_DANGER = (
     "rm -rf ~/.cache/huggingface/hub/models--google--gemma-4",
@@ -81,6 +84,10 @@ REAL_DANGER = (
     # heredoc ends at the FIRST exact delimiter line: what follows is a command
     "cat > /tmp/t.py <<'EOF'\nok = ['rm -rf /tmp/a',\nEOF\nrm -rf ~/x\n]\nEOF",
     'echo "x <<EOF"\nrm -rf ~/x\nEOF',
+    # 88aab6b re-audit: quoted strings are code unless the command is plain data
+    'ssh host "rm -rf /srv/x"', 'python3 -c "import os; os.system(\\"rm -rf ~/x\\")"',
+    "node -e 'require(\"child_process\").execSync(\"rm -rf ~/x\")'",
+    'echo "rm -rf ~/x" | tee /tmp/log | sh', 'printf "rm -rf ~" | cat | bash -s',
     "curl -X POST https://canvas.instructure.com/api/v1/courses/1/assignments/2/submissions -F f=@a.pdf",
 )
 

@@ -101,3 +101,9 @@ Backup: `$CLAUDE_JOB_DIR/tmp/settings.json.bak-2026-10-03` (= `/Users/rodrigoari
 - Force-push regex adds `--mirror`, `--delete`, `-d` groups, `--prune`, and `:ref`.
 - Tests: 20 new must-block cases, including the exact EOF-inside-data repro. On ec11506, 20 danger cases are missed and 2 tests FAIL; all pass now on repo and live. False-block cases were added (redirects, `HEAD:main`, `<<-` tab end, quoted-delimiter body, `cat <<<`).
 - **Backup note:** `$CLAUDE_JOB_DIR/tmp` was wiped during the re-audit, likely by the auditor's accidental real `rm` run. The 32-entry pre-change settings were rebuilt from the before list to `~/.claude/settings.json.bak-2026-10-03-pre-apply`.
+
+## Follow-up 3: re-audit REJECT of 88aab6b, fixed
+- `_rmscan.py` (161 lines): the CONTENTS of every quoted string are now scanned as code (covers `ssh host "..."`, `python3 -c`, `node -e`). The exception is a command that is plain data: echo/printf/grep/egrep/fgrep/rg/ag/sed, or `git commit`.
+- A shell anywhere in a pipeline consumes every upstream stage (`echo .. | tee | sh`).
+- Tests: 5 new must-block cases (all missed on 88aab6b) and 8 must-pass cases (`git commit -m "remove rm -rf ~/x hack"`, `echo "rm -rf ~"`, `grep 'rm -rf' file`, rg, sed, `echo | tee`, `ssh ls`, `python -c print`). All pass on repo and live.
+- Stray `/tmp/x.sh` from the audit incident removed.

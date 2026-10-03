@@ -6,7 +6,9 @@
 output; symlinks resolved). So prefixes (sudo/ssh/watch/parallel/...) and
 keywords cannot hide it. Strings that become code are scanned recursively:
 $(...) and backtick bodies, `sh -c` / `bash -lc`, eval, here-strings fed to a
-shell, and arguments piped into a shell (`echo "..." | sh`).
+shell, arguments piped into a shell anywhere downstream (`echo .. | tee | sh`),
+and the CONTENTS of every quoted string (ssh/python -c) unless the command is
+plain data (echo/printf/grep/rg/sed, `git commit -m`).
 Audit: docs/audits/2026-10-03/hook-circumvention.md."""
 import os
 import re
@@ -17,6 +19,7 @@ SAFE_PARTS = {"node_modules", "dist", "build", "out", "__pycache__", ".pytest_ca
 SAFE_PREFIX = ("/tmp/", "/private/tmp/", "/var/folders/", "/private/var/folders/")
 SAFE_VARS = ("CLAUDE_JOB_DIR", "TMPDIR")
 SHELLS = {"bash", "sh", "zsh", "dash", "ksh", "fish"}
+DATA_CMDS = {"echo", "printf", "grep", "egrep", "fgrep", "rg", "ag", "sed"}  # args are data
 SUBST = re.compile(r"`([^`]*)`|\$\(((?:[^()]|\([^()]*\))*)\)")
 ASSIGN = re.compile(r"(?<![\w$-])(\w+)=(\$\(\s*mktemp\b)?|\b(?:for|read(?:\s+-\w+)*)\s+(\w+)")
 REDIR = re.compile(r"^(?:\d*|&)(?:>>?|<)&?")
@@ -131,7 +134,11 @@ def rm_is_recursive_force(cmd: str, depth: int = 0) -> bool:
     for n, (sep, seg) in enumerate(segs):
         bases = [os.path.basename(w) for w in seg]
         has_shell = bool(SHELLS & set(bases))
+        cmd0 = next((b for w, b in zip(seg, bases) if not re.match(r"^\w+=", w)), "")
+        data = cmd0 in DATA_CMDS or (cmd0 == "git" and "commit" in seg)
         for k, w in enumerate(seg):
+            if not data and "rm" in w and any(c in w for c in " \t\n") and again(w):
+                return True  # quoted string = code (ssh "...", python -c "os.system(...)")
             if bases[k] == "rm" and _rm_hit(seg, k, tmpvars):
                 return True
             if bases[k] in SHELLS:
@@ -146,6 +153,9 @@ def rm_is_recursive_force(cmd: str, depth: int = 0) -> bool:
             if w.startswith("<<<") and has_shell:
                 if again(w[3:] or (seg[k + 1] if k + 1 < len(seg) else "")):
                     return True
-        if sep == "|" and has_shell and n > 0 and again(" ".join(segs[n - 1][1][1:])):
-            return True
+        m = n
+        while has_shell and m > 0 and segs[m][0] == "|":  # a shell anywhere in a pipeline
+            m -= 1                                        # consumes every upstream stage
+            if again(" ".join(segs[m][1][1:])):
+                return True
     return False
