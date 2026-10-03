@@ -74,7 +74,8 @@ def _commands(entries):
 
 # unregistered 2026-10-03 (hooks/retired/README.md); stripped from existing installs
 RETIRED = ("bash-write-fence", "compact-prep-gate", "graphify-gate", "claude-spawn-gate",
-           "coding-routing-guard", "harness-enforce", "caveman-discipline", "post-agent-guard")
+           "coding-routing-guard", "harness-enforce", "caveman-discipline", "post-agent-guard",
+           "abs-path-nudge")
 
 
 def drop_retired(settings):

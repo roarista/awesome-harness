@@ -21,7 +21,8 @@ OVERRIDE = "CLAUDE_ALLOW_IRREVERSIBLE=1"
 
 # 2. git push carrying a force flag.
 GIT_FORCE_PUSH = re.compile(
-    r"\bgit\b[^\n;|&]*\bpush\b[^\n;|&]*(?:--force-with-lease|--force|(?<![\w-])-f\b)",
+    r"\bgit\b[^\n;|&]*\bpush\b[^\n;|&]*"
+    r"(?:--force-with-lease|--force|(?<![\w-])-[a-zA-Z]*f[a-zA-Z]*\b|(?<!\S)\+[\w./:-])",
 )
 
 # 3. Destructive SQL — only with a real DB client invoked outside quotes.

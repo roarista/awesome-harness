@@ -10,3 +10,4 @@ Rule (Ro, 2026-10-03): keep a blocking hook only if agents comply after a block;
 - `harness-enforce.py`: a 4th copy of the caveman rule plus a stale GLM `[routing]` line on every prompt.
 - `caveman-discipline.sh`: a SessionStart copy of CLAUDE.md G1. G1 is now the single copy.
 - `post-agent-guard.py`: duplicates G2 (rule-value row 23, CUT), and its receipt text sends work to "the `codex` agent".
+- `abs-path-nudge.py`: Stop-hook nudge that was unregistered in live settings but still listed in `merge_settings.py` HOOKS. Rule-value row 26 (dead unregistered hook files, CUT). It duplicates the job contract's "absolute paths in the final message" rule.

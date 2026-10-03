@@ -77,3 +77,14 @@ Backup: `$CLAUDE_JOB_DIR/tmp/settings.json.bak-2026-10-03` (= `/Users/rodrigoari
 - Every registered hook was run once with realistic stdin: 22 of 22 exit 0 with no traceback. The PreCompact pair ran in a throwaway git repo.
 - Selftests (now-gate, filesize-cap, manifest-guard, codemap-inject) pass. `tools/skill-drift.sh`: 16 copies in sync.
 - During the work, the old fence and the old irreversible-pause each blocked me once on false positives (a .py write, then rm text inside a heredoc and a comment). I complied: the fence after it was unregistered, and the heredoc case via a script file once the new hook was synced.
+
+## Follow-up: audit REJECT of cf687c4 (HIGH), fixed
+- `_rmscan.py`:
+  - Command position now resets after separators and after then/do/else/elif/if/while/until/`{`/`!`/time.
+  - Prefix commands (sudo, doas, env, timeout, nohup, nice, stdbuf, xargs, exec, command, caffeinate, ionice) are skipped together with their options, option arguments, VAR=x and durations.
+  - `sh`/`bash`/`zsh` strings are recursed into for any flag group containing `c`, and so is `eval`.
+  - Safe targets are now checked after `os.path.realpath`, so a /tmp symlink to ~ is not safe.
+- `irreversible-pause.py`: force-push now catches flag groups containing f (`-fu`, `-uf`) and `+refspec`.
+- `abs-path-nudge`: retired properly (moved to `hooks/retired/`, README line, added to RETIRED in `merge_settings.py`). It had been unregistered live already.
+- Tests: 19 bypasses and the symlink case are must-block. Run against cf687c4, 2 tests FAIL (19 bypasses missed; symlink case not blocked). After the fix, all 5 pass on repo and live. All false-block cases still pass.
+- Live == repo for the 17 registered scripts plus `_rmscan.py`. manifest-guard re-blessed (35 files).

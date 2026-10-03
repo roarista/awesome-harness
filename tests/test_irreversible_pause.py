@@ -49,6 +49,18 @@ REAL_DANGER = (
     "find . -delete", "truncate -s 0 f", "dd if=x of=/dev/disk9", "mkfs.ext4 /dev/disk9",
     "aws s3 rm s3://b --recursive", "gcloud projects delete p", "rclone purge r:p",
     "psql -c 'drop table users'",
+    # cf687c4 audit bypasses: keywords reset command position
+    "if true; then rm -rf ~/x; fi", "for d in a b; do rm -rf ~/$d; done",
+    'while read d; do rm -rf "$d"; done', "{ rm -rf ~/x; }", "! rm -rf ~/x",
+    "if false; then :; else rm -rf ~/x; fi", "time rm -rf ~/x",
+    # prefix commands with options / args / assignments
+    "sudo -u ro rm -rf ~/x", "env -i rm -rf ~/x", "env FOO=1 rm -rf ~/x", "X=1 rm -rf ~/x",
+    "timeout 5 rm -rf ~/x", "nohup rm -rf ~/x", "nice -n 5 rm -rf ~/x",
+    "stdbuf -o0 rm -rf ~/x", "find . -print0 | xargs -0 rm -rf",
+    # shell -c flag groups and eval
+    'sh -lc "rm -rf ~/x"', "bash -ec 'rm -rf ~/x'", "zsh -c 'rm -rf ~/x'", "eval rm -rf ~/x",
+    # force-push flag groups and +refspec
+    "git push -fu origin main", "git push -uf origin main", "git push origin +main",
     "curl -X POST https://canvas.instructure.com/api/v1/courses/1/assignments/2/submissions -F f=@a.pdf",
 )
 
@@ -75,6 +87,16 @@ class T(unittest.TestCase):
         self.assertEqual(run_hook("rm -rf /tmp/x11m"), 0)
         self.assertEqual(run_hook("rm -rf ~/x"), 2)
         self.assertEqual(run_hook("CLAUDE_ALLOW_IRREVERSIBLE=1 rm -rf ~/x"), 0)
+
+    def test_tmp_symlink_to_home_is_not_safe(self):
+        link = "/tmp/irp-test-link-%d" % os.getpid()
+        try:
+            os.symlink(os.path.expanduser("~"), link)
+            self.assertTrue(mod.matches_denylist("rm -rf %s/" % link))
+            self.assertTrue(mod.matches_denylist("rm -rf %s/Documents" % link))
+        finally:
+            if os.path.islink(link):
+                os.unlink(link)
 
     def test_mutation_has_teeth(self):
         """Neuter the target check: the danger assertion must then FAIL."""
