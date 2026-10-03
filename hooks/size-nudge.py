@@ -10,6 +10,7 @@ Fail-open on any error. U10 2026-10-03.
 """
 import _hookout; _hookout.exit_if_product(); import json
 import os
+import _hookout as hookout  # inject(); separate import survives the guard-strip test
 import sys
 
 CAP = 200
@@ -48,7 +49,7 @@ def main() -> None:
     path = str((data.get("tool_input") or {}).get("file_path", ""))
     if path and not os.path.isabs(path) and data.get("cwd"):
         path = os.path.join(data["cwd"], path)
-    _hookout.inject("PostToolUse", message(path))
+    hookout.inject("PostToolUse", message(path))
 
 
 if __name__ == "__main__":

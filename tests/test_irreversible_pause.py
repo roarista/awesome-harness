@@ -136,7 +136,12 @@ class T(unittest.TestCase):
                "M=/tmp/x rm -rf $M", "echo 'M=/tmp/x;'; rm -rf $M",
                "M=/tmp/x$(echo y); rm -rf $M", "M=/tmp/../Users/x; rm -rf $M",
                "M=/tmp; rm -rf $M", "M=~/x; rm -rf $M", "M=/tmp/x; M=$HOME; rm -rf $M",
-               "M=/tmp/x; for M in ~; do rm -rf $M; done", "M=/tmp/x; rm -rf $M ~/y")
+               "M=/tmp/x; for M in ~; do rm -rf $M; done", "M=/tmp/x; rm -rf $M ~/y",
+               # audit b369850: ordering — only assignments before the rm count
+               "rm -rf $M; M=/tmp/x", "M=/tmp/x && M=$HOME; rm -rf $M",
+               "M=/tmp/x; rm -rf $M $HOME", "false && M=/tmp/x; rm -rf $M",
+               "cd /nope && M=/tmp/x; rm -rf $M", "rm -rf $D; D=$(mktemp -d)",
+               "echo 'D=$(mktemp -d)'; rm -rf $D", "bash -c \"rm -rf $T\"; T=$(mktemp -d)")
         self.assertEqual([c for c in ok if mod.matches_denylist(c)], [])
         self.assertEqual([c for c in bad if not mod.matches_denylist(c)], [])
 

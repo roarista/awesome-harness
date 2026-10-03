@@ -4,9 +4,10 @@
 A delete target is disposable only if it is tmp, $CLAUDE_JOB_DIR/$TMPDIR under a
 sub-path, a git worktree, build output, or a shell var whose LAST assignment in the
 same command is `$(mktemp ...)` or an UNQUOTED LITERAL path that is itself
-disposable (`M=/tmp/x; rm -rf $M`). A literal must be a whole standalone
-assignment (followed by ; & | newline or end) — `M=/tmp/x rm -rf $M` expands the
-OLD $M, so it does not count. Reassignment to anything else re-arms the block.
+disposable (`M=/tmp/x; rm -rf $M`), with every assignment safe and none after a
+use (see _tmpvars). A literal must be a whole standalone, unconditional
+assignment — `M=/tmp/x rm -rf $M` expands the OLD $M and `false && M=...` may
+never run, so neither counts. Reassignment to anything else re-arms the block.
 U10 2026-10-03 (.artifacts/agent-reports/hook-impact-2026-10-03.md row 11).
 """
 import os
@@ -28,25 +29,46 @@ def _real(p: str) -> str:
         return os.path.normpath(p)
 
 
-def _literal_safe(cmd: str, blanked: str, m) -> bool:
-    """True iff ASSIGN match `m` is an unquoted standalone literal scratch path."""
-    if m.group(2) or not m.group(1) or blanked[m.start(1)] == " ":
-        return False  # mktemp handled elsewhere; `for`/`read`; or inside quotes
+def _real_assign(blanked: str, m) -> bool:
+    """Unquoted and unconditional: at command start, or after ; / newline / export."""
+    if blanked[m.start(1)] == " ":
+        return False  # inside quotes: data, not an assignment
+    pre = re.sub(r"(?:\bexport\s+)?$", "", blanked[:m.start(1)]).rstrip(" \t")
+    return pre == "" or pre[-1] in ";\n"
+
+
+def _assign_safe(blanked: str, m) -> bool:
+    if not _real_assign(blanked, m):
+        return False
+    if m.group(2):
+        return True  # $(mktemp ...)
     v = LITVAL.match(blanked, m.end())
     return bool(v) and _safe_target(v.group(1), set())
 
 
 def _tmpvars(cmd: str, outer: frozenset = frozenset()) -> set:
-    """Vars whose LAST assignment (outer scope first, then `cmd`) is mktemp or a
-    literal disposable path."""
-    last = dict.fromkeys(outer, True)
+    """Vars that hold scratch at EVERY use: each assignment in `cmd` is a real
+    mktemp/literal-scratch one and no `$VAR` reference precedes the first of them
+    (or the var was already scratch in the outer scope). Stricter than "last
+    assignment before the rm": a later unsafe reassignment also blocks."""
     blanked = QUOTED.sub(lambda q: " " * len(q.group()), cmd)
+    events = {}
     for m in ASSIGN.finditer(cmd):
         if m.group(1):
-            last[m.group(1)] = bool(m.group(2)) or _literal_safe(cmd, blanked, m)
+            events.setdefault(m.group(1), []).append((m.start(), _assign_safe(blanked, m)))
         else:
-            last[m.group(3)] = False
-    return {k for k, v in last.items() if v}
+            events.setdefault(m.group(3), []).append((m.start(), False))
+    out = set()
+    for var in set(outer) | set(events):
+        ev = events.get(var, [])
+        if not all(ok for _, ok in ev):
+            continue
+        if var not in outer:
+            ref = re.search(r"\$\{?" + re.escape(var) + r"\b", cmd)
+            if ref and ref.start() < ev[0][0]:
+                continue  # used before it is assigned: inherited value
+        out.add(var)
+    return out
 
 
 def _safe_target(t: str, tmpvars: set) -> bool:
