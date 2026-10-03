@@ -5,7 +5,7 @@ description: "Decompose a code change into CONTEXT/CHANGE/GOAL/VERIFY units for 
 
 # code-decompose
 
-> **Steps 4-6 of THE PROCEDURE** (`/awesomeharness`). Entry condition: `orient` (`/orient`) already returned a **BUILD** gate + the residual gap. If it hasn't run, run it first — do not re-discover here.
+> **Steps 4-6 of THE PROCEDURE** (`/awesomeharness`). Entry condition: recall+understand+REUSE/ADAPT/REJECT already returned a **BUILD** gate + the residual gap. If that hasn't happened, do it first — do not re-discover here.
 
 The whole point: **the change must be fully understood before any code is written — both the code that exists and the code we intend to write — and that understanding must be written down precisely enough that a cheap model can execute it without judgment.** Decomposition is the expensive thinking step; execution is the cheap step done at volume. If the spec is complete, a cheaper coder can be trusted — that trust is the entire reason this skill exists.
 

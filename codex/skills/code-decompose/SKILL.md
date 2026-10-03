@@ -59,7 +59,7 @@ The audit is only worth something if you read the diff fresh. Reasoning from wha
 
 ## Phase 4 — Integrate and close
 
-1. Run the **real, deterministic verifier** for the whole change (full test suite, run the app, the repo's gate commands — whatever proves the feature works in practice, not just that it compiles). `~/.codex/skills/check-all/SKILL.md` gives you the universal battery.
+1. Run the **real, deterministic verifier** for the whole change (full test suite, run the app, the repo's gate commands — whatever proves the feature works in practice, not just that it compiles). `tools/check-all/check_all.sh <repo>` gives you the universal battery.
 2. Close per `~/.codex/skills/compact-prep/SKILL.md` (THE PROCEDURE step 7): commit → record → `.now.md` + STATE → push.
 
 ## Why this beats one big prompt
