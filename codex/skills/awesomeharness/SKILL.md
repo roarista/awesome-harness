@@ -18,7 +18,7 @@ Tools: `ml search`; `~/Downloads/awesome-harness/tools/{l1,skeleton}.py`, bodies
    - `VERDICT: REJECT` if any CRITICAL/HIGH, any MEDIUM touching money/auth/secrets/data-loss/prod
      data, or VERIFY not run/failing; `PASS WITH FIXES` if only other MEDIUM/LOW; `PASS` only if ≤LOW.
    Re-audit until not REJECT; fix every item. Agent reports are claims: independently check the tree and command output.
-5. Unit check + `$check-all`, real output. Commit scoped, `ml record`, `.now.md` (NOW/LAST_VERIFIED/NEXT ≤5 lines) + STATE resume point, push.
+5. Unit check + repo gate (`tools/check_all.sh` where `.check-all.json` exists), real output. Commit scoped, `ml record`, `.now.md` (NOW/LAST_VERIFIED/NEXT ≤5 lines) + STATE resume point, push.
 After a handoff use $compact-prep then /clear.
 
 ## Agents
