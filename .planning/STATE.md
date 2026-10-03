@@ -8,12 +8,13 @@ The 2026-07-27 session that did this was deleted mid-flight; context recovered f
 ## Active Resume Point
 
 **Last updated:** 2026-10-03
-**Branch:** codex-procedure-parity (pushed; PR #4 merged to main 2026-10-02)
-**Status:** Harness audit round done; applying Ro's hook decisions.
-**Current workstream:** Ro 2026-10-03: keep a hook only if agents comply after a block; delete hooks they route around. Audit docs/audits/2026-10-03/hook-circumvention.md → DELETE bash-write-fence, compact-prep-gate, graphify-gate, claude-spawn-gate (+ coding-routing-guard, harness-enforce, caveman SessionStart copy); NARROW irreversible-pause, route-only-gate; KEEP northstar-protect, git ratchet, reread/skill-reinject. A builder is applying these (report .artifacts/agent-reports/apply-hook-decisions.md; settings.json backup in ~/.claude/jobs/116ee60d/tmp/). Product `claude -p` calls get zero harness (34cd85c); virality adding `--safe-mode` (report virality-pipeline/.artifacts/agent-reports/safe-mode-claude-p.md).
-**Next concrete step:** verify apply report (settings.json valid, tests, live==repo), opus audit with shared rubric, open PR codex-procedure-parity → main. Then free-model-router: eval `fmr route` vs legacy table on held-out taskset.
-**Open questions for founder:** none pending.
-**Blocked on:** nothing. Codex main capped until Oct 6 (gpt-reserve ok; never reset credits).
+**Branch:** codex-procedure-parity (PR #5 open → main)
+**Status:** Hook decisions applied + audited PASS (511502d). Context-diet plan written, awaiting Ro.
+**Current workstream:** cut startup context. Plan + measurements: docs/plans/2026-10-03-context-diet.md (ours = 18.5K of a 36.6K `-p` start; interactive ~57K).
+**Next concrete step:** on Ro's go — P1 config (disable vercel/power-automate, unused claude.ai connectors, ponytail→CLAUDE.md), then builder units P2-P4; re-run the gate command in the plan after each.
+**Open questions for founder:** merge PR #5; P1 config yes/no; keep 22 hooks vs Aug-10's 8.
+**Blocked on:** Ro. Codex main capped until Oct 6 (gpt-reserve ok; never reset credits).
+
 
 ## LAST_VERIFIED (2026-07-27)
 - `e639ff5` un-inverted guards (mention-matching → write-matching), main-edit-guard/builder-fence/route-only-gate
