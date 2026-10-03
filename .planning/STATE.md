@@ -8,11 +8,10 @@ The 2026-07-27 session that did this was deleted mid-flight; context recovered f
 ## Active Resume Point
 
 **Last updated:** 2026-10-03
-**Branch:** skill-prune-fileplan (pushed; PR open → main). PRs #5, #6 merged.
-**Status:** Context diet done (36.6K→26.6K startup). Skills pruned to 9 Claude (code-decompose kept; 11 moved to ~/.claude/skills-retired/2026-10-03). File structure is the orchestrator's job: code-decompose FILE PLAN; builders create/split only planned files. size-nudge retired; pre-commit ratchet is the backstop.
-**Per-repo services:** frontend-design off everywhere; vercel plugin only in intrn (v1); claude.ai connectors on in Consulting, Vividlist, intrn, intrn-v2 (Supabase), home; off elsewhere via .claude/settings.local.json.
-**Next concrete step:** merge PR; Ro tests compact-prep → /clear → `/awesomeharness <message>`. Then fmr: eval `fmr route` vs legacy route-model.sh table on held-out taskset.
-**Open questions for founder:** none blocking.
+**Branch:** awesome-harness main (PRs #5-#7 merged). free-model-router branch route-eval, PR #1 open.
+**Status:** Context diet + skill prune + orchestrator FILE PLAN shipped. Route eval (docs/route-eval-2026-10-03.md in fmr): router beats legacy only if legacy codex = gpt-6-sol (Sep rollouts' dominant model); ties with gpt-6-astra. Under neutral usage the router picks claude-opus-5-5 for ~all code/audit rows, so history cannot measure per-task routing skill.
+**Next concrete step:** merge fmr PR #1; design a prospective A/B (alternate router vs legacy pick per build unit, record `fmr outcome`, compare after ~30 receipts).
+**Open questions for founder:** run the A/B (costs nothing extra — same builds, different picks)?
 **Blocked on:** nothing. Codex main capped until Oct 6 (gpt-reserve ok; never reset credits).
 
 

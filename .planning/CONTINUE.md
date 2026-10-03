@@ -1,7 +1,7 @@
 === CONTINUE ===
 NORTH STAR: free-model-router + awesome-harness — best builder/auditor/model on my subscriptions; harness rules only where agents comply; minimal startup context.
-NOW: harness diet + skill prune + orchestrator FILE PLAN shipped (PR skill-prune-fileplan → main).
-NEXT: if PR merged, fmr: evaluate `fmr route` vs legacy route-model.sh table on the held-out taskset (North Star DONE_WHEN).
-DON'T REDO: per-project connector opt-IN (only opt-OUT works); builder-side size nudges (orchestrator plans files); retired hooks/skills (hooks/retired/README.md, ~/.claude/skills-retired/); bash-heredoc test batteries; Codex reset credits.
-POINTERS: .planning/STATE.md ## Active Resume Point · docs/plans/2026-10-03-context-diet.md · .artifacts/agent-reports/pocock-structure-research.md
+NOW: route eval shipped (free-model-router PR #1). History can't prove routing skill: router picks opus-5-5 on ~all code/audit rows under neutral usage.
+NEXT: if Ro agrees, prospective A/B — alternate router vs legacy (FMR_DISABLE=1) pick per build unit, record `fmr outcome <id>`, compare pass/reject after ~30 receipts.
+DON'T REDO: legacy codex mapping (Aug gpt-5.6-sol, Sep gpt-6-sol, from rollouts); changing the pre-registered eval rule post hoc; retired skills/hooks; Codex reset credits.
+POINTERS: ~/Downloads/free-model-router/docs/route-eval-2026-10-03.md · docs/plans/2026-10-03-route-eval.md (fmr) · .planning/STATE.md
 ===
