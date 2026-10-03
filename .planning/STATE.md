@@ -8,12 +8,12 @@ The 2026-07-27 session that did this was deleted mid-flight; context recovered f
 ## Active Resume Point
 
 **Last updated:** 2026-10-03
-**Branch:** codex-procedure-parity (PR #5 open → main)
-**Status:** Hook decisions applied + audited PASS (511502d). Context-diet plan written, awaiting Ro.
-**Current workstream:** cut startup context. Plan + measurements: docs/plans/2026-10-03-context-diet.md (ours = 18.5K of a 36.6K `-p` start; interactive ~57K).
-**Next concrete step:** on Ro's go — P1 config (disable vercel/power-automate, unused claude.ai connectors, ponytail→CLAUDE.md), then builder units P2-P4; re-run the gate command in the plan after each.
-**Open questions for founder:** merge PR #5; P1 config yes/no; keep 22 hooks vs Aug-10's 8.
-**Blocked on:** Ro. Codex main capped until Oct 6 (gpt-reserve ok; never reset credits).
+**Branch:** context-diet (pushed; PR open → main). PR #5 merged.
+**Status:** Context diet T1-T11 done. Startup 36.6K→26.6K tokens in awesome-harness (ours 18.5K→8.2K).
+**Current workstream:** docs/plans/2026-10-03-context-diet.md (progress table + unit specs). Handoff is now compact-prep → /clear; hooks/clear-resume.py injects .planning/CONTINUE.md.
+**Next concrete step:** Ro tries compact-prep → /clear once; merge the context-diet PR; Ro decides the 12 zero-use skills (list in .artifacts/agent-reports/u6-u8-u9-text-diet.md). Then fmr: eval `fmr route` vs legacy table.
+**Open questions for founder:** merge PR; delete zero-use skills?; connectors in school/jobs (opted out — flip in their .claude/settings.local.json if Notion needed).
+**Blocked on:** nothing. Codex main capped until Oct 6 (gpt-reserve ok; never reset credits).
 
 
 ## LAST_VERIFIED (2026-07-27)
