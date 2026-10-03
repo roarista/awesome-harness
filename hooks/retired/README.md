@@ -18,3 +18,7 @@ Rule (Ro, 2026-10-03): keep a blocking hook only if agents comply after a block;
 - `manifest-guard.py`: 3.84 MB injected in 30 d (98% product tmp dirs), 0 real tamper detections; every post-change firing was a stale baseline after a legit settings edit.
 - `codemap-inject.py`: 750 KB in 30 d, followed by any graphify/.codemap use in 4/413 firings (1%); re-fired on every compact/resume. `tools/codemap.py` stays.
 - `reread-guard.py` (all 3 entries): routed around on first contact (cp the image to `$CLAUDE_JOB_DIR/tmp`, Read the copy, 2/2). `token-discipline.py` nudges the same thing without blocking.
+
+## Structure owned by the orchestrator (2026-10-03)
+
+- `size-nudge.py`: Ro 2026-10-03: structure is planned by the orchestrator; builder-side nudges produce unplanned splits. The FILE PLAN step in `code-decompose` replaces it; the git pre-commit 200-line ratchet stays as the backstop.

@@ -5,11 +5,12 @@ description: Activate Ro's context-light coding loop, tool routing, sub-agent di
 # awesomeharness
 
 Args summary = resume point; else `STATE_CURRENT.md`, never archives. Delegation: CLAUDE.md.
-Tools: `ml search` if needed; `~/.claude/tools/l1.py`, `skeleton.py`, then bodies; graphify structure, Semgrep AST, `rg` text. Load specs/skills/MCPs only when the task needs them.
+Tools: `ml search` if needed; `~/.claude/tools/l1.py`, `skeleton.py`, then bodies; graphify structure, Semgrep AST, `rg` text. Load specs/skills/MCPs only when needed.
 
 ## Code loop
 1. Prove REUSE / ADAPT / REJECT on live files; STOP if existing code covers it. Ponytail ladder first.
-2. Units spec `CONTEXT / REUSE / CHANGE / GOAL / VERIFY`. GOAL: observable end state + out of scope. VERIFY: commands that can fail + what passing looks like. Every touched file ≤200 lines.
+2. Units spec `CONTEXT / REUSE / CHANGE / GOAL / VERIFY`. GOAL: observable end state + out of scope. VERIFY: commands that can fail + what passing looks like.
+   Orchestrator owns file structure (FILE PLAN in code-decompose). Builders never create unplanned files or split code; if a file would exceed its budget they stop and report back.
 3. One builder per unit, router's pick; no concurrent siblings in a dirty checkout.
 4. Audit (auditor per Delegation), same spec, shared rubric:
    - CRITICAL data loss/security/secret leak/money · HIGH wrong on a normal path, invented API, GOAL
@@ -31,6 +32,6 @@ Scoped reads; full result in `.artifacts/agent-reports/<task>.md`; return ≤8 l
 - Ship: real entry point twice; inspect what it left behind.
 
 ## Non-negotiables
-- No source file over 200 lines: split to a new module first. 300 caps pre-existing files; touching one shrinks it. Ratchet bypass only with Ro's yes.
+- No source file over 200 lines; 300 caps pre-existing files, touching one shrinks it. Ratchet bypass only with Ro's yes.
 - Preserve unrelated dirty work; never force/reset/clean/stash/restore it away.
 - No unauthorized spend, production mutation, messages, or destructive action.

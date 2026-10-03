@@ -18,6 +18,17 @@ The orchestrator does NOT read the implementation. It writes a short brief and n
 - Hard constraints / what not to break, and pointers to where the work likely lives (a dir, a module — not a full read).
 - Then it spawns the decomposer subagent. That's it. The orchestrator's context stays clean.
 
+## Phase 0b — FILE PLAN (orchestrator, mandatory, before any Unit)
+
+Structure is the orchestrator's job (Ro 2026-10-03): builders lack the big picture, and "split it" yields unplanned files and functions cut midway. Before spawning the decomposer:
+1. `wc -l` every file the change will touch or create (signatures via `skeleton.py`/graphify; no body reads).
+2. Put this table in the brief:
+```
+path | one-line responsibility | public interface (signatures) | lines now -> budget after (<=200)
+```
+3. A touched file that would exceed 200 gets its split planned as its own first unit: a **move-only refactor** (behavior unchanged, same tests green before and after), cut only at function/module boundaries, never mid-function. Later units are `after: U1`.
+4. Each unit's CHANGE names only files from the plan. A decomposer or builder that needs another file, or would break a budget, stops and reports back; the orchestrator amends the plan.
+
 ## Phase 1 — Decompose (decomposer SUBAGENT, premium model: Opus 4.8 / Fable 5)
 
 This runs as a **subagent**, not in the main loop, so all the code-reading context stays here and never touches the orchestrator. Its prompt is the Phase-0 brief. It returns ONLY the distilled output below — not the raw code it read.
@@ -35,7 +46,8 @@ UNIT <n>: <one-line title>
   GOAL     — the outcome this unit produces and why (so the coder resolves ambiguity correctly).
   VERIFY   — the concrete check that proves this unit is done: the command to run, the test,
              the expected output, or the file state to inspect. Defined BEFORE execution.
-  DEPENDS  — which other units must land first (for ordering).
+  AFTER    — blocking edges (`after: U1, U2`); units form a DAG. Dispatch the frontier
+             (units whose blockers are done). CHANGE names only FILE PLAN paths.
 ```
 
 A unit without a concrete VERIFY is not ready — the decomposer must define the check or split further. The decomposer writes NO production code; it only specs.
@@ -48,7 +60,7 @@ The orchestrator gets back the compact specs (not the codebase). It sanity-check
 
 The builder is whatever the router picks from live usage (`python -m fmr route`; fallback `tools/route-model.sh`): a `codex` agent for Codex, a `claude` agent for Claude. Main only orchestrates and never writes the code itself. The map + reuse decision were already established by orient in Phase 1 (graphify + repowise together); pass those anchors down to the coder — do not re-run discovery here.
 
-Spawn one worker per independent unit (parallel where DEPENDS allows; sequential where it doesn't). Each worker prompt = the **BUILDER CODING STANDARD** (`~/.claude/BUILDER_STANDARD.md`) + that unit's full spec + "implement exactly this; run VERIFY; report the VERIFY output verbatim; do not expand scope." Paste-ready wording for that prompt: `docs/CODING_AGENT_PROMPTING.md`. Because the spec is complete, a cheaper model is sufficient — the more decomposed the spec, the cheaper the model you can trust. Respect the global spawn depth limit (2). On a worker stall, kill its process tree.
+Spawn one worker per independent unit (the DAG frontier in parallel; blocked units wait). Each worker prompt = the **BUILDER CODING STANDARD** (`~/.claude/BUILDER_STANDARD.md`) + that unit's full spec + "implement exactly this; run VERIFY; report the VERIFY output verbatim; do not expand scope." Paste-ready wording for that prompt: `docs/CODING_AGENT_PROMPTING.md`. Because the spec is complete, a cheaper model is sufficient — the more decomposed the spec, the cheaper the model you can trust. Respect the global spawn depth limit (2). On a worker stall, kill its process tree.
 
 Blast radius was already computed during orient (Phase 1, pulled early) and rides in each unit's **REUSE** field as the impacted symbols/neighbors — pass it to the coder so it doesn't grep blind. Re-run `~/.claude/tools/graphify-blast.sh <files>` (bare = use `git diff`) only if the touch-set changed since decomposition.
 

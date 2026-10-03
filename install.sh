@@ -42,7 +42,7 @@ if [ "$CODEX" = 1 ]; then
   elif [ -f "$LEGACY_CAVEMAN" ]; then
     say "preserved modified Caveman skill: $LEGACY_CAVEMAN"
   fi
-  for s in awesomeharness codebase-first code-decompose compact-prep check-all recall; do
+  for s in awesomeharness codebase-first code-decompose compact-prep; do
     run "mkdir -p '$CODEX_ROOT/skills/$s'"
     run "cp '$SRC/codex/skills/$s/SKILL.md' '$CODEX_ROOT/skills/$s/SKILL.md'"
   done

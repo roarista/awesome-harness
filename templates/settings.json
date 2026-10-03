@@ -146,15 +146,6 @@
             "command": "python3 \"$HOME/.claude/hooks/token-discipline.py\""
           }
         ]
-      },
-      {
-        "matcher": "Write|Edit|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/size-nudge.py\""
-          }
-        ]
       }
     ],
     "UserPromptSubmit": [

@@ -11,6 +11,17 @@ The point: **the change must be fully understood before any code is written — 
 
 Use one bounded Codex builder per unit and a distinct auditor against the same spec when native subagents are available. Never run sibling builders concurrently in a dirty checkout. If subagents are unavailable, preserve the separation *in time*: finish specing, build, then re-read the diff against the spec with independent-auditor eyes.
 
+## Phase 0 — FILE PLAN (mandatory, before any Unit)
+
+Structure is the orchestrator's job (Ro 2026-10-03): builders lack the big picture, and "split it" yields unplanned files and functions cut midway. Before specing units:
+1. `wc -l` every file the change will touch or create (signatures via `tools/skeleton.py`/graphify; no body reads).
+2. Write the table:
+```
+path | one-line responsibility | public interface (signatures) | lines now -> budget after (<=200)
+```
+3. A touched file that would exceed 200 gets its split planned as its own first unit: a **move-only refactor** (behavior unchanged, same tests green before and after), cut only at function/module boundaries, never mid-function. Later units are `after: U1`.
+4. Each unit's CHANGE names only files from the plan. A builder that needs another file, or would break a budget, stops and reports back; amend the plan first.
+
 ## Phase 1 — Decompose (write the specs first, no code)
 
 Start from the `codebase-first` discovery artifact (`.scratch/discovery/<slug>.md` if present) and carry its REUSE/ADAPT/REJECT verdicts and gate forward verbatim. Then produce:
@@ -27,14 +38,15 @@ UNIT <n>: <one-line title>
   GOAL     — the outcome this unit produces and why.
   VERIFY   — the concrete check that proves this unit is done: the command, the test,
              the expected output, or the file state. Defined BEFORE execution.
-  DEPENDS  — which units must land first (this is your execution order).
+  AFTER    — blocking edges (`after: U1, U2`); units form a DAG (your execution order).
+             CHANGE names only FILE PLAN paths.
 ```
 
 A unit without a concrete VERIFY is not ready — define the check or split further. Write NO production code in this phase.
 
 If the change is large or has real trade-offs, surface the unit list to Ro before executing.
 
-## Phase 2 — Build, one unit at a time, in DEPENDS order
+## Phase 2 — Build, one unit at a time, in AFTER (DAG) order
 
 For each unit, in order:
 

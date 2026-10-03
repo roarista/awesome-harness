@@ -103,7 +103,7 @@ There are 18 registrations (set of 2026-10-03 after U10; `scripts/merge_settings
 | northstar-protect | `PreToolUse: Write\|Edit\|MultiEdit`, `Bash` | Protects `.northstar.md` (grant protocol). |
 | irreversible-pause | `PreToolUse: Bash` | Blocks rm -rf of non-scratch targets, force-push, reset --hard, DROP, LMS submit. |
 | route-only-gate | `PreToolUse: Write\|Edit\|MultiEdit` | Main session only, `.route-only` repos: delegate source edits. |
-| graphify-blindspot, now-gate, filesize-cap, token-discipline, session-checkpoint, size-nudge | various | Advisory nudges; silent when quiet. size-nudge: one line when an edited source file passes 200 lines. |
+| graphify-blindspot, now-gate, filesize-cap, token-discipline, session-checkpoint | various | Advisory nudges; silent when quiet. |
 | harness-usage-telemetry | `PostToolUse` | Silently records relevant usage; emits 0 bytes. |
 | pre_compact_global.sh, precompact-handoff | `PreCompact` | Commit + handoff before compaction. |
 
