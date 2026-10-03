@@ -14,7 +14,7 @@ Touched files: `python3 ~/.claude/tools/turn-files.py --session <session_id>`.
 ```
 1. commit the work (real work only; ask before committing ambiguous files)
 2. `ml record <domain> --type <...> --description "..."` the durable lesson (<=2 sentences; overflow -> .mulch/details/<slug>.md), then `ml sync`
-3. REPLACE `## Active Resume Point` in .planning/STATE.md (never prepend)
+3. REPLACE `## Active Resume Point` in the repo's STATE file (.planning/STATE.md or STATE_CURRENT.md; use the existing one; never prepend)
 4. `.now.md`: NOW/LAST_VERIFIED/NEXT, <=5 lines
 5. push: `bash "$(git rev-parse --show-toplevel)/tools/git-sync.sh" -m "<what>"` (never force; skip on main or no upstream; ask first)
 6. write the CONTINUE block to `.planning/CONTINUE.md`
@@ -26,7 +26,7 @@ Before step 6, print:
 
 ```
 ## Ready to clear
-SURVIVES: branch <name> @ <sha> (pushed?), N commits, M mulch records, STATE.md + .now.md updated
+SURVIVES: branch <name> @ <sha> (pushed?), N commits, M mulch records, STATE file + .now.md updated
 AT RISK (said in chat, not yet persisted): <list, or "none">
 ```
 
@@ -46,7 +46,7 @@ DONE THIS SESSION: <2-4 bullets>
 NEXT: <the ONE concrete next action, with exact file paths or commands>
 OPEN DECISIONS (need me): <list, or "none">
 DON'T REDO: <dead ends already tried>
-POINTERS: STATE.md ## Active Resume Point · <memory/ml domains/files>
+POINTERS: STATE file ## Active Resume Point · <memory/ml domains/files>
 ===
 ```
 
@@ -58,4 +58,4 @@ A vague line ("continue the work") is not specific enough: name the file, the co
 
 After `/clear`, the `clear-resume.py` SessionStart hook injects CONTINUE.md (<48 h old), so nothing is pasted. Use `/compact` only mid-task, when reasoning not yet written down matters; then also paste the block as the first message after it.
 
-Skip this skill for a trivial conversational session. Do not compact or clear with a silent broken build: fix it or record it in STATE.md first.
+Skip this skill for a trivial conversational session. Do not compact or clear with a silent broken build: fix it or record it in the STATE file first.
