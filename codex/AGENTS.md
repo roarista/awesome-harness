@@ -72,6 +72,10 @@ Every builder, including the main session when delegation is unavailable, follow
 # Operating rules
 
 - **Quality gates:** the 26 gates (reproduce first, mutation-proof tests, one lens per reviewer, run it twice) live in `~/.codex/skills/awesomeharness/SKILL.md`. Load that skill for any build, review, or pre-ship claim.
+- **Routing:** route every launch with `~/.codex/tools/route-model.sh "<task>"` (free-model-router's
+  `fmr route` on live subscription usage) and record `fmr outcome <id> <result>`; details in the
+  `awesomeharness` skill. Audits are always cross-family. Codex reset credits are never consumed
+  without Ro's explicit yes. If Ro names a model, use that — it beats the router.
 - **Ponytail is the always-on lens**, not a step. Shortest diff. Delete > add.
 - **Message discipline:** no running narration. Do the work, then ONE thorough, standalone
   final summary (what changed, how it was verified, what's pending, decisions taken). That
@@ -94,7 +98,7 @@ where available.
   enabled skills also appear in Codex's slash-command list. Other Claude-only commands are not
   implied unless a corresponding Codex skill is installed.
 - **Subagents** — use native Codex subagents for bounded builders and independent auditors. Do not
-  emulate Claude-specific agent types or model names.
+  emulate Claude-specific agent types; take model names and effort from the router, not memory.
 - **Native hooks** — the opt-in repository adapter protects the north star, blocks a narrow set of
   irreversible commands, gates armed commits, and checks subagent receipts. Other rituals remain
   the main agent's responsibility.
