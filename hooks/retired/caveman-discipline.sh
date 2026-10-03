@@ -1,4 +1,5 @@
 #!/bin/sh
+python3 "$(dirname "$0")/_hookout.py" && exit 0  # product `claude -p`: no harness
 # Per-turn contract + the harness FLOOR — injected at SessionStart.
 # CONTEXT DIET 2026-08-03: trimmed to ~250B (was 43 lines/1756B).
 # FLOOR ADDED 2026-08-04: /awesomeharness was typed 108x in 30d across 7 repos

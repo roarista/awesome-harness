@@ -22,7 +22,7 @@ bash ~/.codex/tools/check-all/check_all.sh [REPO_DIR] [--fast] [--json]
 | Check | Type | Default | Notes |
 |-------|------|---------|-------|
 | **base-gate** | HARD | fail | Composes the repo's own scripts (factory:check → ci:safe → lint/typecheck); falls back to tsc/ruff/mypy |
-| **file-size** | soft | warn | Flags source files > 800 lines |
+| **file-size** | soft | warn | Flags source files > 200 lines (the ratchet cap; ratchet blocks growth at commit) |
 | **no-TODO** | soft | warn | TODO/FIXME/XXX in source files |
 | **dup-code** | soft | warn | jscpd if available, else skipped |
 | **semgrep** | soft | warn | ADVISORY only — prints findings, never fails the gate. `SEMGREP_STRICT=1` makes it blocking. Silent skip if semgrep is not on PATH |

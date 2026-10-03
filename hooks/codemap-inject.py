@@ -10,7 +10,7 @@ exit 0 printing nothing. Never crash, never exit non-zero.
 
 Kill switch: CODEMAP_INJECT=off -> exit 0 silently.
 """
-import os
+import _hookout; _hookout.exit_if_product(); import os
 import subprocess
 import sys
 
@@ -148,8 +148,7 @@ def _codemap_fallback(root):
             existing_size = os.path.getsize(codemap_path)
         except Exception:
             existing_size = 0
-        # Guard: never serve an on-disk .codemap larger than the cap, even
-        # if it's fresh — a huge file is the exact bug this fixes.
+        # Never serve an on-disk .codemap over the cap, even if fresh.
         if existing_size > STALE_CODEMAP_CAP:
             return "CODEMAP SKIPPED: .codemap is {} bytes (cap {}) — run: python3 ~/.claude/tools/codemap.py".format(
                 existing_size, STALE_CODEMAP_CAP
@@ -212,9 +211,13 @@ def build_output():
     return _codemap_fallback(root)
 
 
+OUT_CAP = 2000  # bytes; above ~2 KB Claude Code persists it and shows only a path
 def main():
     try:
         text = build_output()
+        if text and len(text.encode()) > OUT_CAP:
+            text = (text.encode()[:OUT_CAP - 120].decode(errors="ignore").rsplit("\n", 1)[0]
+                    + "\n...[codemap capped at 2 KB; full map: .codemap at repo root]")
         if text:
             print(text)
     except Exception:
@@ -228,9 +231,7 @@ def _selftest():
 
     ok = True
 
-    # --- Test 1: stale sha path -> regenerates and drops the stale prefix
-    # (relies on the live repo's own .codemap; this test runs from within
-    # the repo so tools/codemap.py and git are both real.)
+    # --- Test 1: stale sha path regenerates (uses this repo's real .codemap)
     root = _repo_root()
     if root:
         codemap_path = os.path.join(root, ".codemap")
@@ -240,7 +241,6 @@ def _selftest():
             with open(codemap_path, "r") as f:
                 backup = f.read()
         try:
-            # Force a stale header.
             with open(codemap_path, "w") as f:
                 f.write("#CODEMAP fake @deadbeef 0f/0L\nstale body\n")
             out = build_output()

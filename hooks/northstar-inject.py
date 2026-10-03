@@ -1,22 +1,17 @@
 #!/usr/bin/env python3
 """UserPromptSubmit + SessionStart hook — anti-drift.
 
-Re-injects, every turn, two things so neither the agent nor Ro loses the thread:
-  1. NORTH STAR (destination) from `.northstar.md`  — the fixed objective. Stable.
-  2. NOW (position)        from `.now.md`           — the CURRENT step. Volatile.
-Plus live git context (branch / last commits / dirty) as zero-maintenance ground
-truth of what actually happened lately.
-
-Why this shape (see global_orchestration_rules.md "cardinal rule"): a static
-"don't drift" banner is advisory prose — the model skims it by turn 20. So
-(a) NOW changes every turn → defeats banner-blindness, and (b) every DRIFT_EVERY
-turns the banner escalates into a FORCED one-line alignment check, which breaks
-autopilot without spending a per-turn model call.
+SessionStart (startup/resume/clear/compact): the full NORTH STAR from
+`.northstar.md`, NOW from `.now.md`, and git context — once per session.
+UserPromptSubmit: only the NOW line, capped at NOW_CAP bytes. The north star
+paragraph repeated verbatim every prompt (1.4-2.4 KB/prompt, rule-value-audit
+2026-10-02 row 10); it is stable, so once per session (and after compaction)
+is enough.
 
 Both files are opt-in per repo (absent → that section is silently skipped).
 Keep each file tiny; only OBJECTIVE / NOW is strictly required.
 """
-import json
+import _hookout; _hookout.exit_if_product(); import json
 import os
 import re
 import subprocess
@@ -25,8 +20,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import _hookout
 
 CAP = 800          # chars per block; a north star that needs more isn't one
-DRIFT_EVERY = 5    # escalate the banner into a forced check every N turns
-STATE = Path.home() / ".claude" / "hooks" / "state" / "northstar_counts.json"
+NOW_CAP = 300      # bytes per prompt for the NOW line
 SLOT_HEADER = re.compile(r'^## \[(.+?)\]\s*$')
 
 
@@ -255,19 +249,11 @@ def git_context_with_commits(root: Path) -> str:
     return full if len(full) < 400 else base
 
 
-def bump(root: Path) -> int:
-    try:
-        STATE.parent.mkdir(parents=True, exist_ok=True)
-        d = json.loads(STATE.read_text()) if STATE.exists() else {}
-    except Exception:
-        d = {}
-    n = int(d.get(str(root), 0)) + 1
-    d[str(root)] = n
-    try:
-        STATE.write_text(json.dumps(d))
-    except Exception:
-        pass
-    return n
+def now_line(root: Path, session_id: str) -> str:
+    """Per-prompt NOW: the now_section collapsed to one line, <= NOW_CAP bytes."""
+    text = " ".join(" ".join(now_section(root, session_id)).split())
+    raw = text.encode()
+    return text if len(raw) <= NOW_CAP else raw[:NOW_CAP - 3].decode(errors="ignore") + "..."
 
 
 def state_trim_nudge(root: Path) -> str:
@@ -324,6 +310,10 @@ def main() -> None:
             )
         return  # opt-in: no north star → nudge handled above, else silent
 
+    if event != "SessionStart":
+        _hookout.inject("UserPromptSubmit", now_line(root, session_id))
+        return
+
     # On SessionStart only, surface the full resume handoff (too big for every
     # turn). This is what closes the loop: the cold terminal reads it first.
     session_prefix = ""
@@ -342,25 +332,10 @@ def main() -> None:
 
     out += now_section(root, session_id)
 
-    git = git_context_with_commits(root) if event == "SessionStart" else git_context(root)
+    git = git_context_with_commits(root)
     if git:
         out += ["", git]
-
-    if bump(root) % DRIFT_EVERY == 0:
-        out += [
-            "",
-            f"DRIFT CHECK (every {DRIFT_EVERY} turns): 1 line, how current action serves "
-            "OBJECTIVE. doesn't? stop, flag Ro first.",
-        ]
-
-    text = "\n".join(out)
-    # BEHAVIOR CHANGE 2026-07-12: SessionStart output now goes through the hidden
-    # inject path too (model-only, off the terminal) instead of raw stdout, so
-    # nothing dumps into Ro's terminal. UserPromptSubmit was already hidden.
-    if event == "SessionStart":
-        _hookout.inject("SessionStart", session_prefix + text)
-    else:
-        _hookout.inject("UserPromptSubmit", text)
+    _hookout.inject("SessionStart", session_prefix + "\n".join(out))
 
 
 if __name__ == "__main__":

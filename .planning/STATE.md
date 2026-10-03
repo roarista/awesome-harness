@@ -7,13 +7,14 @@ The 2026-07-27 session that did this was deleted mid-flight; context recovered f
 
 ## Active Resume Point
 
-**Last updated:** 2026-10-02
-**Branch:** codex-procedure-parity @ 66245e6 (pushed; main == 54a0d16 via PR #3)
-**Status:** Router phase 2 shipped (fmr 9fb2561 + feffa83: Laya head opt-in, add-model, wait-vs-downgrade, Codex-sandbox safe). Hook live in 10 repos. Vividlist pushed origin/main 838e148a.
-**Current workstream:** virality-pipeline unit01/unit05 money-bug fixes (builder committing locally, no push); Codex router parity installed (~/.codex AGENTS.md + skill, writable_roots for fmr receipts).
-**Next concrete step:** audit virality fixes + codex-router diffs with opus48-audit (shared rubric); open PR codex-procedure-parity → main; then eval `fmr route` vs legacy table on held-out taskset (North Star DONE_WHEN).
-**Open questions for founder:** push virality-pipeline fixes after audit?
-**Blocked on:** nothing. Codex main capped until Oct 6 (use gpt-reserve; never reset credits).
+**Last updated:** 2026-10-03
+**Branch:** codex-procedure-parity (PR #5 open → main)
+**Status:** Hook decisions applied + audited PASS (511502d). Context-diet plan written, awaiting Ro.
+**Current workstream:** cut startup context. Plan + measurements: docs/plans/2026-10-03-context-diet.md (ours = 18.5K of a 36.6K `-p` start; interactive ~57K).
+**Next concrete step:** on Ro's go — P1 config (disable vercel/power-automate, unused claude.ai connectors, ponytail→CLAUDE.md), then builder units P2-P4; re-run the gate command in the plan after each.
+**Open questions for founder:** merge PR #5; P1 config yes/no; keep 22 hooks vs Aug-10's 8.
+**Blocked on:** Ro. Codex main capped until Oct 6 (gpt-reserve ok; never reset credits).
+
 
 ## LAST_VERIFIED (2026-07-27)
 - `e639ff5` un-inverted guards (mention-matching → write-matching), main-edit-guard/builder-fence/route-only-gate

@@ -22,7 +22,7 @@ Design (settled + council-hardened 2026-07-02):
     timeout/error/empty leaves the prior handoff untouched (stale > none >
     clobbered) and does NOT advance the slice pointer, so it retries next time.
 """
-import json
+import _hookout; _hookout.exit_if_product(); import json
 import os
 import shutil
 import subprocess

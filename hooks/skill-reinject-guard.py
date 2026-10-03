@@ -16,7 +16,7 @@ untouched. Fail-open on any error: a broken guard must never block a skill.
 Revert: remove the PreToolUse "Skill" block from ~/.claude/settings.json
 (backup: ~/.claude/settings.json.bak-contextdiet-20260802).
 """
-import json
+import _hookout; _hookout.exit_if_product(); import json
 import os
 import sys
 

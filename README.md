@@ -94,28 +94,24 @@ The test uses a temporary repository and Codex home. To roll back, remove the aw
 
 ### The current eight hook entries
 
-There are eight registrations backed by seven hook scripts. `northstar-protect` is intentionally registered twice because edits and shell commands have different matchers.
+There are 22 registrations (set of 2026-10-03; `scripts/merge_settings.py` HOOKS is the source of truth and `templates/settings.json` mirrors it). A blocking hook is kept only if agents comply after it blocks.
 
 | Entry | Event / matcher | Behavior |
 |---|---|---|
-| codemap-inject | `SessionStart` | Injects the compact repository map. |
+| codemap-inject | `SessionStart` | Injects the compact repository map (capped at 2 KB). |
+| reread-guard | `SessionStart`, `Pre/PostToolUse: Read` | Blocks a full re-read of an unchanged large file. |
+| manifest-guard | `SessionStart` | Warns when hook/settings files drift from the blessed baseline. |
+| northstar-inject | `SessionStart`, `UserPromptSubmit` | Full north star once per session; NOW line (≤300 B) per prompt. |
+| recall-inject | `UserPromptSubmit` | Maybe-relevant memory, capped at 600 chars. |
 | skill-reinject-guard | `PreToolUse: Skill` | Blocks a duplicate `/awesomeharness` body within the same session. |
-| northstar-protect | `PreToolUse: Write\|Edit\|MultiEdit` | Protects the repository’s north-star file from direct edits. |
-| northstar-protect | `PreToolUse: Bash` | Applies the same protection to shell writes. |
-| irreversible-pause | `PreToolUse: Bash` | Pauses recognized irreversible shell operations. |
-| bash-write-fence | `PreToolUse: Bash` | Fences shell-based file writes. |
-| claude-spawn-gate | `PreToolUse: Task\|Agent` | Routes builder and auditor work through the supported agent path. |
+| northstar-protect | `PreToolUse: Write\|Edit\|MultiEdit`, `Bash` | Protects `.northstar.md` (grant protocol). |
+| irreversible-pause | `PreToolUse: Bash` | Blocks rm -rf of non-scratch targets, force-push, reset --hard, DROP, LMS submit. |
+| route-only-gate | `PreToolUse: Write\|Edit\|MultiEdit` | Main session only, `.route-only` repos: delegate source edits. |
+| graphify-blindspot, now-gate, filesize-cap, token-discipline, session-checkpoint | various | Advisory nudges; silent when quiet. |
 | harness-usage-telemetry | `PostToolUse` | Silently records relevant usage; emits 0 bytes. |
+| pre_compact_global.sh, precompact-handoff | `PreCompact` | Commit + handoff before compaction. |
 
-The count can otherwise look contradictory: the reduction was from 47 to 6 entries, telemetry restored the seventh, and the measured duplicate-skill guard added the eighth.
-
-### What was removed, and why
-
-On 2026-08-10, 41 hook entries were removed after measurement showed no positive effect on session outcomes; see the [audit](docs/audits/2026-08-04/simpler-harness.md).
-
-Removed scripts: `reread-guard`, `token-discipline`, `caveman-discipline`, `graphify-blindspot`, `graphify-gate`, `understand-gate`, `main-edit-guard`, `now-gate`, `manifest-guard`, `recall-inject`, `northstar-inject`, `spawn-necessity`, `builder-fence`, `coding-routing-guard`, `post-agent-guard`, `phantom-edit-guard`, `advertised-command-guard`, `filesize-cap`, `check-all-commit-gate`, `session-checkpoint`, `compact-prep-gate`, `abs-path-nudge`, `harness-enforce`, and `precompact-handoff`.
-
-The files remain in `hooks/` and can be re-registered individually; removal was from `settings.json`, not from disk.
+Retired on 2026-10-03 (route-around evidence): see [hooks/retired/README.md](hooks/retired/README.md). Earlier history: on 2026-08-10 the set was cut to 8 entries ([audit](docs/audits/2026-08-04/simpler-harness.md)); `merge_settings.py` was not updated then, and a 2026-10-02 reinstall re-registered most of them.
 
 ### Secret-file deny rules
 

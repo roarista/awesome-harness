@@ -22,7 +22,7 @@ Self-scoping by construction:
 
 Never blocks (advisory via additionalContext). Fail-open on any error.
 """
-import json
+import _hookout; _hookout.exit_if_product(); import json
 import os
 import sys
 import time

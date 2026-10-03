@@ -22,57 +22,41 @@ ENV_DEFAULTS = {
 }
 
 # event -> list of (matcher, command). matcher "" means all.
-HOOKS = {
-    "SessionStart":     [("", f'sh "{HOOK}/caveman-discipline.sh"'),
+HOOKS = {  # == the registered set after docs/audits/2026-10-03 (hook-circumvention)
+    "SessionStart":     [("", f'python3 "{HOOK}/codemap-inject.py"'),
                          # reset the re-read guard's read-set (compact-safety valve)
                          ("", f'python3 "{HOOK}/reread-guard.py"'),
                          # hook-integrity: sha256 the hook set against a baseline and warn on drift/tamper
                          ("", f'python3 "{HOOK}/manifest-guard.py"'),
-                         # re-arm the graphify gate every new session AND after each
-                         # /compact (Ro compacts often; post-compact the map
-                         # orientation is gone, so re-require a graphify query)
-                         ("", f'python3 "{HOOK}/graphify-gate.py"')],
+                         # full north star once per session (also fires after /compact)
+                         ("", f'python3 "{HOOK}/northstar-inject.py"')],
     "UserPromptSubmit": [("", f'python3 "{HOOK}/recall-inject.py"'),
-                         ("", f'python3 "{HOOK}/northstar-inject.py"'),
-                         # anti-decay: rotating re-assertion of ponytail/graphify/
-                         # mulch/caveman so they don't get skimmed away by turn ~20
-                         ("", f'python3 "{HOOK}/harness-enforce.py"')],
-    "PreToolUse":       [("Task", f'sh "{HOOK}/coding-routing-guard.sh"'),
+                         # per prompt: the NOW line only (<=300 B)
+                         ("", f'python3 "{HOOK}/northstar-inject.py"')],
+    "PreToolUse":       [("Skill", f'python3 "{HOOK}/skill-reinject-guard.py"'),
                          # anti-drift: the north star is read-only to the agent
                          ("Write|Edit|MultiEdit", f'python3 "{HOOK}/northstar-protect.py"'),
                          ("Bash", f'python3 "{HOOK}/northstar-protect.py"'),
-                         # anti-drift: hard stop on irreversible ops (rm -rf / force-push / destructive SQL)
+                         # hard stop on irreversible ops; scratch/build deletes pass
                          ("Bash", f'python3 "{HOOK}/irreversible-pause.py"'),
                          # code-map: advise before editing a file with unread callers (no-op without graphify)
                          ("Write|Edit|MultiEdit", f'python3 "{HOOK}/graphify-blindspot.py"'),
-                         # code-map ENFORCED: DENY cold source Read/Grep until graphify has run once this session
-                         ("Read", f'python3 "{HOOK}/graphify-gate.py"'),
-                         ("Grep", f'python3 "{HOOK}/graphify-gate.py"'),
                          # token-save: block a full re-read of an unchanged large file already read this stretch
                          ("Read", f'python3 "{HOOK}/reread-guard.py"'),
-                         # token-save: advise against slurping a very large file whole (offset/limit or grep instead)
+                         # token-save: advise against slurping a very large file whole
                          ("Read", f'python3 "{HOOK}/filesize-cap.py"'),
-                         # keep .now.md tiny (injector truncates at 800 chars) — advisory only
+                         # keep .now.md tiny — advisory only
                          ("Write|Edit|MultiEdit", f'python3 "{HOOK}/now-gate.py"'),
-                         # route-only ENFORCED: in a repo with a .route-only marker, DENY
-                         # direct source edits — the orchestrator must delegate to a
-                         # codex/glm coder (opt-in per repo; no-op without the marker)
+                         # route-only: main session only, opt-in per repo (.route-only marker)
                          ("Write|Edit|MultiEdit", f'python3 "{HOOK}/route-only-gate.py"')],
-    "PostToolUse":      [# anti-narrate: remind at the exact moment a sub-agent returns (can't block prose, just nudge)
-                         ("Task|Agent", f'python3 "{HOOK}/post-agent-guard.py"'),
+    "PostToolUse":      [("", f'python3 "{HOOK}/harness-usage-telemetry.py"'),
+                         # soft re-scope nudge when a session looks abnormal (deep / errors / looping)
+                         ("", f'python3 "{HOOK}/session-checkpoint.py"'),
                          ("Read", f'python3 "{HOOK}/graphify-blindspot.py"'),
                          # token-save: record full reads so the PreToolUse guard can dedup them
                          ("Read", f'python3 "{HOOK}/reread-guard.py"'),
-                         # code-map ENFORCED: mark the session "graphified" once a graphify command runs
-                         ("Bash", f'python3 "{HOOK}/graphify-gate.py"'),
-                         # soft re-scope nudge when a session looks abnormal (deep / errors / looping)
-                         ("", f'python3 "{HOOK}/session-checkpoint.py"'),
                          # token discipline: warn on the 3rd full re-read of the same file
                          ("Read", f'python3 "{HOOK}/token-discipline.py"')],
-    "Stop":             [# compact-prep ENFORCED: block turn-end until .now.md/STATE refreshed (rate-limited)
-                         ("", f'python3 "{HOOK}/compact-prep-gate.py"'),
-                         # abs-path-nudge ADVISORY: next-turn reminder to list absolute paths
-                         ("", f'python3 "{HOOK}/abs-path-nudge.py"')],
     "PreCompact":       [("", f'bash "{HOOK}/pre_compact_global.sh"'),
                          # context-preservation: cheap model writes a 7-field handoff before compaction
                          ("", f'python3 "{HOOK}/precompact-handoff.py"')],
@@ -86,6 +70,24 @@ def _commands(entries):
             if h.get("command"):
                 out.append(h["command"])
     return out
+
+
+# unregistered 2026-10-03 (hooks/retired/README.md); stripped from existing installs
+RETIRED = ("bash-write-fence", "compact-prep-gate", "graphify-gate", "claude-spawn-gate",
+           "coding-routing-guard", "harness-enforce", "caveman-discipline", "post-agent-guard",
+           "abs-path-nudge")
+
+
+def drop_retired(settings):
+    n = 0
+    for event, arr in settings.get("hooks", {}).items():
+        for e in arr:
+            keep = [h for h in e.get("hooks", [])
+                    if not any(f"/{r}." in h.get("command", "") for r in RETIRED)]
+            n += len(e.get("hooks", [])) - len(keep)
+            e["hooks"] = keep
+        arr[:] = [e for e in arr if e.get("hooks")]
+    return n
 
 
 def ensure_hook(settings, event, matcher, command):
@@ -124,6 +126,7 @@ def main():
         if k not in env:
             env[k] = v
             added += 1
+    removed = drop_retired(settings)
     for event, items in HOOKS.items():
         for matcher, cmd in items:
             if ensure_hook(settings, event, matcher, cmd):
@@ -133,7 +136,7 @@ def main():
     text = json.dumps(settings, indent=2)
     json.loads(text)
     path.write_text(text + "\n")
-    print(f"  merged {added} new entries (idempotent; re-running adds nothing).")
+    print(f"  merged {added} new entries, removed {removed} retired (idempotent).")
 
 
 if __name__ == "__main__":

@@ -18,7 +18,7 @@ content — measured 0 tokens.
 
 Revert: hooks/.bak-contextdiet/coding-routing-guard.sh
 """
-import json
+import _hookout; _hookout.exit_if_product(); import json
 import os
 import re
 import sys

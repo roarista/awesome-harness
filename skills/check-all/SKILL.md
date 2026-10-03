@@ -41,7 +41,7 @@ bash /Users/rodrigoarista/.claude/tools/check-all/check_all.sh /path/to/repo --j
 | Check | Type | Default severity | Notes |
 |-------|------|-----------------|-------|
 | **base-gate** | HARD | fail | Composes existing repo scripts (factory:check → ci:safe → lint/typecheck); falls back to tsc/ruff/mypy |
-| **file-size** | soft | warn | Flags source files > 800 lines |
+| **file-size** | soft | warn | Flags source files > 200 lines (the ratchet cap; ratchet blocks growth at commit) |
 | **no-TODO** | soft | warn | Grep for TODO/FIXME/XXX in source files |
 | **dup-code** | soft | warn | jscpd if available; skip-with-note if not |
 | **semgrep** | soft | warn | Deterministic OSS SAST, `--config p/default --severity ERROR --metrics=off` (telemetry-free; ERROR-severity only). ADVISORY: prints findings + why to *consider*, never fails the gate. `SEMGREP_STRICT=1` → blocking. Silent skip if `semgrep` not on PATH |
@@ -57,7 +57,7 @@ bash /Users/rodrigoarista/.claude/tools/check-all/check_all.sh /path/to/repo --j
 CHECK           RESULT   RC    SUMMARY
 ------------------------------------------------------------
 base-gate       pass     0     npm run factory:check
-file-size       warn     1     3 file(s) > 800 lines
+file-size       warn     1     3 file(s) > 200 lines
 no-TODO         warn     1     2 file(s) with TODO/FIXME/XXX
 dup-code        skip     0     jscpd not available — skipped
 tests           pass     0     npm test
@@ -106,7 +106,7 @@ All keys are optional. Absent file → all defaults apply.
 | Key | Type | Default | Notes |
 |-----|------|---------|-------|
 | `base_command` | string | auto-detect | Override the gate command |
-| `max_file_lines` | int | 800 | Lines-per-file threshold |
+| `max_file_lines` | int | 200 | Lines-per-file threshold |
 | `todo_severity` | "warn"\|"fail" | "warn" | Whether TODOs block shipping |
 | `filesize_severity` | "warn"\|"fail" | "warn" | Whether oversized files block |
 | `skip_tests` | bool | false | Permanently skip tests (like --fast) |

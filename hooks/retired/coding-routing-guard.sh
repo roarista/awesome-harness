@@ -1,4 +1,5 @@
 #!/bin/sh
+python3 "$(dirname "$0")/_hookout.py" && exit 0  # product `claude -p`: no harness
 # PreToolUse(Task) — thin wrapper; settings.json invokes this path.
 # Real logic (and the rationale for the 2026-08-02 context diet) lives in
 # coding-routing-guard.py. A heredoc'd `python3 -` cannot be used here: the

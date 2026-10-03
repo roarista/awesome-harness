@@ -1,43 +1,33 @@
 #!/usr/bin/env python3
-"""PreToolUse hook — hard STOP on IRREVERSIBLE Bash ops (bypassPermissions guard).
+"""PreToolUse:Bash — hard STOP on IRREVERSIBLE ops (bypassPermissions guard).
 
-This machine runs Claude Code in bypassPermissions mode: dangerous shell
-commands execute with no confirmation. This gate converts a tight, denylist-only
-set of irreversible operations into a forced reconsideration — the agent must
-confirm with Ro, then re-arm by re-running the command prefixed with the
-override token.
-
-Design principle: DENYLIST ONLY, tight, minimize false positives. A cry-wolf
-gate gets ignored, so we cover exactly three families:
-  1. Recursive force delete  (rm with combined -r + -f flags)
-  2. Force push              (git push with --force / -f / --force-with-lease)
-  3. Destructive SQL / DB reset (drop table / drop database / truncate table)
-
-Override / re-arm: any command containing the literal substring
-`CLAUDE_ALLOW_IRREVERSIBLE=1` is always allowed.
-
-Deny protocol: exit 2 + reason on stderr → Claude Code blocks the call and
-feeds the reason back to the model. Fail-open on any internal error (exit 0) —
-this must never wedge the session.
+Denylist only, tuned against cry-wolf: recursive force-delete of a target that is
+NOT provably disposable (tmp, $CLAUDE_JOB_DIR, build output — see SAFE_*), force
+push, reset --hard, clean -fd/-fx, stash, checkout ./--, find -delete, dd/mkfs,
+cloud deletes, destructive SQL via a DB client, graded-coursework submission.
+Heredoc bodies, comments and quoted arguments are never scanned as commands.
+Narrowed 2026-10-03 (docs/audits/2026-10-03/hook-circumvention.md: 78% false).
+Override after Ro approves: prefix the command with CLAUDE_ALLOW_IRREVERSIBLE=1.
+Exit 2 + stderr reason = deny; any internal error fails open (exit 0).
+Tests: tests/test_irreversible_pause.py
 """
-import json
+import _hookout; _hookout.exit_if_product(); import json
 import re
 import sys
 
-OVERRIDE = "CLAUDE_ALLOW_IRREVERSIBLE=1"
+from _heredoc import mask_single, split_heredocs
+from _rmscan import SHELLS, SUBST, rm_is_recursive_force as _rm_is_recursive_force
 
-# 1. rm with BOTH recursive and force flags — handled by _rm_is_recursive_force
-#    below (parses the clustered short flags; handles -rf, -fr, -r -f, -Rf, -rfv).
+OVERRIDE = "CLAUDE_ALLOW_IRREVERSIBLE=1"
 
 # 2. git push carrying a force flag.
 GIT_FORCE_PUSH = re.compile(
-    r"\bgit\b[^\n;|&]*\bpush\b[^\n;|&]*(?:--force-with-lease|--force|(?<![\w-])-f\b)",
+    r"\bgit\b[^\n;|&]*\bpush\b[^\n;|&]*"
+    r"(?:--force-with-lease|--force|--mirror|--delete|--prune|(?<![\w-])-[a-zA-Z]*[fd][a-zA-Z]*\b"
+    r"|(?<!\S)\+[\w./:-]|(?<!\S):[\w./-])",
 )
 
-# 3. Destructive SQL / DB reset (case-insensitive) — only counts when an actual
-#    DB client is being invoked, so prose or an LLM prompt containing "drop table"
-#    (e.g. `codex exec "...drop table..."`, a commit message, an echo) does NOT trip
-#    the guard. This killed a real cry-wolf that blocked commits + subagent spawns.
+# 3. Destructive SQL — only with a real DB client invoked outside quotes.
 SQL_DESTRUCTIVE = re.compile(
     r"\b(?:drop\s+table|drop\s+database|truncate\s+table)\b",
     re.IGNORECASE,
@@ -50,11 +40,8 @@ DB_CLIENT = re.compile(
 
 # 4. Other destructive filesystem, repository, disk, and cloud operations.
 GIT_RESET_HARD = re.compile(r"\bgit\b[^\n;|&]*\breset\s+--hard\b")
-# `git stash` (push/pop/apply/drop/clear/-u/...) DESTROYS or mutates uncommitted
-# work; only `stash list` and `stash show` are read-only and must pass.
+# stash mutates uncommitted work (list/show pass); checkout ./-- discards it.
 GIT_STASH = re.compile(r"\bgit\b[^\n;|&]*\bstash\b(?!\s+(?:list|show)\b)")
-# `git checkout .` / `git checkout -- <path>` discards uncommitted changes;
-# `git checkout -b foo` / `git checkout main` (branch switches) must pass.
 GIT_CHECKOUT = re.compile(r"\bgit\b[^\n;|&]*\bcheckout\b([^\n;|&]*)")
 FIND_DELETE = re.compile(r"\bfind\b[^\n;|&]*\s-delete\b|\bfind\b[^\n;|&]*\s-exec\s+rm\b")
 TRUNCATE_ZERO = re.compile(r"\btruncate\s+-s\s+0\b")
@@ -65,14 +52,8 @@ GCLOUD_DELETE = re.compile(r"\bgcloud\b[^\n;|&]*\bdelete\b")
 RCLONE_DELETE = re.compile(r"\brclone\s+(?:delete|purge)\b")
 
 
-# 5. Graded-submission surfaces (Canvas / Blackboard / Gradescope / Turnitin /
-#    Moodle). Ro's coursework was actually submitted by an agent on 2026-07-17;
-#    submitting is UNRECOVERABLE, so this BLOCKS like the rest of the denylist.
-#    Match ACTION SHAPE, not mere mention (the same un-inversion the SQL rule
-#    needed): the LMS name must appear inside an actual URL, AND an HTTP client
-#    must be invoked, AND the request must be submit-shaped. Prose that merely
-#    NAMES Canvas — "read the Canvas rubric", a commit message about this very
-#    guard — must NOT trip it.
+# 5. Graded-coursework submission (Ro submits himself; agent submitted 07-17).
+#    Action shape only: LMS URL + HTTP client + submit verb/endpoint.
 LMS_URL = re.compile(
     r"""(?:https?://|\bwww\.|//)[^\s'"<>]*"""
     r"(?:instructure\.com|blackboard|gradescope|turnitin|moodle|canvas)",
@@ -99,61 +80,18 @@ def _is_graded_submission(cmd: str) -> bool:
     return bool(SUBMIT_ENDPOINT.search(url) or SUBMIT_VERB.search(cmd))
 
 
-HEREDOC = re.compile(r"<<-?\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\1")
 COMMENT = re.compile(r"(?:^|\s)#.*$", re.MULTILINE)
-
-
-def _split_heredocs(cmd: str) -> str:
-    """Return `cmd` with heredoc BODIES stripped out (opener lines kept), so a
-    dangerous phrase living only inside a heredoc body (e.g. `cat >> f <<'EOF'`
-    ... `rm -rf /` ... `EOF`) is never scanned as if it were a real command.
-    COPIED from hooks/bash-write-fence.py:split_heredocs (same approach, same
-    directory) — kept minimal here since we only need the code text, not the
-    body list."""
-    lines = cmd.split("\n")
-    code, i = [], 0
-    while i < len(lines):
-        line = lines[i]
-        code.append(line)
-        delims = [m.group(2) for m in HEREDOC.finditer(line)]
-        i += 1
-        for delim in delims:
-            while i < len(lines) and lines[i].strip() != delim:
-                i += 1
-            if i < len(lines):
-                i += 1  # skip the closing delimiter line itself
-    return "\n".join(code)
+FEEDS_SHELL = SHELLS | {"ssh"}
 
 
 def _strip_comments(cmd: str) -> str:
-    """Blank out shell comments (an unquoted `#` to end of line) so `# rm -rf
-    build` in a comment is never scanned as a real command. Comments only make
-    sense outside quotes, and by the time this runs quoted spans have already
-    been left intact (dequoting happens after), so we only strip a `#` that is
-    preceded by start-of-line or whitespace — the common shell-comment shape."""
+    """Blank unquoted `#` comments (start-of-line or after whitespace)."""
     return COMMENT.sub("", cmd)
 
 
 def _dequote(cmd: str) -> str:
-    """Blank out single/double-quoted spans so a trigger word living inside a
-    quoted ARGUMENT to another program (codex/claude/glm/echo "... rm -rf ...")
-    is not mistaken for a command. A real `rm -rf "/a b"` keeps its flags OUTSIDE
-    the quotes, so it still matches."""
+    """Blank quoted spans so triggers inside quoted args never match."""
     return re.sub(r'"[^"]*"|\'[^\']*\'', " ", cmd)
-
-
-def _rm_is_recursive_force(cmd: str) -> bool:
-    """True iff a single `rm` invocation carries BOTH recursive AND force —
-    via short-flag clusters (-rf, -fr, -Rf, -r -f), long flags
-    (--recursive / --force), or any mix of the two."""
-    for m in re.finditer(r"\brm\b([^\n;|&]*)", cmd):   # args up to a cmd separator
-        args = m.group(1)
-        short = "".join(re.findall(r"(?<!-)-([a-zA-Z]+)\b", args))  # clusters, not --long
-        recursive = "r" in short or "R" in short or re.search(r"(?<!\S)--recursive\b", args)
-        force = "f" in short or re.search(r"(?<!\S)--force\b", args)
-        if recursive and force:
-            return True
-    return False
 
 
 def _git_checkout_is_destructive(cmd: str) -> bool:
@@ -179,19 +117,18 @@ def _git_clean_is_destructive(cmd: str) -> bool:
 
 
 def matches_denylist(cmd: str) -> bool:
-    # COMMAND-match, not mention-match: strip heredoc BODIES first (a dangerous
-    # phrase living only in a heredoc body, e.g. `cat >> f <<'EOF'` ... `rm -rf /`
-    # ... `EOF`, is text being written to a file, not a command being run) — the
-    # heredoc delimiter itself may be quoted (<<'EOF'), so this must run BEFORE
-    # dequoting or the delimiter match breaks. Comments are stripped AFTER
-    # dequoting so a legitimate `#` inside a quoted argument isn't mistaken for
-    # a comment opener and doesn't truncate real quoted content early.
-    cmd = _split_heredocs(cmd)
-    # rm + force-push are SHELL-STRUCTURE ops: match on the dequoted, comment-
-    # stripped command so a trigger buried in a quoted argument or a `# comment`
-    # doesn't fire.
+    # heredoc bodies first (delimiter may be quoted), then dequote, then comments
+    cmd, bodies = split_heredocs(cmd)
+    for body, opener, quoted in bodies:
+        if set(re.split(r"[\s;&|()/]+", opener)) & FEEDS_SHELL and matches_denylist(body):
+            return True  # heredoc fed to a shell (bash/ssh <<EOF) is code
+        if not quoted and any(matches_denylist(m.group(1) or m.group(2) or "")
+                              for m in SUBST.finditer(body)):
+            return True  # unquoted delimiter: $(...) / `...` in the body run
+    if any(matches_denylist(m.group(1) or m.group(2) or "") for m in SUBST.finditer(mask_single(cmd))):
+        return True
     bare = _strip_comments(_dequote(cmd))
-    if _rm_is_recursive_force(bare):
+    if _rm_is_recursive_force(cmd):
         return True
     if GIT_FORCE_PUSH.search(bare):
         return True
@@ -206,12 +143,8 @@ def matches_denylist(cmd: str) -> bool:
         DD_OF, MKFS, AWS_S3_RM_RECURSIVE, GCLOUD_DELETE, RCLONE_DELETE,
     )):
         return True
-    # destructive SQL only when a real DB client is invoked OUTSIDE quotes
-    # (dequoted cmd), while the SQL keyword may live anywhere (original cmd) - so a
-    # commit message / prose mentioning a client + the SQL keyword does NOT trip it.
     if DB_CLIENT.search(bare) and SQL_DESTRUCTIVE.search(_strip_comments(cmd)):
         return True
-    # graded submission: match on the heredoc-stripped cmd (URLs are often quoted)
     if _is_graded_submission(_strip_comments(cmd)):
         return True
     return False
@@ -231,9 +164,6 @@ def deny() -> None:
 
 
 def main() -> None:
-    if "--selftest" in sys.argv:
-        _selftest()
-        return
     raw = sys.stdin.read()
     data = json.loads(raw) if raw.strip() else {}
     if data.get("tool_name", "") != "Bash":
@@ -243,54 +173,6 @@ def main() -> None:
         return  # override / re-arm — always allow
     if matches_denylist(cmd):
         deny()
-
-
-def _selftest() -> None:
-    destructive = (
-        "rm -rf scratch", "git push --force", "psql -c 'drop table users'",
-        "git reset --hard", "git clean -fd", "git clean -fx", "find . -delete",
-        "find . -exec rm {} \\;", "truncate -s 0 file", "dd of=/dev/disk9",
-        "mkfs.ext4 /dev/disk9", "aws s3 rm s3://bucket --recursive",
-        "gcloud projects delete test", "rclone delete remote:path", "rclone purge remote:path",
-        "git push origin --force", 'psql -c "drop table x"',
-        # graded-submission guard — must BLOCK
-        "curl -X POST https://canvas.instructure.com/api/v1/courses/1/assignments/2/submissions -F file=@essay.pdf",
-        "curl -F 'file=@hw.pdf' https://www.gradescope.com/courses/1/assignments/2/submissions",
-        "curl -X POST https://myschool.blackboard.com/submit -d @essay.txt",
-        "wget --post-file=essay.pdf https://moodle.school.edu/mod/assign/submit",
-        # real destructive commands as ACTUAL commands, not mentions — must BLOCK
-        "rm -rf /some/path", "git reset --hard HEAD~1",
-        # git stash / checkout that discards uncommitted work — must BLOCK
-        "git stash", "git stash -u", "git stash push", "git stash pop",
-        "git stash apply", "git stash drop", "git stash clear",
-        "git stash --include-untracked", "git checkout .", "git checkout -- foo.py",
-        "git checkout -- .",
-    )
-    for command in destructive:
-        assert matches_denylist(command), command
-    allowed = (
-        "git status", "git commit -m x", "git push",
-        "git push origin main && tar -f b.tar data/",
-        'git commit -m "drop table x via psql"',
-        "vim mkfs.sh",
-        # graded-submission guard — must NOT block (mere mention / read-only)
-        "curl -s https://canvas.instructure.com/api/v1/courses/1/assignments/2 -o rubric.json",
-        "curl -X POST https://api.example.com/v1/things -d '{}'",
-        "open https://canvas.instructure.com/courses/1/assignments/2",
-        "echo 'download the assignment from Canvas'",
-        "git commit -m 'guard: block Canvas/Gradescope submission uploads'",
-        "grep -rn canvas ~/Downloads/essays",
-        # mention-match false positives (the defect this fix targets) — must NOT block
-        "cat >> notes.md <<'EOF'\nrm -rf /\nEOF",
-        'echo "git push --force"',
-        "# rm -rf build\ngit status",
-        # git stash / checkout read-only or non-destructive forms — must NOT block
-        "git stash list", "git stash show", "git stash show -p",
-        "git checkout -b foo", "git checkout main", "git checkout -b foo main",
-    )
-    for command in allowed:
-        assert not matches_denylist(command), command
-    print("selftest passed")
 
 
 if __name__ == "__main__":

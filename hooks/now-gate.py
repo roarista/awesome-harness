@@ -4,12 +4,12 @@
 northstar-inject reads `.now.md` every turn but truncates at 800 chars, so a
 `.now.md` that grew to 70 lines (Vividlist did) is 97% invisible — the live NOW
 step is buried. For a Write to `.now.md` (where the resulting content is fully
-known via tool_input.content) an oversized result now BLOCKS (exit 2, DENY) so
-the bloat never lands. For Edit/MultiEdit the post-edit content isn't knowable
-cheaply, so that case stays advisory. Built by GLM 5.2, reviewed + docstringed
+known via tool_input.content) an oversized result is flagged (process_event ->
+BLOCK) but EMITTED AS ADVICE: blocking was never measured (2026-10-03 audit, Ro's
+keep-only-if-agents-comply rule). Edit/MultiEdit content isn't knowable cheaply. Built by GLM 5.2, reviewed + docstringed
 here. Kill-switch NOW_GATE=0. Fail-open. (Delegated M1.)
 """
-import sys
+import _hookout; _hookout.exit_if_product(); import sys
 import json
 import os
 import re
@@ -136,10 +136,9 @@ def main():
         data = sys.stdin.read()
         event = json.loads(data) if data else {}
         action, payload = process_event(event)
-        if action == BLOCK:
-            sys.stderr.write(payload + "\n")
-            sys.exit(2)
-        if action == ADVISE and payload:
+        if action == BLOCK:  # advisory, never exit 2 (see docstring)
+            _hookout.inject("PreToolUse", payload)
+        elif action == ADVISE and payload:
             print(payload)
     except Exception:
         pass

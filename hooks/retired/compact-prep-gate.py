@@ -23,7 +23,7 @@ It intentionally does NOT commit/push (that would race the live autonomous
 repos and spam their history — CUT-not-ADD). It enforces the JUDGMENT half
 (orientation files current); the mechanical git half stays at real compaction.
 """
-import hashlib
+import _hookout; _hookout.exit_if_product(); import hashlib
 import json
 import os
 import subprocess

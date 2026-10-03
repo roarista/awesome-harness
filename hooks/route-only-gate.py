@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """HARD routing gate — in a "route-only" repo, the orchestrator may NOT write
-code directly; it must delegate the build to a coding sub-agent (codex 5.5
-builder / Opus 4.8 (low effort) auditor).
+code directly; it must delegate the build to the router's builder
+(`python -m fmr route`). MAIN SESSION ONLY: a hook stdin carrying `agent_id`
+is a sub-agent (the builder this gate tells main to use) and is never blocked
+(audit docs/audits/2026-10-03/hook-circumvention.md: 13 of 14 blocks hit builders).
 
 Ro's intent (2026-07-09): the main session should ORCHESTRATE, not code. It's
 fine (good, even) for it to READ/understand the codebase — graphify gives that
@@ -21,8 +23,7 @@ Deliberately narrow so it enforces without collateral:
     memory, docs, tests) → ALWAYS allowed (orchestrator must still edit
     .now.md / .northstar.md / STATE / notes / docs directly).
   * repo not armed (no .route-only up-tree) → no-op.
-  * codex/glm build via their OWN CLI (Bash), not Write/Edit — so the builders
-    are unaffected; only DIRECT orchestrator edits are blocked.
+  * sub-agents (`agent_id` in stdin) → no-op; only DIRECT main edits block.
   * kill-switch env ROUTING_GATE=0 → no-op.  Any error → fail-open (exit 0).
 
 LIMITATIONS (by design): registered on Write|Edit|MultiEdit ONLY. Bash writes
@@ -37,7 +38,7 @@ BEHAVIORAL NUDGE, not a sandbox. The real backstop is
 audit step; for true enforcement use a `deny` permission rule or a git
 pre-commit hook, not a command-line regex.
 """
-import json
+import _hookout; _hookout.exit_if_product(); import json
 import os
 import sys
 from pathlib import Path
@@ -77,6 +78,8 @@ def main() -> None:
         return
     raw = sys.stdin.read()
     data = json.loads(raw) if raw.strip() else {}
+    if data.get("agent_id"):
+        return  # sub-agent = the builder; never blocked
     if data.get("tool_name", "") not in ("Write", "Edit", "MultiEdit"):
         return
     fp = str((data.get("tool_input", {}) or {}).get("file_path", "") or "")
@@ -89,8 +92,8 @@ def main() -> None:
         return
     sys.stderr.write(
         "ROUTE-ONLY GATE: this repo is orchestrate-only (.route-only marker) — "
-        f"delegate the build of {os.path.basename(abspath)} to a coding sub-agent "
-        "(codex builder / Opus-4.8-low auditor); do not write source directly. "
+        f"delegate the build of {os.path.basename(abspath)} to the router's builder "
+        "(`python -m fmr route`); do not write source directly. "
         "(kill-switch: ROUTING_GATE=0)\n"
     )
     sys.exit(2)

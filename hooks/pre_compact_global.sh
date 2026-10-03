@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+python3 "$(dirname "$0")/_hookout.py" && exit 0  # product `claude -p`: no harness
 # ~/.claude/hooks/pre_compact_global.sh
 #
 # Global mechanical safety net before /compact. Runs in EVERY project.

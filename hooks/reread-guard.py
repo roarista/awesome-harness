@@ -24,7 +24,7 @@ pause). Changed file → allow+refresh. Partial read → allow. Small file → a
 Kill-switch: env REREAD_GUARD=0 → no-op (so a live pipeline can never be wedged).
 Fail-open on ANY error. Deny protocol matches the repo: exit 2 + reason on stderr.
 """
-import json
+import _hookout; _hookout.exit_if_product(); import json
 import os
 import sys
 import time

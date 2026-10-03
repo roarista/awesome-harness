@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Filesize-cap PreToolUse Read guard — BLOCK a full slurp of a large file.
+"""Filesize-cap PreToolUse Read guard — ADVISE before a full slurp of a large file.
 
 Reading a huge file WHOLE dumps the entire thing into context and burns
 headroom for zero targeting. The reread-guard catches the *second* full read of
 a file you already have; this one fires on the *first* — before you slurp a big
-file at all — and now DENIES (exit 2) so the slurp never happens, telling the
-caller to read a range, grep, or use graphify instead.
+file at all — and injects advice (never exit 2: blocking was unmeasured, 2026-10-03
+audit) to read a range, grep, or use graphify instead.
 
 Blocks only when ALL hold:
   * tool is Read, tool_input.file_path resolves to an existing, TEXT file
@@ -15,7 +15,7 @@ Blocks only when ALL hold:
 Partial read (offset OR limit) -> silent. Non-text / binary / missing / small
 -> silent. Kill-switch FILESIZE_CAP=0 -> no-op. Fail-open on any error.
 """
-import json
+import _hookout; _hookout.exit_if_product(); import json
 import os
 import sys
 
@@ -86,8 +86,7 @@ def main() -> None:
     msg = evaluate(ti)
     if not msg:
         return
-    sys.stderr.write(msg + "\n")
-    sys.exit(2)
+    _hookout.inject("PreToolUse", msg)
 
 
 def _selftest() -> None:
