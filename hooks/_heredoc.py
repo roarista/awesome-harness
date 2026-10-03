@@ -26,20 +26,38 @@ def _delim(line: str, j: int):
 
 
 def openers(line: str, q=None):
-    """([(delim, strip_tabs, quoted)], quote_state_at_end_of_line)."""
-    out, i, n = [], 0, len(line)
+    """([(delim, strip_tabs, quoted)], context_stack_at_end_of_line). The stack
+    holds "'", '"' (quotes) and "S" (a `$(` code context, e.g. `"$(cat <<EOF`)."""
+    out, i, n, st, start = [], 0, len(line), list(q or []), 0  # start: owning command
     while i < n:
-        c = line[i]
-        if q:
-            if c == "\\" and q == '"':
-                i += 2
-                continue
-            if c == q:
-                q = None
+        c, top = line[i], (st[-1] if st else None)
+        if top == "'":
+            if c == "'":
+                st.pop()
             i += 1
             continue
+        if top == '"':
+            if c == "\\":
+                i += 2
+            elif line.startswith("$(", i) and not line.startswith("$((", i):
+                st.append("S")
+                i, start = i + 2, i + 2
+            else:
+                if c == '"':
+                    st.pop()
+                i += 1
+            continue
         if c in "'\"":
-            q, i = c, i + 1
+            st.append(c)
+            i += 1
+        elif top == "S" and c == ")":
+            st.pop()
+            i += 1
+        elif line.startswith("$(", i) and not line.startswith("$((", i):
+            st.append("S")
+            i, start = i + 2, i + 2
+        elif c in ";&|(":
+            i, start = i + 1, i + 1
         elif c == "\\":
             i += 2
         elif c == "#" and (i == 0 or line[i - 1] in " \t;&|("):
@@ -54,22 +72,22 @@ def openers(line: str, q=None):
                 j += 1
             d, quoted, j = _delim(line, j)
             if d:
-                out.append((d, tabs, quoted))
+                out.append((d, tabs, quoted, line[start:i]))
             i = j
         else:
             i += 1
-    return out, q
+    return out, st
 
 
 def split_heredocs(cmd: str):
-    """(code_text, [(body, opener_line, quoted_delim)])."""
+    """(code_text, [(body, owning_command_text, quoted_delim)])."""
     lines, code, bodies, i, q = cmd.split("\n"), [], [], 0, None
     while i < len(lines):
         line = lines[i]
         code.append(line)
         i += 1
         ops, q = openers(line, q)
-        for d, tabs, quoted in ops:
+        for d, tabs, quoted, owner in ops:
             body = []
             while i < len(lines):
                 cur = lines[i]
@@ -77,5 +95,23 @@ def split_heredocs(cmd: str):
                 if (cur.lstrip("\t") if tabs else cur) == d:
                     break
                 body.append(cur)
-            bodies.append(("\n".join(body), line, quoted))
+            bodies.append(("\n".join(body), owner, quoted))
     return "\n".join(code), bodies
+
+
+def mask_single(text: str) -> str:
+    """Blank single-quoted spans outside double quotes (same length), so $(...)
+    and backticks inside '...' (literal to the shell) are never treated as code."""
+    out, q = list(text), None
+    for i, c in enumerate(text):
+        if q == "'":
+            if c == "'":
+                q = None
+            else:
+                out[i] = " "
+        elif q == '"':
+            if c == '"' and text[i - 1] != "\\":
+                q = None
+        elif c in "'\"" and (i == 0 or text[i - 1] != "\\"):
+            q = c
+    return "".join(out)

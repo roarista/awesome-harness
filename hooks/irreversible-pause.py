@@ -15,7 +15,7 @@ import _hookout; _hookout.exit_if_product(); import json
 import re
 import sys
 
-from _heredoc import split_heredocs
+from _heredoc import mask_single, split_heredocs
 from _rmscan import SHELLS, SUBST, rm_is_recursive_force as _rm_is_recursive_force
 
 OVERRIDE = "CLAUDE_ALLOW_IRREVERSIBLE=1"
@@ -125,7 +125,7 @@ def matches_denylist(cmd: str) -> bool:
         if not quoted and any(matches_denylist(m.group(1) or m.group(2) or "")
                               for m in SUBST.finditer(body)):
             return True  # unquoted delimiter: $(...) / `...` in the body run
-    if any(matches_denylist(m.group(1) or m.group(2) or "") for m in SUBST.finditer(cmd)):
+    if any(matches_denylist(m.group(1) or m.group(2) or "") for m in SUBST.finditer(mask_single(cmd))):
         return True
     bare = _strip_comments(_dequote(cmd))
     if _rm_is_recursive_force(cmd):

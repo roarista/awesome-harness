@@ -107,3 +107,10 @@ Backup: `$CLAUDE_JOB_DIR/tmp/settings.json.bak-2026-10-03` (= `/Users/rodrigoari
 - A shell anywhere in a pipeline consumes every upstream stage (`echo .. | tee | sh`).
 - Tests: 5 new must-block cases (all missed on 88aab6b) and 8 must-pass cases (`git commit -m "remove rm -rf ~/x hack"`, `echo "rm -rf ~"`, `grep 'rm -rf' file`, rg, sed, `echo | tee`, `ssh ls`, `python -c print`). All pass on repo and live.
 - Stray `/tmp/x.sh` from the audit incident removed.
+
+## Follow-up 4: re-audit REJECT of 74b4a60, fixed
+- Quoted text is DATA again (no data-command allowlist). Rescanned as code only: $(...)/backtick bodies (heredoc bodies stripped unless fed to a shell; single-quoted spans masked as literal), shell -c, ssh remote command, eval, trap, here-strings and pipelines into a shell, system/exec/run/execSync-style call literals in python/node/perl/ruby -c/-e code.
+- `_heredoc.openers` keeps a quote/substitution context stack, so a heredoc opened inside a double-quoted command substitution (the commit-message form) is real and its body is stripped. Shell-fed is decided by the heredoc owning command only, not by any word on the line.
+- mktemp-trusted vars flow into every recursive rescan.
+- Tests: 13 must-pass + 9 must-block added. On 74b4a60: 14 false blocks + 1 miss; now 0/0 (51 safe / 90 danger) on repo and live.
+- This commit used the git commit -m "$(cat <<EOF ...)" form and passed the live hook.

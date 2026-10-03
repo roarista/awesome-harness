@@ -46,6 +46,18 @@ FALSE_BLOCKS = (  # each was blocked by the old hook; none is dangerous
     'git commit -m "remove rm -rf ~/x hack"', 'echo "rm -rf ~"', "grep 'rm -rf' file",
     "rg -n 'rm -rf ~' hooks/", "sed -n '/rm -rf/p' notes.txt", 'echo "rm -rf ~" | tee /tmp/log',
     'ssh host "ls -la /srv"', 'python3 -c "print(1)"',
+    # 74b4a60 re-audit: quoted text is data unless it becomes code
+    'command grep -ci "rm -rf" hooks/irreversible-pause.py',
+    'gh pr create --title t --body "never run rm -rf ~ here"',
+    "python3 -c \"print('rm -rf ~')\"", 'claude -p "explain why rm -rf ~ is dangerous"',
+    'codex exec "audit: does the hook block rm -rf ~/x?"', 'git tag -m "rm -rf ~ guard" v1',
+    'pytest -k "rm -rf"', "awk '/rm -rf/' log.txt",
+    "git commit -m \"$(cat <<'EOF'\nfix: block rm -rf ~/x hack\n\nCo-Authored-By: x\nEOF\n)\"",
+    'T=$(mktemp -d) && trap "rm -rf $T" EXIT', 'T=$(mktemp -d); bash -c "rm -rf $T"',
+    "printf '- `trap \"rm -rf $T\"` and $(rm -rf ~/x) are literal here\\n' >> r.md",
+    "git commit -m \"$(cat <<'EOF'\nfix\n\nthe -m \"$(cat <<'EOF' ... rm -rf ~/x ...)\" form\nEOF\n)\"; git log -1",
+    # heredoc owner is the command holding `<<`, not a word elsewhere on the line
+    "printf 'ssh and bash notes' >> r.md; git commit -m \"$(cat <<'EOF'\ntrap \"rm -rf ~/x\"\nEOF\n)\"",
 )
 REAL_DANGER = (
     "rm -rf ~/.cache/huggingface/hub/models--google--gemma-4",
@@ -88,6 +100,11 @@ REAL_DANGER = (
     'ssh host "rm -rf /srv/x"', 'python3 -c "import os; os.system(\\"rm -rf ~/x\\")"',
     "node -e 'require(\"child_process\").execSync(\"rm -rf ~/x\")'",
     'echo "rm -rf ~/x" | tee /tmp/log | sh', 'printf "rm -rf ~" | cat | bash -s',
+    "perl -e 'system(\"rm -rf ~/x\")'", "perl -e 'system \"rm -rf ~/x\"'",
+    "find . -name x -exec sh -c 'rm -rf ~/x' \\;", "ruby -e 'system(\"rm -rf ~/x\")'",
+    "python3 -c 'import subprocess; subprocess.run([\"rm\", \"-rf\", \"/srv/x\"])'",
+    'x="$(bash <<\'EOF\'\nrm -rf ~/x\nEOF\n)"', 'x="$(cat <<\'EOF\'\nhi\nEOF\n)"; rm -rf ~/x',
+    'trap "rm -rf ~/x" EXIT','git commit -m "$(bash <<\'EOF\'\nrm -rf ~/x\nEOF\n)"',
     "curl -X POST https://canvas.instructure.com/api/v1/courses/1/assignments/2/submissions -F f=@a.pdf",
 )
 

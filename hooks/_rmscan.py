@@ -3,23 +3,29 @@
 200-line cap). ROBUST RULE: any `rm` token ANYWHERE in the token stream with
 -r/-R and -f (any spelling) blocks unless every target is provably disposable
 (tmp, $CLAUDE_JOB_DIR, a var whose LAST assignment is mktemp, worktrees, build
-output; symlinks resolved). So prefixes (sudo/ssh/watch/parallel/...) and
-keywords cannot hide it. Strings that become code are scanned recursively:
-$(...) and backtick bodies, `sh -c` / `bash -lc`, eval, here-strings fed to a
-shell, arguments piped into a shell anywhere downstream (`echo .. | tee | sh`),
-and the CONTENTS of every quoted string (ssh/python -c) unless the command is
-plain data (echo/printf/grep/rg/sed, `git commit -m`).
+output; symlinks resolved). Quoted text is DATA, except strings that become
+code, which are rescanned: $(...)/backtick bodies (heredoc bodies stripped unless
+fed to a shell), `sh -c`, ssh remote commands, eval, trap, here-strings fed to a
+shell, upstream stages of a pipeline containing a shell, and system()/exec()-style
+call literals inside python/node/perl/ruby -c/-e code.
 Audit: docs/audits/2026-10-03/hook-circumvention.md."""
 import os
 import re
 import shlex
+
+from _heredoc import mask_single, split_heredocs
 
 RM_FLAGS_LONG = {"--recursive": "r", "--force": "f"}
 SAFE_PARTS = {"node_modules", "dist", "build", "out", "__pycache__", ".pytest_cache"}
 SAFE_PREFIX = ("/tmp/", "/private/tmp/", "/var/folders/", "/private/var/folders/")
 SAFE_VARS = ("CLAUDE_JOB_DIR", "TMPDIR")
 SHELLS = {"bash", "sh", "zsh", "dash", "ksh", "fish"}
-DATA_CMDS = {"echo", "printf", "grep", "egrep", "fgrep", "rg", "ag", "sed"}  # args are data
+INTERP = re.compile(r"^(?:python[\d.]*|node|perl|ruby|deno|bun)$")
+SSH_ARG_OPTS = set("bcDEeFIiJLlmOopQRSWw")
+LIT = r""""(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'"""
+CALL = re.compile(r"\b(?:system|popen|run|call|check_call|check_output|Popen|getoutput|"
+                  r"getstatusoutput|exec|execSync|execFile|execFileSync|spawn|spawnSync)"
+                  r"\s*\(?\s*(\[[^\]]*\]|" + LIT + ")")
 SUBST = re.compile(r"`([^`]*)`|\$\(((?:[^()]|\([^()]*\))*)\)")
 ASSIGN = re.compile(r"(?<![\w$-])(\w+)=(\$\(\s*mktemp\b)?|\b(?:for|read(?:\s+-\w+)*)\s+(\w+)")
 REDIR = re.compile(r"^(?:\d*|&)(?:>>?|<)&?")
@@ -32,9 +38,9 @@ def _real(p: str) -> str:
         return os.path.normpath(p)
 
 
-def _tmpvars(cmd: str) -> set:
-    """Vars whose LAST assignment in `cmd` is `$(mktemp ...)`."""
-    last = {}
+def _tmpvars(cmd: str, outer: frozenset = frozenset()) -> set:
+    """Vars whose LAST assignment (outer scope first, then `cmd`) is mktemp."""
+    last = dict.fromkeys(outer, True)
     for m in ASSIGN.finditer(cmd):
         if m.group(1):
             last[m.group(1)] = bool(m.group(2))
@@ -123,36 +129,62 @@ def _rm_hit(seg: list, k: int, tmpvars: set) -> bool:
     return not targets or not all(_safe_target(x, tmpvars) for x in targets)
 
 
-def rm_is_recursive_force(cmd: str, depth: int = 0) -> bool:
+def _code_literals(code: str) -> list:
+    """Shell strings handed to system()/exec()-style calls inside interpreter code."""
+    out = []
+    for m in CALL.finditer(code):
+        lits = re.findall(LIT, m.group(1))
+        out.append(" ".join(x[1:-1] for x in lits))
+    return out
+
+
+def _ssh_remote(seg: list, k: int) -> str:
+    j = k + 1
+    while j < len(seg) and seg[j].startswith("-"):
+        j += 2 if (len(seg[j]) == 2 and seg[j][1] in SSH_ARG_OPTS) else 1
+    return " ".join(seg[j + 1:])  # seg[j] is the host
+
+
+def _subst_code(body: str) -> str:
+    """$(...) body as code: heredoc bodies dropped unless fed to a shell."""
+    code, docs = split_heredocs(body)
+    fed = [d for d, opener, _ in docs if set(re.split(r"[\s;&|()/]+", opener)) & (SHELLS | {"ssh"})]
+    return "\n".join([code] + fed)
+
+
+def rm_is_recursive_force(cmd: str, depth: int = 0, outer: frozenset = frozenset()) -> bool:
     if depth > 6:
         return True  # absurd nesting: refuse to call it safe
-    again = lambda s: bool(s) and rm_is_recursive_force(s, depth + 1)  # noqa: E731
-    if any(again(m.group(1) if m.group(1) is not None else m.group(2))
-           for m in SUBST.finditer(cmd)):
+    tmpvars = _tmpvars(cmd, outer)
+    again = lambda s: bool(s) and rm_is_recursive_force(s, depth + 1, frozenset(tmpvars))  # noqa: E731
+    if any(again(_subst_code(m.group(1) if m.group(1) is not None else m.group(2)))
+           for m in SUBST.finditer(mask_single(cmd))):
         return True
-    tmpvars, segs = _tmpvars(cmd), _segments(_tokens(cmd))
+    segs = _segments(_tokens(cmd))
     for n, (sep, seg) in enumerate(segs):
         bases = [os.path.basename(w) for w in seg]
         has_shell = bool(SHELLS & set(bases))
-        cmd0 = next((b for w, b in zip(seg, bases) if not re.match(r"^\w+=", w)), "")
-        data = cmd0 in DATA_CMDS or (cmd0 == "git" and "commit" in seg)
         for k, w in enumerate(seg):
-            if not data and "rm" in w and any(c in w for c in " \t\n") and again(w):
-                return True  # quoted string = code (ssh "...", python -c "os.system(...)")
+            nxt = seg[k + 1] if k + 1 < len(seg) else ""
             if bases[k] == "rm" and _rm_hit(seg, k, tmpvars):
                 return True
-            if bases[k] in SHELLS:
-                j, has_c = k + 1, False
+            if bases[k] in SHELLS or INTERP.match(bases[k]):
+                j, code = k + 1, ""
                 while j < len(seg) and seg[j].startswith("-") and seg[j] != "--":
-                    has_c = has_c or (not seg[j].startswith("--") and "c" in seg[j])
+                    f = seg[j]
+                    if f in ("--eval", "--print") or (not f.startswith("--") and f[-1] in "ceE"):
+                        code = seg[j + 1] if j + 1 < len(seg) else ""
+                        break
                     j += 1
-                if has_c and j < len(seg) and again(seg[j]):
+                lits = [code] if bases[k] in SHELLS else _code_literals(code)
+                if any(again(x) for x in lits):
                     return True
-            if w == "eval" and again(" ".join(seg[k + 1:])):
+            if bases[k] == "ssh" and again(_ssh_remote(seg, k)):
                 return True
-            if w.startswith("<<<") and has_shell:
-                if again(w[3:] or (seg[k + 1] if k + 1 < len(seg) else "")):
-                    return True
+            if w in ("eval", "trap") and again(" ".join(seg[k + 1:]) if w == "eval" else nxt):
+                return True
+            if w.startswith("<<<") and has_shell and again(w[3:] or nxt):
+                return True
         m = n
         while has_shell and m > 0 and segs[m][0] == "|":  # a shell anywhere in a pipeline
             m -= 1                                        # consumes every upstream stage
