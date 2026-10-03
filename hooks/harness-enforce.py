@@ -18,7 +18,7 @@ Applicability-gated (a mechanism only re-asserts where it's real):
 Add a mechanism = add one MECHS entry. Non-blocking (additionalContext),
 fail-open on any error — never wedge a prompt over a reminder.
 """
-import json
+import _hookout; _hookout.exit_if_product(); import json
 import os
 import sys
 from pathlib import Path

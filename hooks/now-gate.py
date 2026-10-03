@@ -9,7 +9,7 @@ the bloat never lands. For Edit/MultiEdit the post-edit content isn't knowable
 cheaply, so that case stays advisory. Built by GLM 5.2, reviewed + docstringed
 here. Kill-switch NOW_GATE=0. Fail-open. (Delegated M1.)
 """
-import sys
+import _hookout; _hookout.exit_if_product(); import sys
 import json
 import os
 import re

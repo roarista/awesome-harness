@@ -3,7 +3,7 @@
 # user's prompt and injects the top memory hit(s) as context — so agents pull
 # relevant durable memory without anyone typing /recall.
 # ponytail: FTS-only, no ranking model; good enough for "is this already decided?".
-import json, os, re, sqlite3, sys
+import _hookout; _hookout.exit_if_product(); import json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import _hookout
 
 DB = os.path.expanduser("~/.claude/tools/memgraph/out/memindex.sqlite")

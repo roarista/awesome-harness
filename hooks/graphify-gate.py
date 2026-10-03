@@ -28,7 +28,7 @@ Deliberately narrow so it enforces without wedging:
   * kill-switch env GRAPHIFY_GATE=0    → no-op
   * any internal error                 → fail-open (exit 0), never wedge
 """
-import json
+import _hookout; _hookout.exit_if_product(); import json
 import os
 import re
 import shlex

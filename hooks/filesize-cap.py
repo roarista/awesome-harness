@@ -15,7 +15,7 @@ Blocks only when ALL hold:
 Partial read (offset OR limit) -> silent. Non-text / binary / missing / small
 -> silent. Kill-switch FILESIZE_CAP=0 -> no-op. Fail-open on any error.
 """
-import json
+import _hookout; _hookout.exit_if_product(); import json
 import os
 import sys
 

@@ -12,7 +12,7 @@ The streak trigger is the sharp one — you don't run the identical command thre
 times back-to-back unless it's failing/looping — and it needs no fragile
 error-detection. Fail-open; state is per-session and self-prunes.
 """
-import json
+import _hookout; _hookout.exit_if_product(); import json
 import os
 import sys
 import time

@@ -16,7 +16,7 @@ autopilot without spending a per-turn model call.
 Both files are opt-in per repo (absent → that section is silently skipped).
 Keep each file tiny; only OBJECTIVE / NOW is strictly required.
 """
-import json
+import _hookout; _hookout.exit_if_product(); import json
 import os
 import re
 import subprocess

@@ -3,7 +3,7 @@
 exact moment the orchestrator is tempted to narrate "here's what came back".
 No hook can retract chat prose, but this injects a reminder at the danger point.
 Fail-open, silent on any error."""
-import os
+import _hookout; _hookout.exit_if_product(); import os
 import re
 import subprocess
 import sys

@@ -23,7 +23,7 @@ Modes:
 Kill-switch FILE-level: env MANIFEST_GUARD=0 → no-op. MANIFEST_GUARD=warn
 (default) = alert only. No enforce/block mode — advisory by design. Fail-open.
 """
-import hashlib
+import _hookout; _hookout.exit_if_product(); import hashlib
 import json
 import os
 import sys

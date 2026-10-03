@@ -37,7 +37,7 @@ BEHAVIORAL NUDGE, not a sandbox. The real backstop is
 audit step; for true enforcement use a `deny` permission rule or a git
 pre-commit hook, not a command-line regex.
 """
-import json
+import _hookout; _hookout.exit_if_product(); import json
 import os
 import sys
 from pathlib import Path

@@ -7,7 +7,7 @@ that file is also large, the message says so (the narrowed oversize warning).
 
 Warn only, never blocks. Fail-open, state per-session self-prunes.
 """
-import json
+import _hookout; _hookout.exit_if_product(); import json
 import os
 import sys
 import time

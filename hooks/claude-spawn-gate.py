@@ -17,7 +17,7 @@ gemini, opus, map-refresh, plugin agents (name contains ':') — passes silently
 Fails OPEN (exit 0) on any exception so a broken hook never blocks a real spawn.
 Kill switch: CLAUDE_SPAWN_GATE=off.
 """
-import json
+import _hookout; _hookout.exit_if_product(); import json
 import sys
 
 BLOCKED = {"general-purpose", "explore"}

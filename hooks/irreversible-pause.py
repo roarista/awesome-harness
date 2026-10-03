@@ -20,7 +20,7 @@ Deny protocol: exit 2 + reason on stderr → Claude Code blocks the call and
 feeds the reason back to the model. Fail-open on any internal error (exit 0) —
 this must never wedge the session.
 """
-import json
+import _hookout; _hookout.exit_if_product(); import json
 import re
 import sys
 

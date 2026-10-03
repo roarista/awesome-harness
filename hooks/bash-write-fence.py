@@ -21,7 +21,7 @@ Modes via env BASH_WRITE_FENCE: enforce (default) | warn | off.
 SILENT ON PASS: zero bytes, exit 0, for every non-write Bash call.
 Fail-OPEN on any internal error.
 """
-import json
+import _hookout; _hookout.exit_if_product(); import json
 import os
 import re
 import subprocess

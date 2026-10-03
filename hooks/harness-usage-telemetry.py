@@ -15,7 +15,7 @@ NEVER blocks, NEVER writes to chat, fail-open on ANY error (exit 0 always).
 Kill-switch: HARNESS_TELEMETRY=off disables it. Default on-but-harmless
 (read-only append). Also silently no-ops if the state dir isn't writable.
 """
-import hashlib
+import _hookout; _hookout.exit_if_product(); import hashlib
 import json
 import os
 import re

@@ -10,7 +10,7 @@ exit 0 printing nothing. Never crash, never exit non-zero.
 
 Kill switch: CODEMAP_INJECT=off -> exit 0 silently.
 """
-import os
+import _hookout; _hookout.exit_if_product(); import os
 import subprocess
 import sys
 
