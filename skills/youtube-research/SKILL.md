@@ -1,6 +1,6 @@
 ---
 name: youtube-research
-description: Research credible creators and mine their content on YouTube + Instagram/Reels for any niche. Use when the user says "run the youtube research skill", "do youtube research", "research <topic> on youtube", wants to find high-credibility creators/channels on a topic, pull a video's transcript, or scrape Instagram reels/comments (with likes) for niche/competitor research. Wraps the global `ytintel` CLI. Works in any project.
+description: "Find credible creators and mine YouTube/Instagram content (transcripts, reels, comments) via the ytintel CLI. Use for niche or competitor research."
 allowed-tools: Bash
 ---
 
@@ -72,3 +72,7 @@ TikTok runs on the same ScrapeCreators API (not yet a subcommand — add `/v3/ti
   an API call pick an unused one: `export YOUTUBE_API_KEY=$(grep -m1 . ~/.config/ytintel/keys.txt)` — on 429, move that
   line to the bottom and retry with the next. Get a fresh free key: Google Cloud Console → enable "YouTube Data API v3"
   → Credentials → Create credentials → API key. (ytintel has no built-in rotation; keyless avoids needing it at all.)
+
+## Former description (moved from frontmatter, context diet U8)
+
+Research credible creators and mine their content on YouTube + Instagram/Reels for any niche. Use when the user says "run the youtube research skill", "do youtube research", "research <topic> on youtube", wants to find high-credibility creators/channels on a topic, pull a video's transcript, or scrape Instagram reels/comments (with likes) for niche/competitor research. Wraps the global `ytintel` CLI. Works in any project.

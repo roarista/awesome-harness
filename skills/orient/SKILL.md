@@ -1,6 +1,6 @@
 ---
 name: orient
-description: THE PROCEDURE steps 1-3 in ONE call — RECALL (memgraph + mulch + MEMORY.md) then UNDERSTAND (front door, graphify + repowise, ponytail reuse ladder) then the REUSE/ADAPT/REJECT verdict and STOP/PLAN/BUILD gate. Run before writing code, before proposing something that may already exist, or when a request would add a feature/module/pipeline stage/schema/integration/dependency, materially refactor, or connect two subsystems. Replaces running `recall` and `codebase-first` separately. Skip for trivial one-line edits, docs-only wording, or a workflow already known this session.
+description: "PROCEDURE steps 1-3 in one call: recall, understand, REUSE/ADAPT/REJECT + STOP/PLAN/BUILD gate. Use before new code or features; skip trivial edits."
 ---
 
 <!-- MIRROR: copy of ~/.claude/skills/orient/SKILL.md (authoritative = the live ~/.claude copy). Re-sync: cp ~/.claude/skills/orient/SKILL.md skills/orient/SKILL.md -->
@@ -107,3 +107,7 @@ NEXT SEAM: <decompose target, or the one question for Ro>
 
 ## What hooks can / cannot enforce (honesty note)
 Hooks can require a `REUSE`-evidence **pointer** (a `.scratch/discovery/...` path or inline `REUSE:/ADAPT:/REJECT:`) on recognized mutating builder spawns. They cannot judge whether a map query was relevant, prove the agent understood returned symbols, or judge whether a rejection reason is correct. Mechanically requires a pointer; evidence QUALITY stays behavioral and audit-backed.
+
+## Former description (moved from frontmatter, context diet U8)
+
+THE PROCEDURE steps 1-3 in ONE call — RECALL (memgraph + mulch + MEMORY.md) then UNDERSTAND (front door, graphify + repowise, ponytail reuse ladder) then the REUSE/ADAPT/REJECT verdict and STOP/PLAN/BUILD gate. Run before writing code, before proposing something that may already exist, or when a request would add a feature/module/pipeline stage/schema/integration/dependency, materially refactor, or connect two subsystems. Replaces running `recall` and `codebase-first` separately. Skip for trivial one-line edits, docs-only wording, or a workflow already known this session.

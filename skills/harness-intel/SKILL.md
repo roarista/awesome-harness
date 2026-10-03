@@ -1,6 +1,6 @@
 ---
 name: harness-intel
-description: Recurring harness intelligence pass, proposal-only, two modes. (A) AUDIT — map one repo's harness (CLAUDE.md, front-door docs, mulch, STATE, agent specs) against the REAL codebase and produce a fidelity/behavioral drift report. (B) SCOUT — mine Ro's recent transcripts for repeated toil to automate, and research external ideas (GitHub, AI-lab frameworks, YouTube creators, newsletters) worth stealing. Use when Ro says "audit the harness", "/harness-audit", "scout the harness", "what should we steal", "what am I repeating that should be a skill", "check <repo> for drift", or on a periodic improvement sweep. NEVER edits the live tree — output is always a report Ro reviews.
+description: "Proposal-only: AUDIT a repo harness for drift, or SCOUT transcripts and outside ideas worth stealing. Use on \"audit/scout the harness\". Never edits."
 ---
 
 <!-- MIRROR: copy of ~/.claude/skills/harness-intel/SKILL.md (authoritative = the live ~/.claude copy). Re-sync: cp ~/.claude/skills/harness-intel/SKILL.md skills/harness-intel/SKILL.md -->
@@ -56,3 +56,7 @@ North star: get Ro out of the loop while keeping quality.
 **Cadence:** on demand; A1 already folds into `harness-coach`'s weekly log-audit rather than a second cron. B1 (web research) is token-heavy — run when asked, bounded.
 
 **When NOT to run SCOUT:** mid-implementation of an unrelated task; as an auto-applier; to chase one tool Ro already decided on.
+
+## Former description (moved from frontmatter, context diet U8)
+
+Recurring harness intelligence pass, proposal-only, two modes. (A) AUDIT — map one repo's harness (CLAUDE.md, front-door docs, mulch, STATE, agent specs) against the REAL codebase and produce a fidelity/behavioral drift report. (B) SCOUT — mine Ro's recent transcripts for repeated toil to automate, and research external ideas (GitHub, AI-lab frameworks, YouTube creators, newsletters) worth stealing. Use when Ro says "audit the harness", "/harness-audit", "scout the harness", "what should we steal", "what am I repeating that should be a skill", "check <repo> for drift", or on a periodic improvement sweep. NEVER edits the live tree — output is always a report Ro reviews.

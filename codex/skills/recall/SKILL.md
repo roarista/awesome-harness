@@ -1,6 +1,6 @@
 ---
 name: recall
-description: Retrieve durable memory fast instead of grepping scattered markdown. Use when you need prior context on a topic ("what do we know about X", "have we decided Y"), at the start of substantive work to load task-relevant memory, or before proposing something that may already be recorded. Backed by the memgraph full-text index over Ro's global memory plus mulch for per-repo records.
+description: "Retrieve durable memory via the memgraph full-text index + mulch. Use for \"what do we know about X\" or before proposing what may be recorded."
 ---
 
 # recall — fast memory retrieval
@@ -42,3 +42,7 @@ ml search "<topic>" # targeted lookup
 - **Read budget: ≤5 file reads per recall.** Hop card-by-card (`query` → top hit → one `graph` hop). If 5 reads have not answered it, narrow the query rather than widening the reads.
 - Retrieval is read-only. Never mutate a memory record as a side effect of a query.
 - Dangling `[[name]]` links are expected — they mark a not-yet-written record, signal rather than error.
+
+## Former description (moved from frontmatter, context diet U8)
+
+Retrieve durable memory fast instead of grepping scattered markdown. Use when you need prior context on a topic ("what do we know about X", "have we decided Y"), at the start of substantive work to load task-relevant memory, or before proposing something that may already be recorded. Backed by the memgraph full-text index over Ro's global memory plus mulch for per-repo records.

@@ -1,6 +1,6 @@
 ---
 name: goal
-description: Turn a fuzzy objective into a running, self-verifying loop. Use when Ro wants to "create a loop", run something "until it's done", or hand off a multi-step objective instead of hand-prompting each step ("/goal", "loop until", "keep going until tests pass", "build X autonomously"). The skill manufactures a strong SEED (heavy plan → maximal decomposition → verifiable checklist) and only then runs the loop with cheap workers + an independent verifier + mulch memory + hard stop conditions. Repo-agnostic — the same flow fits every pipeline. Do NOT use for one-shot edits or goals with no verifiable end-state (see "When NOT to loop").
+description: "Turn a fuzzy objective into a self-verifying loop (seed plan, workers, verifier, stop rules). Use on /goal or \"loop until\". Not for one-shot edits."
 ---
 
 # goal — design the loop, don't hand-prompt
@@ -134,3 +134,7 @@ record → check stop condition.
 The compounding advantage is NOT the loop — it's the reusable seed, skills, and recorded lessons the
 loop invokes every iteration. Invest in those and a cheap model loops reliably; skip them and you just
 automate failure faster.
+
+## Former description (moved from frontmatter, context diet U8)
+
+Turn a fuzzy objective into a running, self-verifying loop. Use when Ro wants to "create a loop", run something "until it's done", or hand off a multi-step objective instead of hand-prompting each step ("/goal", "loop until", "keep going until tests pass", "build X autonomously"). The skill manufactures a strong SEED (heavy plan → maximal decomposition → verifiable checklist) and only then runs the loop with cheap workers + an independent verifier + mulch memory + hard stop conditions. Repo-agnostic — the same flow fits every pipeline. Do NOT use for one-shot edits or goals with no verifiable end-state (see "When NOT to loop").

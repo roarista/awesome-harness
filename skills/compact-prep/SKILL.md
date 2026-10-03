@@ -1,6 +1,6 @@
 ---
 name: compact-prep
-description: Run before /clear (or /compact mid-task) to preserve session memory. Commits work, records mulch, updates STATE.md and .now.md, pushes, writes .planning/CONTINUE.md.
+description: "Run before /clear (or mid-task /compact): commit, mulch record, STATE + .now.md, push, write .planning/CONTINUE.md."
 ---
 
 # Compact-Prep
@@ -59,3 +59,7 @@ A vague line ("continue the work") is not specific enough: name the file, the co
 After `/clear`, the `clear-resume.py` SessionStart hook injects CONTINUE.md (<48 h old), so nothing is pasted. Use `/compact` only mid-task, when reasoning not yet written down matters; then also paste the block as the first message after it.
 
 Skip this skill for a trivial conversational session. Do not compact or clear with a silent broken build: fix it or record it in the STATE file first.
+
+## Former description (moved from frontmatter, context diet U8)
+
+Run before /clear (or /compact mid-task) to preserve session memory. Commits work, records mulch, updates STATE.md and .now.md, pushes, writes .planning/CONTINUE.md.

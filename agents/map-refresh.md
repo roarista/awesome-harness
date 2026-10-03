@@ -1,30 +1,6 @@
 ---
 name: map-refresh
-description: >
-  Runs after a unit of work is built and verified, to make every code map tell
-  the truth about the repo again. THE PROCEDURE step 7 (PERSIST), before the
-  commit. It regenerates the CACHED maps (.codemap, graphify) and VERIFIES the
-  LIVE ones (L0/L1/skeleton) — those are computed on every call and have nothing
-  to regenerate, so the only real question is whether they still hold.
-
-  Use after any change that adds, deletes, moves or renames a source file, and
-  before any commit that does. Do NOT use for a one-line edit inside an existing
-  function — no map changes shape from that.
-
-  It never edits source. If a map is wrong it says so and stops; fixing the map
-  generator is a separate unit with its own spec.
-
-  <example>
-  Context: a builder just added three modules and the auditor passed them.
-  user: "Unit 4 is verified."
-  assistant: "I'll run the map-refresh agent before committing, so .codemap and the graph aren't stale by the time anyone reads them."
-  </example>
-
-  <example>
-  Context: files were renamed across a package.
-  user: "I moved everything under services/ into src/services/."
-  assistant: "I'll run map-refresh — every cached map still points at the old paths."
-  </example>
+description: "After a unit is built and verified, before commit: regenerate cached maps (.codemap, graphify), verify live ones (L0/L1/skeleton). Use when files are added, deleted, moved or renamed; not for in-function edits. Never edits source."
 tools: Bash, Read, Grep, Glob
 ---
 
@@ -79,3 +55,30 @@ NEXT: <commit is safe | which tier blocks it>
 
 Keep it to those lines. Findings that overflow go to `tools/finding.sh record`;
 return the id, not the body.
+
+## Former description (moved from frontmatter, context diet U8)
+
+Runs after a unit of work is built and verified, to make every code map tell
+the truth about the repo again. THE PROCEDURE step 7 (PERSIST), before the
+commit. It regenerates the CACHED maps (.codemap, graphify) and VERIFIES the
+LIVE ones (L0/L1/skeleton) — those are computed on every call and have nothing
+to regenerate, so the only real question is whether they still hold.
+
+Use after any change that adds, deletes, moves or renames a source file, and
+before any commit that does. Do NOT use for a one-line edit inside an existing
+function — no map changes shape from that.
+
+It never edits source. If a map is wrong it says so and stops; fixing the map
+generator is a separate unit with its own spec.
+
+<example>
+Context: a builder just added three modules and the auditor passed them.
+user: "Unit 4 is verified."
+assistant: "I'll run the map-refresh agent before committing, so .codemap and the graph aren't stale by the time anyone reads them."
+</example>
+
+<example>
+Context: files were renamed across a package.
+user: "I moved everything under services/ into src/services/."
+assistant: "I'll run map-refresh — every cached map still points at the old paths."
+</example>

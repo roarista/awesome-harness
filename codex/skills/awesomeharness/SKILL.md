@@ -1,6 +1,6 @@
 ---
 name: awesomeharness
-description: Ro's coding loop: builder/auditor split, verification, persistence. Use on $awesomeharness or any build, refactor, audit.
+description: "Ro's coding loop: builder/auditor split, verification, persistence. Use on $awesomeharness or any build, refactor, audit."
 ---
 # awesomeharness
 

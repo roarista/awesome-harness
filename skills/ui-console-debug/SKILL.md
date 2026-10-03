@@ -1,6 +1,6 @@
 ---
 name: ui-console-debug
-description: Debug web UIs live in Ro's Chrome — read console errors, reload, screenshot, iterate until zero errors. Use for any "no se ve nada / está roto / está trabado" report about a local web page.
+description: "Debug a local web UI in Ro's Chrome: console errors, reload, screenshot, iterate to zero errors. Use on \"no se ve nada / roto / trabado\"."
 ---
 
 <!-- MIRROR: copy of ~/.claude/skills/ui-console-debug/SKILL.md (authoritative = the live ~/.claude copy). Re-sync: cp ~/.claude/skills/ui-console-debug/SKILL.md skills/ui-console-debug/SKILL.md -->
@@ -46,3 +46,7 @@ the browser's own error first.
 - Report to Ro with the exact error text found and the screenshot path
   (full absolute path).
 - Don't trigger alert()/confirm() — they freeze the extension.
+
+## Former description (moved from frontmatter, context diet U8)
+
+Debug web UIs live in Ro's Chrome — read console errors, reload, screenshot, iterate until zero errors. Use for any "no se ve nada / está roto / está trabado" report about a local web page.

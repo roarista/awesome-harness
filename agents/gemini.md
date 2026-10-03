@@ -1,32 +1,6 @@
 ---
 name: gemini
-description: |
-  Delegates work to REAL Gemini 2.5 (Pro/Flash) via the `gemini` shim → OpenCode. A
-  genuine independent model, so valid as the non-Claude voice in a council. Gemini gets
-  its OWN Read/Bash/Edit tools inside OpenCode, so it can scrape, run commands, read
-  repos, and analyse images — not just answer from context.
-
-  Use for: large-context codebase/document passes; vision on images; VIDEO analysis via
-  extracted frames; web scraping and data pulls; a cheap second opinion; anything where
-  a non-Anthropic model is the point.
-
-  <example>
-  Context: User wants a video analysed.
-  user: "What's happening in this reel and why does the hook work?"
-  assistant: "I'll use the gemini agent — it extracts frames with ffmpeg and reads them with Gemini vision."
-  </example>
-
-  <example>
-  Context: User wants data pulled off a site.
-  user: "Scrape the pricing tiers off these 5 competitor pages."
-  assistant: "I'll use the gemini agent; Gemini has its own bash/curl tools inside OpenCode for the fetch-and-parse loop."
-  </example>
-
-  <example>
-  Context: Council / second opinion.
-  user: "Red-team this plan with a non-Claude model."
-  assistant: "I'll use the gemini agent — it reaches real Gemini 2.5 Pro, so it counts as an independent perspective."
-  </example>
+description: "Real Gemini 2.5 (Pro/Flash) via the `gemini` shim to OpenCode, with its own Read/Bash/Edit tools. Use for large-context passes, image/video vision, scraping and data pulls, a cheap second opinion, or the non-Claude council voice."
 tools: Bash, Read, Write, Glob, Grep
 model: inherit
 ---
@@ -118,3 +92,32 @@ It prints an id like `142317-88421`. Put that id in the EVIDENCE (or VERIFY) fie
 `finding <id>` plus a one-line summary. The caller reads the full dump only if it wants,
 with `tools/finding.sh get <id>`. The ledger is append-only and is never pruned.
 Piping nothing records an empty dump — if you have nothing to record, say `none`.
+
+## Former description (moved from frontmatter, context diet U8)
+
+Delegates work to REAL Gemini 2.5 (Pro/Flash) via the `gemini` shim → OpenCode. A
+genuine independent model, so valid as the non-Claude voice in a council. Gemini gets
+its OWN Read/Bash/Edit tools inside OpenCode, so it can scrape, run commands, read
+repos, and analyse images — not just answer from context.
+
+Use for: large-context codebase/document passes; vision on images; VIDEO analysis via
+extracted frames; web scraping and data pulls; a cheap second opinion; anything where
+a non-Anthropic model is the point.
+
+<example>
+Context: User wants a video analysed.
+user: "What's happening in this reel and why does the hook work?"
+assistant: "I'll use the gemini agent — it extracts frames with ffmpeg and reads them with Gemini vision."
+</example>
+
+<example>
+Context: User wants data pulled off a site.
+user: "Scrape the pricing tiers off these 5 competitor pages."
+assistant: "I'll use the gemini agent; Gemini has its own bash/curl tools inside OpenCode for the fetch-and-parse loop."
+</example>
+
+<example>
+Context: Council / second opinion.
+user: "Red-team this plan with a non-Claude model."
+assistant: "I'll use the gemini agent — it reaches real Gemini 2.5 Pro, so it counts as an independent perspective."
+</example>
