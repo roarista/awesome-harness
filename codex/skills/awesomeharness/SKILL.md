@@ -11,14 +11,14 @@ Tools: `ml search`; `~/Downloads/awesome-harness/tools/{l1,skeleton}.py`, bodies
 1. Prove REUSE / ADAPT / REJECT on live files; STOP if existing code covers it. Ponytail ladder first.
 2. Units spec `CONTEXT / REUSE / CHANGE / GOAL / VERIFY`. GOAL: end state + out of scope. VERIFY: commands that can fail + what passing looks like.
    Orchestrator owns file structure (FILE PLAN in code-decompose). Builders never create unplanned files or split code; if a file would exceed its budget they stop and report back.
-3. One builder per unit, router's pick; no concurrent siblings in a dirty checkout. No subagents: build, then self-audit.
+3. One builder per unit, router's pick; no concurrent siblings in a dirty checkout. No subagents: build, self-audit.
 4. Audit (auditor per Delegation), same spec, shared rubric:
    - CRITICAL data loss/security/secret leak/money · HIGH wrong on a normal path, invented API, GOAL
      unmet · MEDIUM edge input, unhandled I/O error, untested risky branch, test that cannot fail · LOW style.
    - `VERDICT: REJECT` if any CRITICAL/HIGH, any MEDIUM touching money/auth/secrets/data-loss/prod
      data, or VERIFY not run/failing; `PASS WITH FIXES` if only other MEDIUM/LOW; `PASS` only if ≤LOW.
-   Re-audit until not REJECT; fix every item. Agent reports are claims: independently check the tree and command output.
-5. Unit check + repo gate (`tools/check_all.sh` where `.check-all.json` exists), real output. Commit scoped, `ml record`, `.now.md` (NOW/LAST_VERIFIED/NEXT ≤5 lines) + STATE resume point, push.
+   Re-audit until not REJECT; fix every item. Agent reports are claims: independently check tree and command output.
+5. Unit check + `~/.codex/tools/check-all/check_all.sh`, real output. Commit scoped, `ml record`, `.now.md` (NOW/LAST/NEXT ≤5 lines) + STATE resume point, push.
 After a handoff use $compact-prep then /clear.
 
 ## Agents

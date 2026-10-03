@@ -35,3 +35,24 @@ Ro's decision: the 200-line structure belongs to the orchestrator, not to builde
 ## Open
 - `codex/skills/awesomeharness/SKILL.md` still says `$check-all`, a skill that 67ea14e pruned. That dangling reference predates this change and was not touched.
 - `docs/plans/2026-10-03-context-diet.md` still mentions size-nudge as historical plan text. Left as is.
+
+## Audit REJECT fixes (3 HIGH, 2026-10-03)
+1. **Builder rule wording:** `BUILDER_STANDARD.md` and `agents/codex.md` now say builders "create/split exactly what the unit's FILE PLAN names, nothing unplanned". The budget rule is unchanged: stop and report instead of splitting.
+2. **References to deleted skills, replaced with real tools or removed:**
+   - `codex/AGENTS.md`: `check-all` -> `~/.codex/tools/check-all/check_all.sh`, and RECALL -> `ml search`.
+   - `BUILDER_STANDARD.md:3`: `check-all` -> `tools/check-all/check_all.sh`.
+   - `skills/code-decompose`: recall -> `ml search`; `[[orient]]` and orient -> discovery (graphify / `skeleton.py` / `rg`); scaffolds via recall -> `~/.claude/scaffolds/`.
+   - `harness-intel`: removed the `notes-inbox` clause, and recall -> memgraph.
+   - `MEMORY_STANDARD.md`: `recall` -> `ml search`, and `state-trim` -> `tools/state-distiller.py` plus agent judgment.
+   - `templates/FRONT_DOOR.md`: `state-trim` / `/harness-audit` -> `tools/state-distiller.py` / `harness-intel` (AUDIT).
+   - `docs/CODING_AGENT_PROMPTING.md`: recall -> `~/.claude/scaffolds/`.
+   - `README.md:81,128`: the skill list is now 4 skills, plus the check_all.sh path.
+3. **Gate path:**
+   - `codex/skills/awesomeharness/SKILL.md:21` now points to `~/.codex/tools/check-all/check_all.sh`. The file was 2,789 B after 3477378 and is now trimmed to 2,747 B.
+   - `codex/skills/code-decompose` now uses the `~/.codex/...` path.
+   - `ls` confirms that `~/.claude/tools/check-all/check_all.sh`, `~/.codex/tools/check-all/check_all.sh` and `tools/check-all/check_all.sh` all exist, and zero `tools/check_all.sh` references remain.
+
+**Verification after the fixes:**
+- A bash grep for `/x`, `$x`, `[[x]]`, `` `x` `` and "x skill" across all 11 deleted names finds 0 invocations in skills, codex, agents, the standards, FRONT_DOOR, CODING_AGENT_PROMPTING and README. The positive control `$check-all and /orient` matches 1.
+- `test_product_call_isolation.py` OK, skill-drift 11 in sync, desc-bytes 0 over cap.
+- Reinstalled live, both `./install.sh` and `--codex`. The live copies of the standards, `agents/codex.md` and `codex/AGENTS.md` match the repo (cmp). The settings.json diff is still only the size-nudge block (10 lines).

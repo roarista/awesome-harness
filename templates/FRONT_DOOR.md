@@ -29,5 +29,5 @@ the schools filter").>
 - ...
 
 ---
-*Generated from `templates/FRONT_DOOR.md`. Regenerate/refresh with the `state-trim`
-skill or `/harness-audit`. Cite `file:line` so claims are checkable, not vibes.*
+*Generated from `templates/FRONT_DOOR.md`. Regenerate/refresh with `tools/state-distiller.py`
+or the `harness-intel` skill (AUDIT). Cite `file:line` so claims are checkable, not vibes.*
