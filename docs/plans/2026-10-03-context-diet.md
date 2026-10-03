@@ -1,89 +1,91 @@
-# Context diet — plan, 2026-10-03
+# Context diet — task list, 2026-10-03
 
-Goal: a session starts with only the context it needs. Ro's complaint: about 10K tokens are gone before
-the first message, and roughly 20% after two messages.
+Goal: bring a session's start close to the 18.1K tokens Claude Code needs on its own. Today a
+`claude -p` call starts at 36.6K, and the first call of an interactive session is about 57K (73K in
+Consulting). Each task is done, verified and committed one at a time. After each one, re-run the gate below.
 
-## Measured (not estimated)
+**Gate**, run in the repo being measured:
 
-**First API call per session**, read from transcripts (15 most recent per repo):
+```
+claude -p "reply ok" --model haiku --output-format json | jq '.usage|.input_tokens+.cache_read_input_tokens+.cache_creation_input_tokens'
+```
 
-| Repo | Tokens before any work |
+**Baseline in awesome-harness:**
+
+| Setup | Tokens |
 |---|---|
-| awesome-harness | 57K |
-| virality | 59K |
-| Vividlist | 63K |
-| Consulting | 73K |
-| home | 64K |
+| full | 36.6K |
+| `--safe-mode` | 18.1K (the floor) |
+| without user settings | 28.4K |
+| without MCP | 31.8K |
+| without the 3 plugins | 34.6K |
+| hooks off | 35.7K |
 
-**`claude -p "reply ok" --model haiku`** run in awesome-harness. These numbers are deterministic; repeat runs gave the same result.
+**Rule for every task:** a plugin or MCP server loads only in the repos that use it. Project settings
+override user settings (`managed > flag > local > project > user`, per code.claude.com/docs/en/plugins/loading).
 
-| Configuration | Tokens | Difference |
-|---|---|---|
-| full | 36.6K | — |
-| `--safe-mode` (floor: Claude Code itself) | 18.1K | **−18.5K is ours** |
-| without user settings (hooks + plugins + agents) | 28.4K | −8.2K |
-| without MCP servers | 31.8K | −4.8K |
-| without 3 plugins (vercel, power-automate, frontend-design) | 34.6K | −2.0K |
-| hooks off | 35.7K | −0.9K |
+## Tasks
 
-Interactive sessions add about 20K on top of `-p`: the Chrome and Claude Docs tools, the deferred-tool name
-list (about 250 names, including roughly 70 auth stubs for sales, marketing, finance, apollo and brand-voice
-connectors), and the first message. Typing `/context` in an interactive session shows the exact split; this plan
-does not depend on it.
+### T1. Plugins: off globally, on per project. Saves about 2K tokens per session. Configuration only.
+- **User settings:** turn off vercel, power-automate and frontend-design.
+- **Turn them back on per project:**
+  - vercel in `intrn/.claude/settings.json`, the only repo with `vercel.json`;
+  - frontend-design in the UI repos (intrn, Vividlist).
+- **The Vercel CLI is unaffected.** It is `~/.npm-global/bin/vercel` and works without the plugin. The plugin only adds skills and an MCP.
+- **Verify:** gate in awesome-harness drops by about 2K; gate in intrn still lists the vercel skills.
 
-**Text files loaded by bytes** (about 3.7 bytes per token):
+### T2. claude.ai connectors: off globally, on per project. Saves about 3–5K. Configuration only.
+- **User settings:** `"disableClaudeAiConnectors": true`, or the env var `ENABLE_CLAUDEAI_MCP_SERVERS=false`.
+- **Turn back on, with `false`:** Consulting (Notion), Vividlist and intrn (Supabase).
+- **Needs a check:** whether a project-level `false` really overrides the user-level `true`. If it doesn't, fall back to per-repo `deniedMcpServers` lists.
+- **Ro removes in claude.ai:** connectors he never uses anywhere, namely the sales, marketing, finance, apollo and brand-voice auth stubs. This also shortens the deferred tool-name list.
+- **Verify:** gate here drops by about 4.8K; in Consulting, a Notion tool still resolves.
 
-| What | Bytes | When it loads |
-|---|---|---|
-| user skill descriptions (19) | 8.3K | every session |
-| plugin skill descriptions (58; vercel alone is 10.6K) | 15.1K | every session |
-| agent descriptions (6 ours + 5 plugin) | 8.2K | every session |
-| MEMORY.md: Consulting / Vividlist / virality / home / harness | 23.6K / 16.4K / 12.6K / 11.5K / 7.7K | every session in that repo |
-| global CLAUDE.md + project CLAUDE.md | 3.2K + 2.4K | every session |
-| ponytail plugin SessionStart injection | about 5K | every start and every compact |
-| codemap | ≤2K | every start |
-| `/awesomeharness` body | 7.9K | after every compact (171 times in 30 days) |
-| compact-prep body | **17.5K** | every compact-prep |
-| pasted final summary + CONTINUE block (as `/awesomeharness` args) | about 4–8K | after every compact |
-| codex `AGENTS.md` | 7.1K | every Codex session |
+### T3. Ponytail. Saves about 1.3K at every start and compact. Configuration plus 4 lines.
+- Put the 4-line ladder rule in global CLAUDE.md and turn off the plugin.
+- If Ro wants the plugin's `/ponytail` levels, keep it on, but only in code repos.
 
-## Plan (ordered by tokens saved per unit of effort)
+### T4. /clear instead of /compact. Saves about 10–20K per handoff. Builder writes the hook.
+- **New flow:** `/compact-prep` → `/clear`.
+  - compact-prep already persists everything to the commit, mulch, STATE and `.now.md`, and writes the CONTINUE block to `.planning/CONTINUE.md`.
+  - A `SessionStart` hook with matcher `clear` injects that file (≤1.5K). It is documented: code.claude.com/docs/en/hooks.
+- **What this removes:** the compact summary (about 5–15K), the pasted final summary, and the `/awesomeharness` re-prime.
+- **Keep `/compact` for one case:** mid-task, when reasoning not yet written down matters. compact-prep's "AT RISK" check exists to catch exactly that.
+- **Verify:** run compact-prep, then `/clear`; the first call is ≤ the floor + harness, and the agent states the NEXT step correctly without being told.
 
-**P1 — configuration only. Needs Ro's yes; no code; saves about 8–10K per session.**
-1. Disable the vercel and power-automate plugins globally, and enable them per project where they're used. frontend-design goes per-project in UI repos.
-2. Disconnect the claude.ai connectors Ro doesn't use in Claude Code (sales, marketing, finance, apollo and brand-voice auth stubs; probably Supabase, HF and treg). This is done in claude.ai's settings, which is Ro's call.
-3. Replace ponytail's 5K SessionStart injection with its 4-line rule in global CLAUDE.md, and disable the plugin. If Ro prefers to keep the plugin, set `/ponytail lite` instead.
+### T5. compact-prep from 17.5K to ≤3K. Builder plus audit.
+- Keep MINIMUM PATH, the AT-RISK check and the CONTINUE template.
+- Move the "why" text to `docs/`.
 
-**P2 — text that loads every session. Builder plus audit; saves about 5–8K, more in Consulting.**
-4. MEMORY.md indexes: at most 3K each, one line of ≤100 characters per memory. Prune superseded entries; the files themselves stay. Consulting saves about 5K tokens alone.
-5. Skill descriptions: ≤160 bytes each. Delete any skill with zero uses in 30 days, measured with harness-usage-telemetry.
-6. Agent descriptions: ≤300 bytes each. Drop the history essays, such as codex-audit's "HONEST CAVEAT" and the "measured 2026-08-02" text, and move them into the body or docs.
-7. CLAUDE.md:
-   - Global: give each rule one home. Delegation currently appears in both global CLAUDE.md and `/awesomeharness`; keep it in CLAUDE.md as 6 lines.
-   - Project: cut the repowise/claude-api history to 4 lines.
-8. recall-inject: inject only hits from the current project above a score threshold. Today it surfaced "clyde-servicenow" inside awesome-harness, which is pure noise.
+### T6. /awesomeharness from 7.9K to ≤2.5K, Claude and Codex copies. Builder plus audit.
+- **Keep:** the code loop and the verdict rubric.
+- **Compress:** the quality gates to 5 lines.
+- **Drop:** the hook inventory, because hooks speak when they fire, and the delegation rules, which are already in CLAUDE.md.
+- After T4 it is no longer needed as a re-prime. It stays as an on-demand contract only.
 
-**P3 — the re-prime after `/compact`. Saves about 8–12K per compact.**
-9. `/awesomeharness` goes from 7.9K to ≤2.5K, for both the Claude and Codex copies:
-   - Keep the code loop and the verdict rubric.
-   - Compress the quality gates to 5 lines.
-   - Drop the hook inventory, because hooks announce themselves when they fire.
-   - Drop the delegation rules, which now live in CLAUDE.md.
-10. compact-prep goes from 17.5K to ≤3K. Keep MINIMUM PATH plus the CONTINUE template; move the "why" text to docs.
-11. One handoff, not two. compact-prep writes the CONTINUE block to `.now.md` and the handoff, and the post-compact prime reads it from there, so Ro pastes nothing (or only the CONTINUE block, never the long summary as well).
-12. Codex `AGENTS.md` goes from 7.1K to ≤2.5K, mirroring point 9.
+### T7. Memory indexes ≤3K each. Saves up to about 5K in Consulting. Builder.
+- **Sizes today:** Consulting 23.6K, Vividlist 16.4K, virality 12.6K, home 11.5K, harness 7.7K.
+- **Rule:** one line per memory, ≤100 characters. Drop superseded entries from the index only; the memory files stay.
 
-**P4 — the 200-line rule (Ro's question).**
-- Today `filesize-cap` has nothing to do with 200 lines. It warns when an agent **reads** a file of 2000+ lines. The 200-line rule is enforced only by the git pre-commit ratchet, which blocks, and agents comply with it.
-- Proposal: keep the commit block, and add a write-time nudge. When an Edit or Write leaves a source file over 200 lines, inject one line into **that** agent's context: "`<file>` is N lines (cap 200): split into a new module before continuing."
-- A nudge can't be routed around because it doesn't block anything, and the commit gate still catches anyone who ignores it.
-- A Write/Edit block was rejected: by Ro's 2026-10-03 rule, a block invites Bash rewrites, which means the hook should be deleted.
+### T8. Skill and agent descriptions. Saves about 3K. Builder.
+- Skills: ≤160 bytes each. Agents: ≤300 bytes each; codex-audit's history essay moves into the body.
+- Delete skills with 0 uses in 30 days, per harness-usage-telemetry. Ro approves the list first.
 
-## Gate (re-run after each phase)
+### T9. CLAUDE.md files, one home per rule. Saves about 1K.
+- **Global:** delegation lives only here, in 6 lines.
+- **Project (awesome-harness):** the repowise and claude-api history shrinks to 4 lines.
+- **Codex `AGENTS.md`:** from 7.1K to ≤2.5K, mirroring T6.
 
-```
-cd ~/Downloads/awesome-harness && claude -p "reply ok" --model haiku --output-format json | jq '.usage|.input_tokens+.cache_read_input_tokens+.cache_creation_input_tokens'
-```
+### T10. Hooks.
+- `recall-inject`: only current-project hits above a score threshold. It is injecting Clyde/Consulting memories into this repo.
+- **New 200-line nudge.** When an Edit or Write leaves a source file over 200 lines, it injects one line into that agent: "`<file>` is N lines (cap 200): split into a new module before continuing."
+  - This is a nudge, not a block, so there is nothing to route around. The commit ratchet remains the block.
+  - A Write/Edit block was rejected because it invites Bash rewrites, per Ro's 2026-10-03 rule.
 
-Targets: `-p` full ≤26K (from 36.6K); first interactive call ≤40K (from about 57K); re-prime after compact ≤4K
-(from about 15K).
+### T11. Remeasure everything.
+- Run the gate in 5 repos, plus the first interactive call from the transcripts.
+- **Targets:** `-p` ≤24K; interactive first call ≤40K; post-handoff start ≤ start + 1.5K.
+
+## Open / to check
+- Chrome tools: whether they can be per project (the setting or flag is not yet verified). Ro uses them occasionally.
+- The deferred tool-name list: no documented setting controls it. It shrinks only as connectors are removed (T2).
