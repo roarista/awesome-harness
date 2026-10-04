@@ -1,9 +1,7 @@
 # Harness Hardening — State
 
 ## NOW
-Enforcement audit + Codex parity + auditor synthesis all SHIPPED (e639ff5 → 70e1713, pushed).
-The 2026-07-27 session that did this was deleted mid-flight; context recovered from transcript
-`~/.claude/projects/-Users-rodrigoarista-Downloads-awesome-harness/1a72c93c-*.jsonl` on 07-28.
+Forward A/B (router vs legacy pick) live from 2026-10-04; see Active Resume Point. History of older waves below.
 
 ## Active Resume Point
 
@@ -15,27 +13,23 @@ The 2026-07-27 session that did this was deleted mid-flight; context recovered f
 **Blocked on:** nothing. Codex main capped until Oct 6 (gpt-reserve ok; never reset credits).
 
 
-## LAST_VERIFIED (2026-07-27)
-- `e639ff5` un-inverted guards (mention-matching → write-matching), main-edit-guard/builder-fence/route-only-gate
-- `a083ecc` boot-heavy / turn-light injection; `/awesomeharness` re-asserts the full floor
-- `d89589a` Codex parity — code-decompose/compact-prep/check-all/recall + both standards + AGENTS.md router
-- `70e1713` deduped graphify-blindspot in settings.json; harness-coach fails loud; irreversible-pause blocks graded submits
-- Auditor verdict in durable memory: `memory/harness-auditor-yield-verdict.md` (do NOT re-read the 10 reports)
+## LAST_VERIFIED (2026-10-04)
+- fmr PR #1 merged → main 57180e9; unittest OK on main
+- Backlog re-checked against live state (below); July items 2/3/5-ish resolved or obsolete
 
-## NEXT (open decisions, ranked)
-1. Give harness-coach + harness-scout memory of their own prior reports — highest value, XS effort
-2. `launchctl unload` the dead `com.ro.engineering-harness-audit` (exit 1 every Monday since 06-24)
-3. Move harness-scout back to weekly (was switched to daily 07-27)
-4. Trim the scout creator list
-5. Stop-hook violation counter (~30 lines in session-checkpoint.py; UX win, NOT a token win — measured 2166 saved vs 4224 spent)
+## NEXT (open, ranked — re-verified 2026-10-04)
+1. harness-scout memory of its own prior reports — coach already has it (`harness-coach.py` `prior_findings()`); scout prompt in `~/.claude/tools/run-harness-scout.sh` has none
+2. Trim the scout creator list (unverified whether done; check ytintel creator config before acting)
+3. Stop-hook violation counter — UX only, NOT a token win (2166 saved vs 4224 spent); low priority
+Resolved since July: `com.ro.engineering-harness-audit` now runs `run-claudemd-trim.sh` (last ran Sep 28, empty err log); scout is weekly (Mon 10:00).
 
 ## CARRIED
-- `understand-gate` still in `warn`, never armed to block
+- `understand-gate.py` exists but is not wired in any settings.json — retire or wire
 - Map auto-refresh unwired
-- `~/awesome-harness` stale clone with unresolved `UU .now.md`
+- `~/awesome-harness` stale clone, still `UU .now.md`
 - `northstar-protect.py` mention-matching inversion sweep
-- `~/.codex/skills/codex-primary-runtime/` is an empty dir — stale artifact?
-- Codex asymmetry (documented, not faked): self-audit instead of independent auditor; no hooks fire on the Codex side
+- `~/.codex/skills/codex-primary-runtime/` still an empty dir
+- Codex asymmetry (documented): self-audit, no hooks on the Codex side
 
 ## Active Resume Point — 2026-08-02 (late) — WAVE 3: BUILT, NOT AUDITED
 
