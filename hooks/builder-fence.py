@@ -46,15 +46,8 @@ def preflight(event):
     # (even "DO NOT MODIFY .northstar.md") is fine, and so is a builder READ.
     if NORTHSTAR_WRITE.search(command):
         return "builder must never edit the north star.", True
-    # NUDGE ONLY, never blocks (FIX 3). This can only inspect tool_input["command"],
-    # and for codex:codex-rescue the brief is a positional argv token produced by a
-    # Sonnet forwarding wrapper that is instructed to rewrite/tighten the prompt —
-    # heading survival is not guaranteed and the parent cannot amend the child's
-    # Bash line, so no orchestrator-authored prompt could reliably pass. The real
-    # enforcement of this policy lives in hooks/understand-gate.py at
-    # PreToolUse(Task), where the full prompt IS the payload. Kept here only to
-    # cover hand-typed `codex exec` from the main session, which never passes
-    # through PreToolUse(Task).
+    # PreToolUse(Task) enforcement was retired on 2026-10-04 as unregistered.
+    # This check covers hand-typed `codex exec` only (nudge only, never blocks).
     if edit_intent and (not BRIEF.search(command) or not REUSE.search(command)):
         msg = ("builder call missing CONTEXT/CHANGE/GOAL/VERIFY/REUSE — decompose + "
                "codebase-first reuse decision first (code-decompose).")

@@ -27,7 +27,7 @@ graphify-out/
 .vscode/
 .claude/
 
-# discovery / scratch notes (codebase-first, understand-gate evidence) — local only
+# discovery / scratch notes (codebase-first) — local only
 .scratch/
 
 # generated codebase map (tools/codemap.py; its injector hooks/codemap-inject.py retired U10)

@@ -8,7 +8,7 @@ Forward A/B (router vs legacy pick) live from 2026-10-04; see Active Resume Poin
 **Last updated:** 2026-10-04
 **Branch:** awesome-harness main. free-model-router main @ 57180e9 (PR #1 merged; unittest OK).
 **Status:** Forward A/B LIVE (Ro yes 2026-10-04). Protocol, no new code: every build unit runs `~/.claude/tools/route-model.sh "<task>"` (always — it writes the receipt + `ID:`). Arm alternates by unit: odd = router pick, even = legacy pick from `FMR_DISABLE=1 ~/.claude/tools/route-model.sh "<task>"` (no receipt on that path). After audit: `fmr outcome <id> <result> --note "ab=router|legacy builder=<model>"`. Count = `grep -c '"ab=' ~/.local/state/free-model-router/decisions.jsonl`.
-**Next concrete step:** A/B 1/30 recorded (next build = legacy arm). Keep applying the A/B on each build; at ~30 `ab=` outcomes compare pass rate router vs legacy (no rule changes mid-test).
+**Next concrete step:** A/B 2/30 recorded (next build = router arm). Keep applying the A/B on each build; at ~30 `ab=` outcomes compare pass rate router vs legacy (no rule changes mid-test).
 **Open questions for founder:** grant .northstar.md restore (`python3 ~/.claude/hooks/northstar-protect.py --grant`).
 **Blocked on:** nothing. Codex main capped until Oct 6 (gpt-reserve ok; never reset credits).
 
@@ -19,10 +19,10 @@ Forward A/B (router vs legacy pick) live from 2026-10-04; see Active Resume Poin
 
 ## NEXT (open, ranked — re-verified 2026-10-04)
 1. Stop-hook violation counter — UX only, NOT a token win (2166 saved vs 4224 spent); low priority
-Obsolete 2026-10-04: creator-list trim — no list file exists; harness-intel SKILL.md names only the PRIMARY trio and the 09-28 run queried only those. Done 2026-10-04: scout prompt now carries its 3 newest prior report paths (A/B #1, router arm, PASS). Resolved since July: `com.ro.engineering-harness-audit` now runs `run-claudemd-trim.sh` (last ran Sep 28, empty err log); scout is weekly (Mon 10:00).
+Done 2026-10-04: understand-gate.py retired (repo+live+manifest line; A/B #2 legacy arm codex, opus48 PASS +2 LOW fixed). Obsolete 2026-10-04: creator-list trim — no list file exists; harness-intel SKILL.md names only the PRIMARY trio and the 09-28 run queried only those. Done 2026-10-04: scout prompt now carries its 3 newest prior report paths (A/B #1, router arm, PASS). Resolved since July: `com.ro.engineering-harness-audit` now runs `run-claudemd-trim.sh` (last ran Sep 28, empty err log); scout is weekly (Mon 10:00).
 
 ## CARRIED
-- `understand-gate.py` exists but is not wired in any settings.json — retire or wire
+- `~/.claude/hooks/manifest/hooks.sha256` stale: 10 entries FAIL `shasum -c` (pre-existing; e.g. codemap-inject.py gone, filesize-cap.py changed) — regenerate or retire the manifest
 - Map auto-refresh unwired
 - `~/awesome-harness` stale clone, still `UU .now.md`
 - `northstar-protect.py` mention-matching inversion sweep
