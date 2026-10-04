@@ -7,11 +7,11 @@ The 2026-07-27 session that did this was deleted mid-flight; context recovered f
 
 ## Active Resume Point
 
-**Last updated:** 2026-10-03
-**Branch:** awesome-harness main (PRs #5-#7 merged). free-model-router branch route-eval, PR #1 open.
-**Status:** Context diet + skill prune + orchestrator FILE PLAN shipped. Route eval (docs/route-eval-2026-10-03.md in fmr): router beats legacy only if legacy codex = gpt-6-sol (Sep rollouts' dominant model); ties with gpt-6-astra. Under neutral usage the router picks claude-opus-5-5 for ~all code/audit rows, so history cannot measure per-task routing skill.
-**Next concrete step:** merge fmr PR #1; design a prospective A/B (alternate router vs legacy pick per build unit, record `fmr outcome`, compare after ~30 receipts).
-**Open questions for founder:** run the A/B (costs nothing extra — same builds, different picks)?
+**Last updated:** 2026-10-04
+**Branch:** awesome-harness main. free-model-router main @ 57180e9 (PR #1 merged; unittest OK).
+**Status:** Forward A/B LIVE (Ro yes 2026-10-04). Protocol, no new code: every build unit runs `~/.claude/tools/route-model.sh "<task>"` (always — it writes the receipt + `ID:`). Arm alternates by unit: odd = router pick, even = legacy pick from `FMR_DISABLE=1 ~/.claude/tools/route-model.sh "<task>"` (no receipt on that path). After audit: `fmr outcome <id> <result> --note "ab=router|legacy builder=<model>"`. Count = `grep -c '"ab=' ~/.local/state/free-model-router/decisions.jsonl`.
+**Next concrete step:** keep applying the A/B on each build; at ~30 `ab=` outcomes compare pass rate router vs legacy (no rule changes mid-test).
+**Open questions for founder:** grant .northstar.md restore (`python3 ~/.claude/hooks/northstar-protect.py --grant`).
 **Blocked on:** nothing. Codex main capped until Oct 6 (gpt-reserve ok; never reset credits).
 
 
