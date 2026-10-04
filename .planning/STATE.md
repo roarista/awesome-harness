@@ -19,14 +19,12 @@ Forward A/B (router vs legacy pick) live from 2026-10-04; see Active Resume Poin
 
 ## NEXT (open, ranked — re-verified 2026-10-04)
 1. Stop-hook violation counter — UX only, NOT a token win (2166 saved vs 4224 spent); low priority
-Done 2026-10-04: understand-gate.py retired (repo+live+manifest line; A/B #2 legacy arm codex, opus48 PASS +2 LOW fixed). Obsolete 2026-10-04: creator-list trim — no list file exists; harness-intel SKILL.md names only the PRIMARY trio and the 09-28 run queried only those. Done 2026-10-04: scout prompt now carries its 3 newest prior report paths (A/B #1, router arm, PASS). Resolved since July: `com.ro.engineering-harness-audit` now runs `run-claudemd-trim.sh` (last ran Sep 28, empty err log); scout is weekly (Mon 10:00).
+Done 2026-10-04 (inline, not A/B): trashed dead `~/.claude/hooks/manifest/` (only reader was retired manifest-guard.py) and empty `~/.codex/skills/codex-primary-runtime/`. Done 2026-10-04: understand-gate.py retired (repo+live+manifest line; A/B #2 legacy arm codex, opus48 PASS +2 LOW fixed). Obsolete 2026-10-04: creator-list trim — no list file exists; harness-intel SKILL.md names only the PRIMARY trio and the 09-28 run queried only those. Done 2026-10-04: scout prompt now carries its 3 newest prior report paths (A/B #1, router arm, PASS). Resolved since July: `com.ro.engineering-harness-audit` now runs `run-claudemd-trim.sh` (last ran Sep 28, empty err log); scout is weekly (Mon 10:00).
 
 ## CARRIED
-- `~/.claude/hooks/manifest/hooks.sha256` stale: 10 entries FAIL `shasum -c` (pre-existing; e.g. codemap-inject.py gone, filesize-cap.py changed) — regenerate or retire the manifest
 - Map auto-refresh unwired
 - `~/awesome-harness` stale clone, still `UU .now.md`
 - `northstar-protect.py` mention-matching inversion sweep
-- `~/.codex/skills/codex-primary-runtime/` still an empty dir
 - Codex asymmetry (documented): self-audit, no hooks on the Codex side
 
 ## Active Resume Point — 2026-08-02 (late) — WAVE 3: BUILT, NOT AUDITED
