@@ -18,9 +18,8 @@ Forward A/B (router vs legacy pick) live from 2026-10-04; see Active Resume Poin
 - Backlog re-checked against live state (below); July items 2/3/5-ish resolved or obsolete
 
 ## NEXT (open, ranked — re-verified 2026-10-04)
-1. Trim the scout creator list (unverified whether done; check ytintel creator config before acting)
-2. Stop-hook violation counter — UX only, NOT a token win (2166 saved vs 4224 spent); low priority
-Done 2026-10-04: scout prompt now carries its 3 newest prior report paths (A/B #1, router arm, PASS). Resolved since July: `com.ro.engineering-harness-audit` now runs `run-claudemd-trim.sh` (last ran Sep 28, empty err log); scout is weekly (Mon 10:00).
+1. Stop-hook violation counter — UX only, NOT a token win (2166 saved vs 4224 spent); low priority
+Obsolete 2026-10-04: creator-list trim — no list file exists; harness-intel SKILL.md names only the PRIMARY trio and the 09-28 run queried only those. Done 2026-10-04: scout prompt now carries its 3 newest prior report paths (A/B #1, router arm, PASS). Resolved since July: `com.ro.engineering-harness-audit` now runs `run-claudemd-trim.sh` (last ran Sep 28, empty err log); scout is weekly (Mon 10:00).
 
 ## CARRIED
 - `understand-gate.py` exists but is not wired in any settings.json — retire or wire
