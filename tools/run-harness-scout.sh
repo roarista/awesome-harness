@@ -39,6 +39,12 @@ echo "[$(date)] harness-scout run start" >>"$LOG"
 
 PROMPT='Run a BOUNDED harness-scout pass (proposal-only, do NOT edit any live tree). Use the harness-intel skill, Mode B (SCOUT). Cover: (A) repetition-mine my recent transcripts for things I keep hand-prompting; (B) research-scout GitHub for the last 30 days of steal-worthy Claude Code harness ideas; (C) primary-tier creator YouTube intel via the ytintel CLI; plus email newsletters IF any have arrived, and any note-inbox rows with Status=New IF any exist (skip cleanly and note SKIPPED if empty). Keep it bounded and low-CPU: cap fan-out, no VMs, no heavy local compute. IMPORTANT: DELEGATE the final report write to a sub-agent (Agent tool) so the main-edit-guard (enforce) does not block the write. The sub-agent must write the report to '"$HOME"'/Downloads/HARNESS_SCOUT_'"$DATE"'.md using the harness-intel SCOUT output format (Summary, A. repetition, B. external steal-worthy, C. creator intel, Ranked build-next shortlist). Then return a one-line confirmation of the path written.'
 
+# --- memory: 3 newest prior reports (regular files, not today), newest first by filename date ---
+PRIOR="$(for f in "$HOME"/Downloads/HARNESS_SCOUT_*.md "$HOME"/Downloads/_inbox-harness/HARNESS_SCOUT_*.md; do
+  [ -f "$f" ] && [[ "$f" != *"HARNESS_SCOUT_$DATE"* ]] && echo "${f##*/} $f"
+done | sort -r | head -3 | cut -d' ' -f2- | tr '\n' ' ')"
+[ -n "$PRIOR" ] && PROMPT="$PROMPT Before writing the shortlist, read these prior scout reports and do NOT re-propose items already in their Ranked build-next shortlist unless you have new evidence (say what is new): ${PRIOR% }"
+
 # Headless / non-interactive. Bound wall-clock with a hard timeout.
 # NOTE: exact headless flags may vary by claude version.
 TIMEOUT_BIN="$(command -v timeout || command -v gtimeout || true)"

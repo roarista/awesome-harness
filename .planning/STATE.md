@@ -8,7 +8,7 @@ Forward A/B (router vs legacy pick) live from 2026-10-04; see Active Resume Poin
 **Last updated:** 2026-10-04
 **Branch:** awesome-harness main. free-model-router main @ 57180e9 (PR #1 merged; unittest OK).
 **Status:** Forward A/B LIVE (Ro yes 2026-10-04). Protocol, no new code: every build unit runs `~/.claude/tools/route-model.sh "<task>"` (always — it writes the receipt + `ID:`). Arm alternates by unit: odd = router pick, even = legacy pick from `FMR_DISABLE=1 ~/.claude/tools/route-model.sh "<task>"` (no receipt on that path). After audit: `fmr outcome <id> <result> --note "ab=router|legacy builder=<model>"`. Count = `grep -c '"ab=' ~/.local/state/free-model-router/decisions.jsonl`.
-**Next concrete step:** keep applying the A/B on each build; at ~30 `ab=` outcomes compare pass rate router vs legacy (no rule changes mid-test).
+**Next concrete step:** A/B 1/30 recorded (next build = legacy arm). Keep applying the A/B on each build; at ~30 `ab=` outcomes compare pass rate router vs legacy (no rule changes mid-test).
 **Open questions for founder:** grant .northstar.md restore (`python3 ~/.claude/hooks/northstar-protect.py --grant`).
 **Blocked on:** nothing. Codex main capped until Oct 6 (gpt-reserve ok; never reset credits).
 
@@ -18,10 +18,9 @@ Forward A/B (router vs legacy pick) live from 2026-10-04; see Active Resume Poin
 - Backlog re-checked against live state (below); July items 2/3/5-ish resolved or obsolete
 
 ## NEXT (open, ranked — re-verified 2026-10-04)
-1. harness-scout memory of its own prior reports — coach already has it (`harness-coach.py` `prior_findings()`); scout prompt in `~/.claude/tools/run-harness-scout.sh` has none
-2. Trim the scout creator list (unverified whether done; check ytintel creator config before acting)
-3. Stop-hook violation counter — UX only, NOT a token win (2166 saved vs 4224 spent); low priority
-Resolved since July: `com.ro.engineering-harness-audit` now runs `run-claudemd-trim.sh` (last ran Sep 28, empty err log); scout is weekly (Mon 10:00).
+1. Trim the scout creator list (unverified whether done; check ytintel creator config before acting)
+2. Stop-hook violation counter — UX only, NOT a token win (2166 saved vs 4224 spent); low priority
+Done 2026-10-04: scout prompt now carries its 3 newest prior report paths (A/B #1, router arm, PASS). Resolved since July: `com.ro.engineering-harness-audit` now runs `run-claudemd-trim.sh` (last ran Sep 28, empty err log); scout is weekly (Mon 10:00).
 
 ## CARRIED
 - `understand-gate.py` exists but is not wired in any settings.json — retire or wire
