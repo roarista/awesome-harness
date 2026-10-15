@@ -5,13 +5,12 @@ Forward A/B (router vs legacy pick) live from 2026-10-04; see Active Resume Poin
 
 ## Active Resume Point
 
-**Last updated:** 2026-10-05
-**Branch:** awesome-harness main @ f572606. fmr main @ 57180e9.
-**Status:** A/B 2/30 (protocol unchanged: route-model.sh always; alternate arms; `fmr outcome <id> X --note "ab=router|legacy builder=<m>"`; count via `grep -c '"ab='`). Codex main 100% until ~Oct 9 (gpt-reserve 80% left); Ro 10-05: "seguir sin Codex" → legacy-arm turns paused (legacy picks codex). CAUTION: `fmr report` groups by the ROUTER's builder, so legacy-arm rows are misattributed — compare A/B by the `ab=` notes only.
-Findings 10-05: (1) scout prior-memory (A/B #1) did NOT work in practice: 10-05 report says "no prior report exists" though the prompt carried 3 paths → inject the shortlist text itself like harness-coach `prior_findings()`. (2) The 89 "cut off mid-stream" resumes are isMeta=True (Claude Code injects them), not Ro typing → auditor proposal #3 is moot. (3) Codex reset credits: 1 available (exp 10-29); on 09-30 there were 2 (10-22, 10-29) — ask Ro if he used one.
-Repo research 10-05 (.artifacts/agent-reports/repo-{spec-kit,superpowers,serena}.md, spot-checked): serena REJECT as MCP; spec-kit ADAPT only prereq-check script; superpowers ADAPT 3 (Consumes/Produces + Review Focus in code-decompose; 3-failed-fixes circuit breaker in quality-gates; cap re-audit at 5 rounds, fresh+stronger builder at round 4).
-**Next concrete step:** Ro picks; proposed order: fix scout memory (router arm) → superpowers ADAPTs into code-decompose/quality-gates (text-only) → spec-kit prereq script.
-**Open questions for founder:** which ADAPTs; stale ~/awesome-harness clone (look at stash or trash); gate-adherence audit (wait/Claude/drop); reset credit count.
+**Last updated:** 2026-10-14
+**Branch:** awesome-harness main @ aa541bb+. fmr main @ f8df7a1 (PR #2 merged; 162 tests OK).
+**Status:** Router rebalanced (Ro 10-14): fmr scoring adds a weekly-usage balance term (3.0×(other−own)/100, +0.3 Codex tilt); gpt-6.1-sol is the only Codex card; agents/codex*.md pin `--model gpt-6.1-sol --effort <EFFORT>` (before: inherited config.toml effort low). Live 10-14: Claude 79% vs Codex 13% weekly → builds go to gpt-6.1-sol, audits to Opus. The router-vs-legacy A/B is VOID (router changed mid-test; legacy is now "always codex" = same pick) — restart only if Ro wants.
+Still open from 10-05: scout prior-memory ineffective (inject shortlist text like harness-coach); superpowers ADAPTs ×3 + spec-kit prereq script (reports in .artifacts/agent-reports/repo-*.md); stale ~/awesome-harness clone; gate-adherence audit.
+**Next concrete step:** watch 1 week of `fmr` decisions: share of Codex builds and both weekly %; tune BALANCE_K/CODEX_TILT only with data. Then the 10-05 list.
+**Open questions for founder:** ~/.codex/config.toml interactive effort is `low` (Codex terminals Ro types into) — raise to medium? gpt-reserve (gpt-5.6-luna) still picked for cheap research/mechanical — keep?
 **Blocked on:** nothing. Codex main capped until Oct 6 (gpt-reserve ok; never reset credits).
 
 
