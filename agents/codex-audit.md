@@ -42,7 +42,7 @@ the companion without a write flag:
 CODEX_PLUGIN_ROOT="$(ls -d "$HOME"/.claude/plugins/cache/openai-codex/codex/*/ | sort -V | tail -1)"
 root="$(git -C <target-repo> rev-parse --show-toplevel)"
 cd "$root"
-node "${CODEX_PLUGIN_ROOT}scripts/codex-companion.mjs" task "<audit question / spec + files to review>" < /dev/null
+node "${CODEX_PLUGIN_ROOT}scripts/codex-companion.mjs" task --model gpt-6.1-sol --effort medium "<audit question / spec + files to review>" < /dev/null
 ```
 
 Omitting the companion's write flag is its read-only mode. NEVER pass it. Test
@@ -51,7 +51,7 @@ path is missing, use this fallback, where `<root>` is the same resolved target
 repository root:
 
 ```
-codex exec --sandbox read-only --skip-git-repo-check -C <root> "<audit question / spec + files to review>" < /dev/null
+codex exec --sandbox read-only --skip-git-repo-check -C <root> -m gpt-6.1-sol -c model_reasoning_effort=medium "<audit question / spec + files to review>" < /dev/null
 ```
 
 The fallback's read-only sandbox means the CLI cannot write files even if

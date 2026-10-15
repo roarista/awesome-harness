@@ -26,8 +26,9 @@ You are the BUILDER. You dispatch exactly ONE unit to GPT via `codex exec` and s
 2. Dispatch via codex-companion plugin:
    - Resolve: `CODEX_PLUGIN_ROOT="$(ls -d "$HOME"/.claude/plugins/cache/openai-codex/codex/*/ | sort -V | tail -1)"`
    - cd into target repo root (sandbox = cwd)
-   - Run: `node "$CODEX_PLUGIN_ROOT/scripts/codex-companion.mjs" task --write "<spec>"`
-   - Fallback to `codex exec -C <root>` only if plugin path missing
+   - Run: `node "$CODEX_PLUGIN_ROOT/scripts/codex-companion.mjs" task --write --model gpt-6.1-sol --effort <EFFORT> "<spec>"`
+     (Ro 2026-10-14: every Codex run is gpt-6.1-sol. <EFFORT> = the spec's EFFORT line, else `medium`; `max` → `xhigh`.)
+   - Fallback to `codex exec -C <root> -m gpt-6.1-sol -c model_reasoning_effort=<EFFORT>` only if plugin path missing
    - Multi-root units: run once per root via codex-companion, never fall back to editing in Claude
 3. VERIFY: run the check (py_compile / test / script) via Bash. Paste its real output.
 4. Confirm the diff exists: `git status --porcelain` and `git diff --stat`.
