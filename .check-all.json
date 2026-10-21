@@ -1,0 +1,1 @@
+{"base_command": "python3 hooks/subagent-rules.py --selftest >/dev/null && /bin/bash tools/git-hooks/test_gates2.sh >/dev/null"}

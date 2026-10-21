@@ -5,12 +5,17 @@ Forward A/B (router vs legacy pick) live from 2026-10-04; see Active Resume Poin
 
 ## Active Resume Point
 
-**Last updated:** 2026-10-14
-**Branch:** awesome-harness main @ aa541bb+. fmr main @ f8df7a1 (PR #2 merged; 162 tests OK).
-**Status:** Router rebalanced (Ro 10-14): fmr scoring adds a weekly-usage balance term (3.0×(other−own)/100, +0.3 Codex tilt); gpt-6.1-sol is the only Codex card; agents/codex*.md pin `--model gpt-6.1-sol --effort <EFFORT>` (before: inherited config.toml effort low). Live 10-14: Claude 79% vs Codex 13% weekly → builds go to gpt-6.1-sol, audits to Opus. The router-vs-legacy A/B is VOID (router changed mid-test; legacy is now "always codex" = same pick) — restart only if Ro wants.
-Still open from 10-05: scout prior-memory ineffective (inject shortlist text like harness-coach); superpowers ADAPTs ×3 + spec-kit prereq script (reports in .artifacts/agent-reports/repo-*.md); stale ~/awesome-harness clone; gate-adherence audit.
-**Next concrete step:** watch 1 week of `fmr` decisions: share of Codex builds and both weekly %; tune BALANCE_K/CODEX_TILT only with data. Then the 10-05 list.
-**Open questions for founder:** ~/.codex/config.toml interactive effort is `low` (Codex terminals Ro types into) — raise to medium? gpt-reserve (gpt-5.6-luna) still picked for cheap research/mechanical — keep?
+**Last updated:** 2026-10-20
+**Branch:** awesome-harness main (strict: .harness + .check-all.json). fmr main @ da7e400 (strict; PR #3 pins merged).
+**Status:** Enforced-gates release (Ro 10-20: git gates + non-blocking SubagentStart; strict only in `.harness` repos; Intrnv3 pin gpt-6.1-sol/opus-5-5):
+- git pre-commit (cf3e016): ratchet everywhere; strict repos BLOCK on missing .check-all.json/runner, check-all fail, Trellis exit 2 on touched TS (baseline .artifacts/trellis/baseline.json advances on pass), source change w/o tracked+staged .now.md. Rulings: check-all timeout warns; merges exempt from Audit trailer.
+- git commit-msg: strict, >audit_min_lines (staged .harness, default 20) source lines → `Audit: <report>` with VERDICT PASS / PASS WITH FIXES (fence/quote-aware).
+- hooks/subagent-rules.py (e510b56, live in ~/.claude/settings.json): ≤900B rules block for codex/claude/opus/opus48-audit/codex-audit; verified live in a probe subagent.
+- agents/codex-audit.md: wrapper runs VERIFY outside sandbox, persists <task>-audit.md + finding.sh record.
+- fmr `.harness` pins (builder=/auditor=) via route-model.sh FMR_CWD.
+- Scout 10-20 (.artifacts/agent-reports/rule-skip-scout-2026-10-20.md): spec fields skipped ~91%, orchestrator re-verify 77%, orient-before-edit 96%, cross-family audit 48%, --no-verify in 22% of virality commits.
+**Next concrete step:** send `job plan` the enforced list + Intrnv3 opt-in steps; watch a week of fmr decisions.
+**Open questions for founder:** PreToolUse(Agent) spec-field check (scout #1, 91% skipped) is a blocking Claude hook — only if Ro wants; templates/check-all.json lists "fast"/"full" keys check_all.sh ignores (stale template).
 **Blocked on:** nothing. Codex main capped until Oct 6 (gpt-reserve ok; never reset credits).
 
 

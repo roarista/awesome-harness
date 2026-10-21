@@ -31,6 +31,12 @@ Scoped reads; full result in `.artifacts/agent-reports/<task>.md`; return ≤8 l
 - Review: fresh eyes, other model, one lens each; reproduce findings.
 - Ship: real entry twice; inspect leftovers.
 
+## Enforced (don't restate; just satisfy)
+- git pre-commit (all repos): 200-line ratchet. Strict repos (`.harness` at root, tracked) also BLOCK on: missing `.check-all.json`/check-all fail, Trellis policy fail on TS, source change without staged `.now.md`.
+- git commit-msg (strict): >20 source lines needs trailer `Audit: <report path>` whose `VERDICT:` is PASS / PASS WITH FIXES.
+- `.harness` may pin `builder=<model>` / `auditor=<model>`; `route-model.sh` obeys it (Ro's naming beats the router).
+- Subagents get the core rules from the SubagentStart hook; don't paste them into specs.
+
 ## Non-negotiables
 - No source file over 200 lines; 300 caps pre-existing files, touching one shrinks it. Ratchet bypass only with Ro's yes.
 - Preserve unrelated dirty work; never force/reset/clean/stash/restore it away.
