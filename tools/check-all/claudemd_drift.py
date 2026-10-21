@@ -149,11 +149,11 @@ def extract_path_candidates(text: str) -> list:
     masked_text = ''.join(masked)
 
     # Only match tokens that end with a recognised extension — avoids prose noise
-    ext_pat = '|'.join(re.escape(e) for e in CODE_EXTS)
+    ext_pat = '|'.join(re.escape(e) for e in sorted(CODE_EXTS, key=len, reverse=True))
     bare_re = re.compile(
         r'(?<![.\w/~])'              # not preceded by path chars
         r'(\.?[A-Za-z0-9][\w.\-/]*' # token body (may start with dot)
-        r'(?:' + ext_pat + r'))'     # must end with a code extension
+        r'(?:' + ext_pat + r'))(?![\w])'  # ends with a full code extension (.json, not .js)
     )
     for m in bare_re.finditer(masked_text):
         tok = m.group(1).rstrip("/:,;.")
