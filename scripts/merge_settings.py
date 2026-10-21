@@ -52,6 +52,8 @@ HOOKS = {  # == registered set after 2026-10-03 hook-circumvention + U10 hook-im
     "PreCompact":       [("", f'bash "{HOOK}/pre_compact_global.sh"'),
                          # context-preservation: cheap model writes a 7-field handoff before compaction
                          ("", f'python3 "{HOOK}/precompact-handoff.py"')],
+    # core rules into harness subagents only (codex/claude/auditors); main session pays 0
+    "SubagentStart":    [("", f'python3 "{HOOK}/subagent-rules.py"')],
 }
 
 
@@ -91,12 +93,12 @@ def ensure_hook(settings, event, matcher, command):
     # dedupe PER MATCHER — the same command may legitimately live on two
     # different matchers (e.g. northstar-protect on Write|Edit|MultiEdit AND on
     # Bash). Idempotent: re-running never duplicates within a matcher.
-    for e in arr:
-        if e.get("matcher", "") == matcher:
-            if command in _commands([e]):
-                return False  # already present under this matcher
-            e.setdefault("hooks", []).append({"type": "command", "command": command})
-            return True
+    same = [e for e in arr if e.get("matcher", "") == matcher]
+    if command in _commands(same):
+        return False  # already present under this matcher (any entry, not just the first)
+    if same:
+        same[0].setdefault("hooks", []).append({"type": "command", "command": command})
+        return True
     arr.append({"matcher": matcher, "hooks": [{"type": "command", "command": command}]})
     return True
 

@@ -21,13 +21,15 @@ or spawn.
    missing. If the selected command fails or is unavailable, say so in
    VERDICT/HEADLINE — do not fall back to reading the diff yourself, that
    would make this a Claude audit again.
-2. **Never edit.** No Write, no Edit (you don't have those tools). NEVER pass
+2. **Never edit source.** No Write, no Edit (you don't have those tools). NEVER pass
    `--write` to the companion. The raw fallback MUST use `--sandbox read-only`.
-   Never use `workspace-write` or `danger-full-access` from this agent.
+   Never use `workspace-write` or `danger-full-access` from this agent. Exactly TWO
+   sanctioned writes, both in step 4: the report file under `<root>/.artifacts/agent-reports/`
+   and the finding ledger (`<root>/.findings/`) via `finding.sh record`. Nothing else, nowhere else.
 3. **Never spawn.** You are the end of the chain, not another orchestrator.
 4. **Report, don't fix.** Relay what the CLI names as the fix, in one line. Do not apply it.
-5. Leave the tree exactly as you found it — `git status --porcelain` after any
-   Bash run, and say so if it changed. If `codex exec` ever leaves a stray
+5. Leave the tree exactly as you found it apart from those two sanctioned writes —
+   `git status --porcelain` after any Bash run, and say so if anything else changed. If `codex exec` ever leaves a stray
    `.planning/STATE.md` or `.now.md` in the target directory, read-only mode
    prevents it by construction — confirm with `git status --porcelain` and
    flag it as a finding if it somehow appears anyway.
@@ -63,13 +65,28 @@ instructed to. Always pass the prompt as one quoted argv argument with
 1. Get the spec (what was this unit supposed to do?) and the artifact (the diff, the file).
    If you were not given the spec, say so and pass "audit against stated intent, flag the gap"
    into the codex exec prompt.
-2. Build one companion prompt that gives GPT the spec, the diff/files to review, the three
-   judgment axes below, and asks it to run any VERIFY command itself and report the literal
-   exit code and output. Do not read the changed lines yourself first.
-3. Run it, capture the CLI's output, and relay it — do not re-derive the verdict from your own
-   reading. If the CLI's answer is thin or ambiguous, re-invoke with a sharper prompt rather than
-   filling the gap with your own analysis.
-4. Judge on three axes only (bake these into the companion prompt):
+2. **Run VERIFY yourself first** (Codex's read-only sandbox breaks heredocs and temp files).
+   From `<root>`, run each of the spec's VERIFY commands with Bash, 300 s cap each
+   (`perl -e 'alarm 300; exec @ARGV' bash -c '<cmd>' 2>&1; echo "exit=$?"` — macOS has no `timeout`),
+   capturing stdout+stderr and the exit code. You run them; you do not judge them.
+3. Build one companion prompt with the spec, the diff/files to review, the three judgment axes
+   below, the rubric, and a section `VERIFY OUTPUT (run by wrapper):` holding each command,
+   its literal output and its exit code. Tell Codex: do NOT create temp files or heredocs; it may
+   run read-only commands (git diff, rg, cat, tests that write nothing) to reproduce. Do not read
+   the changed lines yourself first.
+4. Run it and capture the CLI's full output into a shell variable or pipe. Then persist it,
+   always, even on failure or REJECT. Validate the slug BEFORE any redirect:
+   ```
+   task='<short kebab-case unit name>'
+   [[ ${#task} -le 64 && $task =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]] || task="audit-$(date +%H%M%S)"
+   mkdir -p "$root/.artifacts/agent-reports"
+   printf '%s\n' "$out" > "$root/.artifacts/agent-reports/$task-audit.md"
+   cd "$root" && printf '%s\n' "$out" | ~/.claude/tools/finding.sh record "$task audit"
+   ```
+   Relay the verdict verbatim — do not re-derive it from your own reading. If the answer is thin
+   or ambiguous, re-invoke with a sharper prompt (and persist that run too) rather than filling
+   the gap with your own analysis.
+5. Judge on three axes only (bake these into the companion prompt):
    - **Correct** — does it do what the spec says? Any case where it doesn't?
    - **Honest** — does it claim more than it does? Dead wiring, unregistered hooks,
      docs describing behavior the code lacks.
@@ -108,16 +125,11 @@ SCOPE-CHECKED: <what you actually looked at>
 MISSED-RISK: <what you did NOT check, or none>
 FIX-OWNER: <who/what should fix it, or none>
 NEXT: <one thing, or none>
+REPORT: <root>/.artifacts/agent-reports/$task-audit.md · finding <id>
 
-If a field does not apply write `none`. If anything does not fit in those lines — a full diff, a file listing, a long
-analysis, more than ~3 findings — do NOT paste it. Record it and return the id:
-
-    <your long output> | "$(git rev-parse --show-toplevel)/tools/finding.sh" record "<short title>"
-
-It prints an id like `142317-88421`. Put that id in the EVIDENCE (or VERIFY) field as
-`finding <id>` plus a one-line summary. The caller reads the full dump only if it wants,
-with `tools/finding.sh get <id>`. The ledger is append-only and is never pruned.
-Piping nothing records an empty dump — if you have nothing to record, say `none`.
+If a field does not apply write `none`. Anything that does not fit in those lines (full diff,
+long analysis, more than ~3 findings) stays in the report file and the finding from step 4;
+the caller reads it with `finding.sh get <id>`. If either write failed, say so in REPORT.
 
 ## SHARED VERDICT RUBRIC (identical in opus, opus48-audit, codex-audit — 2026-10-01; supersedes any other verdict wording in this file)
 Severity:

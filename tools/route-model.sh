@@ -28,6 +28,7 @@ fi
 
 FMR_HOME="${FMR_HOME:-/Users/rodrigoarista/Downloads/free-model-router}"
 FMR_PYTHON="$FMR_HOME/.venv/bin/python"
+export FMR_CWD="${FMR_CWD:-$PWD}"  # fmr runs after cd "$FMR_HOME"; .harness pins are read from the caller repo
 if [[ -z "${FMR_DISABLE+x}" && -x "$FMR_PYTHON" ]]; then
   # No temp files: inside a Codex seatbelt sandbox $TMPDIR is not writable.
   fmr_args=("$FMR_PYTHON" -m fmr route)
