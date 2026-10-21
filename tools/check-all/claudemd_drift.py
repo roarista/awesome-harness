@@ -151,7 +151,7 @@ def extract_path_candidates(text: str) -> list:
     # Only match tokens that end with a recognised extension — avoids prose noise
     ext_pat = '|'.join(re.escape(e) for e in sorted(CODE_EXTS, key=len, reverse=True))
     bare_re = re.compile(
-        r'(?<![.\w/~])'              # not preceded by path chars
+        r'(?<![.\w/~-])'              # not preceded by path chars
         r'(\.?[A-Za-z0-9][\w.\-/]*' # token body (may start with dot)
         r'(?:' + ext_pat + r'))(?![\w])'  # ends with a full code extension (.json, not .js)
     )
