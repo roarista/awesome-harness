@@ -132,7 +132,7 @@ if [ -d "$REPO/graphify-out" ]; then
       row GRAPHIFY ok "graph newer than every tracked source file"
     elif [ "$CHECK_ONLY" = 1 ]; then
       row GRAPHIFY FAIL "$newer source file(s) changed since the graph was built"
-    elif graphify update >/dev/null 2>&1; then
+    elif graphify update >/dev/null 2>&1 && touch "$G"; then  # graphify skips the rewrite when content is unchanged (.sh/.md edits), so stamp it or --check never settles
       row GRAPHIFY ok "updated ($newer file(s) had drifted)"
     else
       row GRAPHIFY FAIL "graphify update failed, $newer file(s) still ahead of the graph"
