@@ -14,6 +14,7 @@ because it edits repo trees the live sessions own.
 Usage:
   python3 state-distiller.py <repo_dir>            # DRY RUN (prints, writes nothing)
   python3 state-distiller.py <repo_dir> --apply    # perform the distill
+  python3 state-distiller.py <repo_dir> --budget   # read-only instruction budgets
   python3 state-distiller.py --selftest
 """
 import os
@@ -97,6 +98,52 @@ def distill(repo_dir: str, apply: bool) -> str:
     return "APPLIED — " + plan
 
 
+def budget(repo_dir: str) -> None:
+    """Read-only inventory; never follow directory symlinks or hide read errors."""
+    repo = Path(repo_dir).expanduser().resolve()
+    skip = {".git", "node_modules", "vendor", ".venv", "venv", "__pycache__",
+            "dist", "build", ".next", "out", ".artifacts", "graphify-out"}
+    paths = set()
+    errors = []
+    def walk_error(error):
+        errors.append(str(error))
+    if not repo.is_dir():
+        errors.append(f"not a directory: {repo}")
+    for root, dirs, files in os.walk(repo, onerror=walk_error):
+        dirs[:] = sorted(d for d in dirs if d not in skip)
+        paths.update(Path(root) / f for f in files
+                     if f in {"CLAUDE.md", "AGENTS.md", "SKILL.md", "STATE.md", ".now.md"})
+    paths.update(Path.home().resolve() / p for p in (
+        ".claude/CLAUDE.md", ".codex/AGENTS.md", ".claude/skills/awesomeharness/SKILL.md"))
+    found = False
+    for path in sorted(paths):
+        try:
+            data = path.read_bytes()
+        except FileNotFoundError:
+            if path.is_symlink() or path.is_relative_to(repo):
+                errors.append(f"missing file: {path}")
+            continue
+        except OSError as error:
+            errors.append(str(error))
+            continue
+        lines = path.name in {"STATE.md", ".now.md"}
+        size = len(data.splitlines()) if lines else len(data)
+        limit = (150 if path.name == "STATE.md" else 5) if lines else 2500
+        if size <= limit:
+            continue
+        how = "move detail to docs/, keep pointers"
+        if path.name == "STATE.md":
+            how = "state-distiller.py <repo> --apply (12k-token threshold; otherwise archive history manually)"
+        elif path.name == ".now.md":
+            how = "move history to STATE-ARCHIVE.md, keep NOW/LAST_VERIFIED/NEXT"
+        print(f"PRUNE: {path} {size} {'lines' if lines else 'bytes'} > {limit} → {how}")
+        found = True
+    for error in errors:
+        print(f"BUDGET ERROR: {error}")
+    if not found and not errors:
+        print("PRUNE: none")
+
+
 def _selftest() -> None:
     import tempfile
     d = tempfile.mkdtemp()
@@ -126,9 +173,11 @@ def _selftest() -> None:
     assert "no-op" in distill(str(repo), apply=True)
     print("selftest passed")
 
-
 def main() -> None:
     args = sys.argv[1:]
+    if "--budget" in args and any(flag in args for flag in ("--selftest", "--apply")):
+        print("usage: --budget cannot be combined with --selftest or --apply", file=sys.stderr)
+        sys.exit(2)
     if args and args[0] == "--selftest":
         _selftest()
         return
@@ -136,6 +185,9 @@ def main() -> None:
         print(__doc__)
         sys.exit(0)
     repo_dir = args[0]
+    if "--budget" in args[1:]:
+        budget(repo_dir)
+        return
     apply = "--apply" in args[1:]
     print(distill(repo_dir, apply))
 

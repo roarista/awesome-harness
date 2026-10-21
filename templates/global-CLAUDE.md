@@ -1,30 +1,25 @@
 # Global notes
 
-## Message discipline (ALL projects)
-- **Zero intermediate chat** in interactive sessions (background/headless jobs may narrate if their prompt says so): no preamble, narration or status lines between tool calls, when a sub-agent returns, or during compact-prep. Writing to files is fine.
-- **Urge to narrate:** append ONE caveman line to `$CLAUDE_JOB_DIR/tmp/pending.md`, then expand all pending lines in the final message.
-- **Final message = thorough standalone summary** (what changed, verification, pending, decisions); Ro reads only this, long is wanted. Everything else terse.
-- **Every turn ends compaction-safe:** `.now.md` (NOW/LAST_VERIFIED/NEXT, ≤5 lines) + STATE resume point + memory/mulch synced; the final message says what was saved and the exact resume point.
+## Messages and handoff
+Interactive sessions: no intermediate chat, preamble, tool narration, subagent-return or compact-prep updates. Headless jobs may narrate if asked. Write urges as one caveman line in `$CLAUDE_JOB_DIR/tmp/pending.md`; expand pending lines in the final.
+Final: thorough standalone changes, verification, pending work and decisions; elsewhere stay terse.
+Every turn: sync memory/mulch, STATE resume and `.now.md` (NOW/LAST_VERIFIED/NEXT, <=5 lines). Final names saved files and exact resume point.
 
-## Models
-- Main session stays on Anthropic. Never set `ANTHROPIC_BASE_URL` / `ANTHROPIC_AUTH_TOKEN` / `ANTHROPIC_MODEL` to route it through a third party.
+## Models and delegation
+Main stays on Anthropic; never route it through third parties via ANTHROPIC_BASE_URL, ANTHROPIC_AUTH_TOKEN or ANTHROPIC_MODEL.
+Main plans/routes/reviews; builders write code; read-only auditors audit. Main edits orientation/memory and tiny harness fixes only.
+Route via `~/.claude/tools/route-model.sh "<task>"` (fmr route); obey its builder/auditor/model/effort/ID; DO-NOT-LAUNCH means inline/skip. `fmr status` shows live usage. Subscription only, no API.
+After audit: `cd ${FMR_HOME:-~/Downloads/free-model-router} && .venv/bin/python -m fmr outcome <id> pass|pass_with_fixes|reject|reworked|abandoned`.
+Code/review: best model with room; research/mechanical: cheapest; usable quota resetting soon first. No Codex reset credits without Ro's yes. Ro's model choice wins.
+Cross-family audits: Codex-built -> router's Claude auditor (`opus` agent + its model); Claude-built -> codex-audit (another Claude auditor if Codex is exhausted). While Claude is scarce the Agent gate blocks Claude subagents unless the prompt carries the router `ID:`.
+Agent types: Claude build/analysis = claude; Codex build = codex. Never general-purpose/Explore. Councils: one Codex + one Claude, optional Gemini third.
 
-## Delegation (main orchestrates, does not build)
-- Main plans, routes, reviews. Code writes go to a builder subagent, audits to a read-only auditor. Main edits only orientation files (`.now.md`, STATE, memory) and tiny harness tweaks.
-- Router picks builder, auditor, model, effort from live subscription usage (Claude Max 20x + ChatGPT Pro-lite/Codex; no API): `~/.claude/tools/route-model.sh "<task>"` (wraps `fmr route`; prints NECESSITY/BUILDER/AUDITOR/SPEC/`ID:`; `fmr status` shows usage). DO-NOT-LAUNCH = do it inline or skip. After the audit: `cd ${FMR_HOME:-~/Downloads/free-model-router} && .venv/bin/python -m fmr outcome <id> pass|pass_with_fixes|reject|reworked|abandoned`.
-- Spend: code + review → best model with headroom; research/mechanical → cheapest; a quota resetting soon with room left goes first. Never use Codex reset credits without Ro's explicit yes. Ro naming a model beats the router.
-- Audits always cross-family, one shared rubric (in the auditor definitions): Codex-built → `opus48-audit`/`opus`; Claude-built → `codex-audit` (other Claude auditor if Codex is exhausted).
-- Agent types: Claude builds/analysis → `claude`; Codex builds → `codex`; never `general-purpose` or `Explore`.
-- Councils / second opinions: one Codex + one Claude voice (Gemini optional third).
+## Orientation and gates
+If graphify-out/graph.json exists, run graphify query|explain|path before cold source reads.
+Before code/review/pre-ship claims, invoke /awesomeharness ($awesomeharness in Codex).
 
-## Graphify
-With `graphify-out/graph.json`, orient via `graphify query|explain|path` before cold source browsing.
-
-## Quality gates
-Before code, review, or a pre-ship claim, invoke `/awesomeharness` (`$awesomeharness` in Codex); don't restate the gates here.
-
-## Ponytail (lazy senior dev)
-- Stop at the first rung that holds: not needed → stdlib → native platform → installed dep → one line → minimum code.
-- No unrequested abstractions, scaffolding or new deps. Deletion over addition; fewest files, shortest diff.
-- Never simplify away input validation, data-loss error handling, security, or anything explicitly asked for.
-- Non-trivial logic leaves one runnable check. Mark deliberate shortcuts `ponytail: <ceiling + upgrade path>`.
+## Ponytail
+Stop at: not needed > stdlib > native platform > installed dep > one line > minimum code.
+No unrequested abstractions/scaffolding/deps. Delete over add; fewest files, shortest diff.
+Keep input validation, data-loss handling, security and explicit requirements.
+Non-trivial logic leaves a runnable check. Mark shortcuts `ponytail: <ceiling + upgrade path>`.

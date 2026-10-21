@@ -1,43 +1,19 @@
 ---
 name: awesomeharness
-description: "Ro's coding loop: builder/auditor split, verification, persistence. Use on $awesomeharness or any build, refactor, audit."
+description: Ro's coding loop. Use on $awesomeharness or any build, refactor, audit.
 ---
-# awesomeharness
+Args = resume point; else STATE_CURRENT.md, no archives. Delegation: CLAUDE.md/AGENTS.md (router/pins). Scoped reads; `ml search` if needed; `~/.claude/tools/l1.py` and `~/.claude/tools/skeleton.py` before bodies. Graphify structure, Semgrep AST, `rg` text. Load specs/skills/MCPs only as needed.
 
-Args summary = resume point; else `STATE_CURRENT.md`. Delegation: AGENTS.md.
-Tools: `ml search`; `~/Downloads/awesome-harness/tools/{l1,skeleton}.py`, bodies last; graphify structure, Semgrep AST, `rg` text. Load specs/skills/MCPs only when needed.
+0. Run `python3 ~/Downloads/awesome-harness/tools/state-distiller.py . --budget`. Prune (<=5 min): move detail, keep pointers/history. Only propose global/out-of-scope changes.
+1. Ponytail first. Prove REUSE/ADAPT/REJECT on live files; STOP if covered.
+2. Spec: CONTEXT / REUSE / CHANGE / GOAL / VERIFY. GOAL = end state/exclusions; VERIFY = fallible commands/pass criteria. Orchestrator owns FILE PLAN; builders stop/report unplanned files or budget overruns.
+3. One routed builder/unit; no concurrent siblings in dirty trees. Without subagents, build/self-audit. Subagents get core rules from SubagentStart hook; don't paste into specs.
+4. Distinct routed auditor, same spec:
+CRITICAL: loss/security/secrets/money. HIGH: normal path wrong/invented API/unmet GOAL. MEDIUM: edge input/I/O/risky untested branch/test cannot fail. LOW: style.
+VERDICT: REJECT for CRITICAL/HIGH, MEDIUM in money/auth/secrets/data-loss/prod data, or missing/failing VERIFY. PASS WITH FIXES for other MEDIUM/LOW; PASS only <=LOW. Fix every item; re-audit rejects. Check tree/output; reports are claims.
+5. Unit + repo check-all, real output. Commit scoped; ml record; .now.md (NOW/LAST_VERIFIED/NEXT <=5 lines), STATE resume; push. Handoff: $compact-prep then /clear.
 
-## Code loop
-1. Prove REUSE / ADAPT / REJECT on live files; STOP if existing code covers it. Ponytail ladder first.
-2. Units spec `CONTEXT / REUSE / CHANGE / GOAL / VERIFY`. GOAL: end state + out of scope. VERIFY: commands that can fail + what passing looks like.
-   Orchestrator owns file structure (FILE PLAN in code-decompose). Builders create or split only the files the FILE PLAN names; anything unplanned or over budget → stop and report.
-3. One builder per unit, router's pick; no concurrent siblings in a dirty checkout. No subagents: build, self-audit.
-4. Audit (auditor per Delegation), same spec, shared rubric:
-   - CRITICAL data loss/security/secret leak/money · HIGH wrong on a normal path, invented API, GOAL
-     unmet · MEDIUM edge input, unhandled I/O error, untested risky branch, test that cannot fail · LOW style.
-   - `VERDICT: REJECT` if any CRITICAL/HIGH, any MEDIUM touching money/auth/secrets/data-loss/prod
-     data, or VERIFY not run/failing; `PASS WITH FIXES` if only other MEDIUM/LOW; `PASS` only if ≤LOW.
-   Re-audit until not REJECT; fix every item. Agent reports are claims: independently check tree and command output.
-5. Unit check + `~/.codex/tools/check-all/check_all.sh`, real output. Commit scoped, `ml record`, `.now.md` (NOW/LAST/NEXT ≤5 lines) + STATE resume point, push.
-After a handoff use $compact-prep then /clear.
+Satisfy `~/Downloads/awesome-harness/docs/quality-gates.md`; TS before handoff: `trellis audit . --json --baseline .artifacts/trellis/baseline.json` (exit 2 rejects); `trellis guide cleanup` to fix.
+Reports: .artifacts/agent-reports/<task>.md; return <=8 lines: verdict/change/proof/risk/next/path; no logs/diffs/code. One final summary.
 
-## Agents
-Scoped reads; full result in `.artifacts/agent-reports/<task>.md`; return ≤8 lines (verdict, change, proof, risk, next, path). No raw logs/diffs/code. One full final summary.
-
-## Quality gates (full: ~/Downloads/awesome-harness/docs/quality-gates.md)
-- Fix: reproduce via user's door; find introducing commit; list proven vs assumed; close the class.
-- Design: walk re-run/resume/retry; callers by search; stale docs; crash between writes heals.
-- Tests: real failure unmocked; mutation-proof; explain a red first.
-- Review: fresh eyes, other model, one lens each; reproduce findings.
-- Ship: real entry twice; inspect leftovers.
-
-## Enforced (don't restate; just satisfy)
-- git pre-commit (all repos): 200-line ratchet. Strict repos (`.harness` at root, tracked) also BLOCK on: missing `.check-all.json`/check-all fail, Trellis policy fail on TS, source change without staged `.now.md`.
-- git commit-msg (strict): >20 source lines needs trailer `Audit: <report path>` whose `VERDICT:` is PASS / PASS WITH FIXES.
-- `.harness` may pin `builder=<model>` / `auditor=<model>`; `route-model.sh` obeys it (Ro's naming beats the router).
-- Subagents get the core rules from the SubagentStart hook; don't paste them into specs.
-
-## Non-negotiables
-- No source file over 200 lines; 300 caps pre-existing files, touching one shrinks it. Ratchet bypass only with Ro's yes.
-- Preserve unrelated dirty work; never force/reset/clean/stash/restore it away.
-- No unauthorized spend, production mutation, messages, or destructive action.
+Never: source >200 lines (old cap 300; shrink touched; bypass needs Ro's yes); erase unrelated dirty work via force/reset/clean/stash/restore; unauthorized spend, prod mutation, messages/destruction.

@@ -1,5 +1,5 @@
 {
-  "comment": "Drop this at a repo root to enable the check-all commit gate. Commands run in order; any non-zero in --fast mode blocks the commit.",
-  "fast": ["npm run -s typecheck", "npm run -s lint"],
-  "full": ["npm test"]
+  "comment": "Copy to .check-all.json at the repo root. base_command runs first; max_file_lines sets the source line cap.",
+  "base_command": "npm run -s typecheck && npm run -s lint",
+  "max_file_lines": 200
 }
