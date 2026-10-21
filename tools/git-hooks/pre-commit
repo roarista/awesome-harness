@@ -27,8 +27,8 @@ gate() {
 }
 # D included: deleting a source/.ts file still needs .now.md and can break imports
 STAGED="$(git diff --cached --name-only --diff-filter=ACMRDT)"
-# source = anything outside docs/, *.md, .planning/, .artifacts/
-SRC="$(printf '%s\n' "$STAGED" | grep -vE '^(docs/|\.planning/|\.artifacts/)|\.md$' | grep -v '^$')"
+# source = anything outside docs/, *.md, .planning/, .artifacts/, .mulch/
+SRC="$(printf '%s\n' "$STAGED" | grep -vE '^(docs/|\.planning/|\.artifacts/|\.mulch/)|\.md$' | grep -v '^$')"
 
 # 1. ratchet
 if [ "${SKIP_RATCHET:-0}" = "1" ]; then

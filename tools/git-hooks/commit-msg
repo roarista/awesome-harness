@@ -4,7 +4,7 @@
 # more than N added+deleted lines in source files (N = `audit_min_lines=N` in the
 # STAGED .harness, 1..100000, default 20; not an env var and not the working tree,
 # so it can't be bypassed silently)
-# (anything outside docs/, *.md, .planning/, .artifacts/) must carry a trailer
+# (anything outside docs/, *.md, .planning/, .artifacts/, .mulch/) must carry a trailer
 #   Audit: <path>
 # naming an existing report whose line-anchored `VERDICT:` is PASS or PASS WITH
 # FIXES. Lines inside ```/~~~ fences (an unterminated fence hides the rest) and
@@ -47,7 +47,7 @@ block() {
 # deliberate (Ro ruling): merge commits are exempt; they combine commits that already passed this gate
 if is_strict && [ ! -f "$(git rev-parse --git-path MERGE_HEAD)" ]; then
   CHANGED="$(git diff --cached --numstat --no-renames \
-    | grep -vE "$(printf '\t')(docs/|\\.planning/|\\.artifacts/)|\\.md\$" \
+    | grep -vE "$(printf '\t')(docs/|\\.planning/|\\.artifacts/|\\.mulch/)|\\.md\$" \
     | awk -F'\t' '$1 != "-" { n += $1 + $2 } END { print n + 0 }')"
   if [ "$CHANGED" -gt "$MIN" ]; then
     [ -n "$MSG" ] && [ -r "$MSG" ] || block "commit message file unreadable ($MSG)"
