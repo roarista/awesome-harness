@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+# awesome-harness git commit-msg gate (installed per repo by install.sh as a shim).
+# Strict repos only (`.harness` in the index OR working tree): a commit that changes
+# more than N added+deleted lines in source files (N = `audit_min_lines=N` in the
+# STAGED .harness, 1..100000, default 20; not an env var and not the working tree,
+# so it can't be bypassed silently)
+# (anything outside docs/, *.md, .planning/, .artifacts/) must carry a trailer
+#   Audit: <path>
+# naming an existing report whose line-anchored `VERDICT:` is PASS or PASS WITH
+# FIXES. Lines inside ```/~~~ fences (an unterminated fence hides the rest) and
+# `>`-quoted lines are ignored; any remaining
+# anchored VERDICT: REJECT blocks.
+# Merge commits are exempt. Bypass: `git commit --no-verify`. Then chains to a
+# preserved commit-msg.local, if any. Must run on macOS stock bash 3.2.
+set -u
+
+ROOT="$(git rev-parse --show-toplevel)" || exit 1
+MSG="${1:-}"
+case "$MSG" in /*) ;; ?*) MSG="$PWD/$MSG" ;; esac
+cd "$ROOT" || exit 1
+HOOKS_DIR="$(git rev-parse --git-path hooks)"
+LOCAL="$HOOKS_DIR/commit-msg.local"
+# strict = .harness in the INDEX or the working tree (stricter wins; only a staged deletion turns it off)
+is_strict() { git cat-file -e :.harness 2>/dev/null || [ -f "$ROOT/.harness" ]; }
+MIN=20
+if is_strict; then
+  m="$(git show :.harness 2>/dev/null | sed -n 's/^[[:space:]]*audit_min_lines[[:space:]]*=//p' \
+    | tail -1 | tr -d '[:space:]')"
+  if [ -n "$m" ]; then
+    case "$m" in
+      *[!0-9]*|0*|???????*) ok=0 ;;   # non-digit, leading zero/zero, or > 6 digits
+      *) ok=1; [ "$m" -le 100000 ] || ok=0 ;;
+    esac
+    if [ $ok -eq 1 ]; then MIN="$m"; else
+      echo "commit-msg: WARN invalid audit_min_lines='$m' in .harness (want 1..100000) - using 20" >&2
+    fi
+  fi
+fi
+
+block() {
+  echo "commit-msg: BLOCKED: $1" >&2
+  echo "  rule: strict repo (.harness) - >$MIN source lines need 'Audit: <report>' with VERDICT: PASS | PASS WITH FIXES" >&2
+  echo "  bypass: git commit --no-verify" >&2
+  exit 1
+}
+
+# deliberate (Ro ruling): merge commits are exempt; they combine commits that already passed this gate
+if is_strict && [ ! -f "$(git rev-parse --git-path MERGE_HEAD)" ]; then
+  CHANGED="$(git diff --cached --numstat --no-renames \
+    | grep -vE "$(printf '\t')(docs/|\\.planning/|\\.artifacts/)|\\.md\$" \
+    | awk -F'\t' '$1 != "-" { n += $1 + $2 } END { print n + 0 }')"
+  if [ "$CHANGED" -gt "$MIN" ]; then
+    [ -n "$MSG" ] && [ -r "$MSG" ] || block "commit message file unreadable ($MSG)"
+    AUDIT="$(grep -v '^#' "$MSG" | sed -n 's/^Audit:[[:space:]]*//p' | tail -1 | sed 's/[[:space:]]*$//')"
+    [ -n "$AUDIT" ] || block "$CHANGED source lines changed but no 'Audit: <path>' trailer"
+    case "$AUDIT" in /*) RPT="$AUDIT" ;; *) RPT="$ROOT/$AUDIT" ;; esac
+    [ -f "$RPT" ] && [ -r "$RPT" ] || block "audit report not found or unreadable: $AUDIT"
+    # anchored verdicts only (optional leading spaces / **), outside fences and quotes
+    # fence = >=3 ` or ~; closes only on the same char with a run >= the opener (CommonMark)
+    VS="$(awk 'function run(s,  n) { sub(/^[[:space:]]*/, "", s); C = substr(s, 1, 1)
+        if (C != "`" && C != "~") return 0; n = 0; while (substr(s, n + 1, 1) == C) n++; return n }
+      f == "" { n = run($0); if (n >= 3) { f = C; fl = n; next } }
+      f != "" { n = run($0); if (C == f && n >= fl) f = ""; next }
+      !/^[[:space:]]*>/' "$RPT" \
+      | grep -E '^[[:space:]]*(\*\*)?[[:space:]]*VERDICT:' \
+      | sed 's/^[^:]*VERDICT:[*[:space:]]*//' | tr '[:lower:]_' '[:upper:] ')"
+    printf '%s\n' "$VS" | grep -q '^REJECT' && block "audit report $AUDIT says REJECT"
+    V="$(printf '%s\n' "$VS" | head -1)"
+    case "$V" in
+      REJECT*) block "audit report $AUDIT says REJECT" ;;
+      "PASS WITH FIXES"*|PASS|PASS[!A-Z]*) ;;
+      *) block "audit report $AUDIT has no PASS / PASS WITH FIXES verdict (got: '${V:-none}')" ;;
+    esac
+  fi
+fi
+
+# chain the hook we displaced at install time (git ignores non-executable hooks)
+[ -x "$LOCAL" ] && exec "$LOCAL" "$MSG"
+exit 0

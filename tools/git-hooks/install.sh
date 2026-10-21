@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
 # install.sh [--uninstall] <repo>...
-# Installs a tiny pre-commit SHIM that execs the awesome-harness copy of
-# tools/git-hooks/pre-commit (so updates propagate without reinstalling).
+# Installs tiny pre-commit and commit-msg SHIMS that exec the awesome-harness
+# copies in tools/git-hooks/ (so updates propagate without reinstalling).
+# Per hook (own marker each):
 # - hooks dir from `git rev-parse --git-path hooks` (respects core.hooksPath)
-# - a foreign pre-commit is MOVED to pre-commit.local (chained, never deleted)
-# - idempotent; --uninstall removes the shim and restores pre-commit.local
-# - refuses when pre-commit is tracked by git (e.g. core.hooksPath=.githooks):
+# - a foreign <hook> is MOVED to <hook>.local (chained, never deleted)
+# - idempotent; --uninstall removes the shim and restores <hook>.local
+# - refuses when <hook> is tracked by git (e.g. core.hooksPath=.githooks):
 #   replacing it would edit a committed file in that repo.
 set -u
 
-MARKER="awesome-harness-pre-commit-shim"
+HOOK_NAMES="pre-commit commit-msg"
 HARNESS_DEFAULT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 usage() { echo "usage: $0 [--uninstall] <repo>..." >&2; exit 2; }
@@ -18,18 +19,25 @@ MODE=install
 [ "${1:-}" = "--uninstall" ] && { MODE=uninstall; shift; }
 [ $# -ge 1 ] || usage
 
-is_ours() { [ -f "$1" ] && grep -q "$MARKER" "$1"; }
+# is_ours FILE NAME / write_shim FILE NAME
+is_ours() { [ -f "$1" ] && grep -q "awesome-harness-$2-shim" "$1"; }
 
 write_shim() {
+  local MARKER="awesome-harness-$2-shim" N="$2"
   cat > "$1" <<EOF
 #!/usr/bin/env bash
 # $MARKER - installed by awesome-harness tools/git-hooks/install.sh
 # Real logic lives in the harness so updates propagate. Uninstall with:
 #   $HARNESS_DEFAULT/tools/git-hooks/install.sh --uninstall <repo>
-H="\${AWESOME_HARNESS:-$HARNESS_DEFAULT}/tools/git-hooks/pre-commit"
+H="\${AWESOME_HARNESS:-$HARNESS_DEFAULT}/tools/git-hooks/$N"
 if [ ! -f "\$H" ]; then
-  echo "pre-commit: WARN harness hook missing at \$H - gate skipped" >&2
-  L="\$(git rev-parse --git-path hooks)/pre-commit.local"
+  # strict = .harness in the index or the working tree (same rule as the hooks)
+  if git cat-file -e :.harness 2>/dev/null || [ -f "\$(git rev-parse --show-toplevel)/.harness" ]; then
+    echo "$N: BLOCKED: harness hook missing at \$H (strict repo: .harness; fix AWESOME_HARNESS, or bypass: git commit --no-verify)" >&2
+    exit 1
+  fi
+  echo "$N: WARN harness hook missing at \$H - gate skipped" >&2
+  L="\$(git rev-parse --git-path hooks)/$N.local"
   [ -x "\$L" ] && exec "\$L" "\$@"
   exit 0
 fi
@@ -38,32 +46,34 @@ EOF
   chmod +x "$1"
 }
 
-do_repo() {
-  local repo="$1" hooks top hook local_hook rel
+# do_hook REPO NAME [check] - install/uninstall one shim; `check` only runs the
+# refusal checks and writes nothing
+do_hook() {
+  local repo="$1" n="$2" phase="${3:-apply}" hooks top hook local_hook rel
   top="$(git -C "$repo" rev-parse --show-toplevel 2>/dev/null)" || {
     echo "[$repo] SKIP: not a git repo"; return 1; }
   hooks="$(cd "$top" && git rev-parse --git-path hooks)"
   case "$hooks" in /*) ;; *) hooks="$top/$hooks" ;; esac
-  hook="$hooks/pre-commit"; local_hook="$hooks/pre-commit.local"
+  hook="$hooks/$n"; local_hook="$hooks/$n.local"
 
   if [ "$MODE" = uninstall ]; then
-    if ! is_ours "$hook"; then
-      echo "[$repo] uninstall: no shim at $hook - nothing to do"; return 0
+    if ! is_ours "$hook" "$n"; then
+      echo "[$repo] uninstall: no $n shim at $hook - nothing to do"; return 0
     fi
     rm -f "$hook"
     if [ -f "$local_hook" ]; then
       mv "$local_hook" "$hook"
-      echo "[$repo] uninstall: removed shim, restored pre-commit.local -> pre-commit"
+      echo "[$repo] uninstall: removed shim, restored $n.local -> $n"
     else
       echo "[$repo] uninstall: removed shim ($hook)"
     fi
     return 0
   fi
 
-  mkdir -p "$hooks"
-  if is_ours "$hook"; then
-    write_shim "$hook"
-    echo "[$repo] already installed - shim refreshed ($hook)"; return 0
+  if is_ours "$hook" "$n"; then
+    [ "$phase" = check ] && return 0
+    write_shim "$hook" "$n"
+    echo "[$repo] already installed - $n shim refreshed ($hook)"; return 0
   fi
   if [ -e "$hook" ]; then
     rel="${hook#$top/}"
@@ -73,14 +83,27 @@ do_repo() {
       return 1
     fi
     if [ -e "$local_hook" ]; then
-      echo "[$repo] REFUSED: both pre-commit (foreign) and pre-commit.local exist - resolve by hand"
+      echo "[$repo] REFUSED: both $n (foreign) and $n.local exist - resolve by hand"
       return 1
     fi
+    [ "$phase" = check ] && return 0
     mv "$hook" "$local_hook"
-    echo "[$repo] moved existing pre-commit -> pre-commit.local (will be chained)"
+    echo "[$repo] moved existing $n -> $n.local (will be chained)"
   fi
-  write_shim "$hook"
-  echo "[$repo] installed shim at $hook"
+  [ "$phase" = check ] && return 0
+  mkdir -p "$hooks"; write_shim "$hook" "$n"
+  echo "[$repo] installed $n shim at $hook"
+}
+
+# install: every refusal check runs before anything is written, so a refused
+# repo is left untouched (no partial install)
+do_repo() {
+  local n r=0
+  if [ "$MODE" = install ]; then
+    for n in $HOOK_NAMES; do do_hook "$1" "$n" check || return 1; done
+  fi
+  for n in $HOOK_NAMES; do do_hook "$1" "$n" || r=1; done
+  return $r
 }
 
 rc=0

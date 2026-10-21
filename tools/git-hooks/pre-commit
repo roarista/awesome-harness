@@ -2,7 +2,10 @@
 # awesome-harness git pre-commit gate (installed per repo by install.sh as a shim).
 #   1. 200-line ratchet on STAGED source files (ratchet.py, index vs HEAD)
 #   2. check-all --fast, only if the repo opted in with .check-all.json (120s cap)
-#   3. chain to a preserved pre-commit.local, if any
+#   3. trellis audit when staged .ts/.tsx (baseline advances only on a pass)
+#   4. .now.md must be staged with source changes (strict only); 5. mulch reminder
+#   6. chain to a preserved pre-commit.local, if any
+# Strict mode = `.harness` in the index OR working tree: gates BLOCK; elsewhere WARN.
 # Bypass: `git commit --no-verify`, or SKIP_RATCHET=1 (skips step 1 only, loudly).
 # Must run on macOS stock bash 3.2.
 set -u
@@ -11,6 +14,21 @@ AWESOME_HARNESS="${AWESOME_HARNESS:-/Users/rodrigoarista/Downloads/awesome-harne
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(git rev-parse --show-toplevel)" || exit 1
 cd "$ROOT" || exit 1
+# strict = .harness in the INDEX or the working tree (stricter wins; only a staged deletion turns it off)
+is_strict() { git cat-file -e :.harness 2>/dev/null || [ -f "$ROOT/.harness" ]; }
+STRICT=0; is_strict && STRICT=1
+# gate MSG - strict: block the commit; else: warn loudly on stderr and go on
+gate() {
+  if [ $STRICT -eq 1 ]; then
+    echo "pre-commit: BLOCKED: $1 (strict repo: .harness; bypass: git commit --no-verify)" >&2
+    exit 1
+  fi
+  echo "pre-commit: WARN $1 (would block in a .harness repo)" >&2
+}
+# D included: deleting a source/.ts file still needs .now.md and can break imports
+STAGED="$(git diff --cached --name-only --diff-filter=ACMRDT)"
+# source = anything outside docs/, *.md, .planning/, .artifacts/
+SRC="$(printf '%s\n' "$STAGED" | grep -vE '^(docs/|\.planning/|\.artifacts/)|\.md$' | grep -v '^$')"
 
 # 1. ratchet
 if [ "${SKIP_RATCHET:-0}" = "1" ]; then
@@ -56,12 +74,15 @@ run_group_timeout() {
 # 2. check-all (opt-in)
 CHECK_ALL="$AWESOME_HARNESS/tools/check-all/check_all.sh"
 if [ ! -f "$ROOT/.check-all.json" ]; then
-  echo "pre-commit: check-all skipped (no .check-all.json)"
+  [ $STRICT -eq 1 ] && gate "strict repo (.harness) requires .check-all.json"
+  echo "pre-commit: WARN check-all skipped (no .check-all.json)" >&2
 elif [ ! -x "$CHECK_ALL" ] && [ ! -f "$CHECK_ALL" ]; then
-  echo "pre-commit: WARN check-all not found at $CHECK_ALL - skipped" >&2
+  gate "check-all runner not found at $CHECK_ALL - skipped"
 else
   run_group_timeout "${CHECK_ALL_TIMEOUT:-120}" bash "$CHECK_ALL" "$ROOT" --fast
   rc=$?
+  # deliberate (Ro ruling): a timeout WARNs and passes even in strict repos;
+  # blocking slow repos breeds --no-verify (seen in 22% of virality commits)
   if [ $rc -eq 142 ]; then
     echo "pre-commit: WARN check-all timed out after ${CHECK_ALL_TIMEOUT:-120}s - passing anyway" >&2
   elif [ $rc -ne 0 ]; then
@@ -70,7 +91,48 @@ else
   fi
 fi
 
-# 3. chain the hook we displaced at install time
+# 3. trellis (TS policy). rc 2 = policy fail; other non-zero/timeout = tool error.
+if printf '%s\n' "$STAGED" | grep -qE '\.tsx?$'; then
+  TD="$ROOT/.artifacts/trellis"; TT="${TRELLIS_TIMEOUT:-120}"
+  if ! command -v trellis >/dev/null 2>&1; then
+    gate "staged .ts/.tsx but trellis is not on PATH"
+  else
+    mkdir -p "$TD"; rm -f "$TD/current.json"   # stdout JSON dropped: the report is --out
+    if [ -f "$TD/baseline.json" ]; then
+      run_group_timeout "$TT" trellis audit . --json --quiet --out "$TD/current.json" \
+        --baseline "$TD/baseline.json" >/dev/null; rc=$?
+    else
+      run_group_timeout "$TT" trellis audit . --json --quiet --out "$TD/current.json" >/dev/null; rc=$?
+    fi
+    if [ $rc -eq 2 ]; then
+      gate "trellis policy failed (rc=2; report: .artifacts/trellis/current.json)"
+    elif [ $rc -eq 142 ]; then
+      echo "pre-commit: WARN trellis timed out after ${TT}s - tool error, not a policy verdict; passing" >&2
+    elif [ $rc -ne 0 ]; then
+      echo "pre-commit: WARN trellis errored (rc=$rc) - tool error, not a policy verdict; passing" >&2
+    elif [ ! -f "$TD/current.json" ]; then
+      echo "pre-commit: WARN trellis passed but wrote no report - baseline unchanged" >&2
+    else
+      [ -f "$TD/baseline.json" ] || echo "trellis: baseline created"
+      cp "$TD/current.json" "$TD/baseline.json"
+    fi
+  fi
+fi
+
+# 4. .now.md travels with source changes (strict only): it must be in the index
+# after this commit AND be part of the staged changes
+if [ $STRICT -eq 1 ] && [ -n "$SRC" ]; then
+  git cat-file -e :.now.md 2>/dev/null || gate "strict repo needs a tracked .now.md"
+  printf '%s\n' "$STAGED" | grep -qx '\.now\.md' \
+    || gate "update .now.md (NOW/LAST_VERIFIED/NEXT) and stage it"
+fi
+
+# 5. mulch reminder (never blocks)
+if [ -d "$ROOT/.mulch" ] && [ -n "$SRC" ] && ! printf '%s\n' "$STAGED" | grep -q '^\.mulch/'; then
+  echo "remember: ml record <domain> ... if this commit taught something" >&2
+fi
+
+# 6. chain the hook we displaced at install time
 HOOKS_DIR="$(git rev-parse --git-path hooks)"
 LOCAL="$HOOKS_DIR/pre-commit.local"
 # (git ignores a non-executable hook, so we do too)
