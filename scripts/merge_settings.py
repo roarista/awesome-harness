@@ -29,7 +29,8 @@ HOOKS = {  # == registered set after 2026-10-03 hook-circumvention + U10 hook-im
                          ("clear", f'python3 "{HOOK}/clear-resume.py"')],
     "UserPromptSubmit": [# per prompt: the NOW line only (<=300 B)
                          ("", f'python3 "{HOOK}/northstar-inject.py"')],
-    "PreToolUse":       [("Skill", f'python3 "{HOOK}/skill-reinject-guard.py"'),
+    "PreToolUse":       [("Agent|Task", f'python3 "{HOOK}/agent-gate.py"'),
+                         ("Skill", f'python3 "{HOOK}/skill-reinject-guard.py"'),
                          # anti-drift: the north star is read-only to the agent
                          ("Write|Edit|MultiEdit", f'python3 "{HOOK}/northstar-protect.py"'),
                          ("Bash", f'python3 "{HOOK}/northstar-protect.py"'),
